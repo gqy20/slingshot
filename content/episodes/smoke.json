@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "id": "framework-smoke",
+  "series": "平行物理实验室",
+  "season": 0,
+  "episode": 0,
+  "title": "Episode Framework Smoke",
+  "question": "两个角度，哪一个飞得更远？",
+  "base_preset": "res://presets/smoke.json",
+  "theme": "res://content/themes/laboratory.json",
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 60
+  },
+  "simulation": {
+    "duration_sec": 0.4,
+    "tick_rate": 120
+  },
+  "story": {
+    "template": "overlay_comparison",
+    "question_sec": 0.15,
+    "setup_sec": 0.15,
+    "flight_sec": 0.4,
+    "compare_sec": 0.3,
+    "primary_metric": "range_m",
+    "metric_label": "水平位移",
+    "metric_unit": "m",
+    "goal": "max",
+    "conclusion": "框架验证完成"
+  },
+  "variants": [
+    {
+      "id": "angle-30",
+      "label": "30°",
+      "color": "#35C2FF",
+      "overrides": {
+        "physics.launch_angle_deg": 30
+      }
+    },
+    {
+      "id": "angle-60",
+      "label": "60°",
+      "color": "#FF5D8F",
+      "overrides": {
+        "physics.launch_angle_deg": 60
+      }
+    }
+  ]
+}

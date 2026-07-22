@@ -1,0 +1,14 @@
+{
+  "id": "laboratory",
+  "colors": {
+    "background": "#07111F",
+    "stage": "#0B1728",
+    "ground": "#102A2B",
+    "ground_line": "#5EE1A2",
+    "panel": "#07182A",
+    "accent": "#7CD8FF",
+    "text": "#F4F8FF",
+    "muted": "#91A8BF",
+    "highlight": "#FFD166"
+  }
+}

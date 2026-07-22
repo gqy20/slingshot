@@ -1,5 +1,6 @@
 .godot/
 .render-tmp/
+.experiment-cache/
 renders/*
 !renders/.gitkeep
 *.log

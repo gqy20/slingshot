@@ -1,6 +1,6 @@
 # 弹弓物理演示视频
 
-一个完全由 GDScript 构建画面的 2D 教学短片。程序自动完成蓄力、发射、抛体运动、碰撞慢动作和结果总结，并在画面中显示速度、动能、动量、碰撞冲量与平均力估计。
+一个由 GDScript 驱动的程序化物理视频系统。它可以展开多个平行实验，分别记录确定性物理结果，再用统一的导演、回放和视觉模板生成对比视频。
 
 制作和渲染不需要打开 Godot 编辑器。
 
@@ -8,12 +8,20 @@
 
 ```text
 src/
-├── app.gd       # 启动、参数解析和依赖组装
-├── core/        # 不依赖场景树的配置、物理与 telemetry
-└── scene/       # 场景节点、视觉节点和镜头状态机
+├── app.gd          # 传统单次实验入口
+├── episode_app.gd  # 多变体 Episode 入口
+├── core/           # 配置、物理、记录与结果分析
+├── simulation/     # 真实物理模拟
+├── playback/       # 记录采样与插值
+├── video/          # 导演、画面、HUD 与回放生命周期
+└── scene/          # 可复用场景节点
+
+content/
+├── episodes/       # 单集配置
+└── themes/         # 系列视觉主题
 ```
 
-`core/` 可以脱离运行场景进行测试；`scene/` 包含所有继承 Godot 节点的运行时组件。
+Episode 系统的完整边界和数据流见 [Episode 视频系统](docs/episode-system.md)。
 
 ## 环境
 
@@ -30,7 +38,21 @@ ffmpeg -version | head -1
 command -v xvfb-run ffprobe
 ```
 
-## 一条命令生成视频
+## 一条命令生成 Episode
+
+```bash
+scripts/render_episode.sh content/episodes/smoke.json renders/episode-smoke.mp4
+```
+
+输出：
+
+- MP4：1920×1080、60 FPS、H.264 视频；
+- JSON：比较指标、事件和各 Variant 的实验结果；
+- manifest：配置、物理记录和视频的 SHA-256 及渲染环境。
+
+脚本先顺序模拟所有 Variant，再启动独立回放进程录制视频。导演节奏不会改变已经产生的物理结果。
+
+## 传统单次实验
 
 ```bash
 scripts/render.sh presets/default.json renders/slingshot-physics.mp4
@@ -49,6 +71,7 @@ scripts/render.sh presets/default.json renders/slingshot-physics.mp4
 
 ```bash
 bash scripts/smoke_test.sh
+bash scripts/episode_smoke_test.sh
 ```
 
 运行全部 GDScript 单元测试：
