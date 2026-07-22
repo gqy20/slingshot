@@ -35,10 +35,13 @@ func start(
 	canvas.name = "EpisodeCanvas"
 	add_child(canvas)
 	canvas.configure(episode, bundle, analysis)
+	var render_scale := float(episode["video"]["width"]) / 1920.0
+	canvas.scale = Vector2(render_scale, render_scale)
 
 	hud = EpisodeHud.new()
 	hud.name = "EpisodeHud"
 	add_child(hud)
+	hud.scale = Vector2(render_scale, render_scale)
 	var subtitle_result := SubtitleTrack.load_path(subtitle_path)
 	if not subtitle_result["ok"]:
 		push_error(subtitle_result["error"])

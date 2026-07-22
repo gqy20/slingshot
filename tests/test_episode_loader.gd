@@ -39,6 +39,13 @@ func run(t) -> void:
 	bad_fps["video"]["fps"] = 24
 	t.check(not EpisodeLoader.validate_dict(bad_fps)["ok"], "unsupported episode fps rejected")
 
+	var bad_resolution: Dictionary = raw.duplicate(true)
+	bad_resolution["video"]["width"] = 2560
+	t.check(
+		not EpisodeLoader.validate_dict(bad_resolution)["ok"],
+		"unsupported episode resolution rejected"
+	)
+
 	var duplicate: Dictionary = raw.duplicate(true)
 	duplicate["variants"][1]["id"] = duplicate["variants"][0]["id"]
 	t.check(not EpisodeLoader.validate_dict(duplicate)["ok"], "duplicate variant ids rejected")
@@ -62,6 +69,10 @@ func run(t) -> void:
 			t.check(
 				production["episode"]["video"]["fps"] == 30,
 				"long-form episode uses device-friendly 30 fps"
+			)
+			t.check(
+				production["episode"]["video"]["width"] == 3840,
+				"production episode renders at native 4K width"
 			)
 			t.check(
 				not production["episode"]["narration"].is_empty(),

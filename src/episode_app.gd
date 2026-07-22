@@ -8,6 +8,24 @@ const EpisodePlayer = preload("res://src/video/episode_player.gd")
 var boot_frames := -1
 
 
+func _enter_tree() -> void:
+	var args := _parse_user_args(OS.get_cmdline_user_args())
+	var episode_path: String = args.get("episode", "")
+	if episode_path.is_empty() or not FileAccess.file_exists(episode_path):
+		return
+	var raw: Variant = JSON.parse_string(FileAccess.get_file_as_string(episode_path))
+	if not raw is Dictionary or not raw.get("video") is Dictionary:
+		return
+	var video: Dictionary = raw["video"]
+	var requested_size := Vector2i(
+		int(video.get("width", 1920)),
+		int(video.get("height", 1080))
+	)
+	get_tree().root.size = requested_size
+	get_tree().root.content_scale_size = requested_size
+	DisplayServer.window_set_size(requested_size)
+
+
 func _ready() -> void:
 	var args := _parse_user_args(OS.get_cmdline_user_args())
 	var episode_path: String = args.get("episode", "")

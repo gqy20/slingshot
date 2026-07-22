@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-JOBS="${RENDER_JOBS:-2}"
+JOBS="${RENDER_JOBS:-1}"
 OUTPUT_DIR="$PROJECT_ROOT/renders/episodes"
 EPISODES=()
 

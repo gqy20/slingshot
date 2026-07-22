@@ -24,6 +24,8 @@ if [[ ! -f "$EPISODE_ABS" ]]; then
 fi
 episode_name="$(basename "${EPISODE_ABS%.json}")"
 FPS="$(jq -er '.video.fps' "$EPISODE_ABS")"
+WIDTH="$(jq -er '.video.width' "$EPISODE_ABS")"
+HEIGHT="$(jq -er '.video.height' "$EPISODE_ABS")"
 VIDEO_DURATION="$(jq -r '
   .story.question_sec
   + (.story.explain_sec // 0)
@@ -33,6 +35,10 @@ VIDEO_DURATION="$(jq -r '
 ' "$EPISODE_ABS")"
 if [[ "$FPS" != 30 && "$FPS" != 60 ]]; then
   printf 'episode-render: video fps must be 30 or 60, got %s\n' "$FPS" >&2
+  exit 2
+fi
+if [[ "$WIDTH,$HEIGHT" != '3840,2160' ]]; then
+  printf 'episode-render: video resolution must be 3840x2160\n' >&2
   exit 2
 fi
 
@@ -53,11 +59,15 @@ OUTPUT_MP4="$OUTPUT_DIR_ABS/$(basename "$OUTPUT_INPUT")"
 OUTPUT_JSON="${OUTPUT_MP4%.mp4}.json"
 OUTPUT_MANIFEST="${OUTPUT_MP4%.mp4}.manifest.txt"
 NARRATION_DIR="$PROJECT_ROOT/renders/narration/$episode_name"
-NARRATION_AUDIO="${NARRATION_AUDIO:-$NARRATION_DIR/narration.mp3}"
+NARRATION_SOURCE="$NARRATION_DIR/narration.mp3"
+NARRATION_AUDIO="${NARRATION_AUDIO:-$NARRATION_DIR/narration-normalized.wav}"
+LOUDNESS_REPORT="$NARRATION_DIR/narration-loudness.json"
 SUBTITLE_SRT="${SUBTITLE_SRT:-$NARRATION_DIR/narration.srt}"
 HAS_NARRATION="$(jq -r '(.narration // {}) | length > 0' "$EPISODE_ABS")"
 if [[ "$HAS_NARRATION" == true ]]; then
-  if [[ ! -s "$NARRATION_AUDIO" || ! -s "$SUBTITLE_SRT" ]]; then
+  "$SCRIPT_DIR/verify_narration_sync.sh" "$EPISODE_ABS"
+  "$SCRIPT_DIR/normalize_narration.sh" "$EPISODE_ABS"
+  if [[ ! -s "$NARRATION_AUDIO" || ! -s "$SUBTITLE_SRT" || ! -s "$LOUDNESS_REPORT" ]]; then
     printf 'episode-render: narration missing; run scripts/generate_narration.sh %s\n' \
       "$EPISODE_ABS" >&2
     exit 2
@@ -113,11 +123,12 @@ PLAYBACK_ARGS=(
 if [[ "$HAS_NARRATION" == true ]]; then
   PLAYBACK_ARGS+=(--subtitles "$SUBTITLE_SRT")
 fi
-if ! xvfb-run -a -s '-screen 0 1920x1080x24' \
-  timeout "${RENDER_TIMEOUT_SEC:-1200}" \
+XVFB_SCREEN="-screen 0 ${WIDTH}x${HEIGHT}x24"
+if ! xvfb-run -a -s "$XVFB_SCREEN" \
+  timeout "${RENDER_TIMEOUT_SEC:-3600}" \
   "$GODOT_BIN" --path "$PROJECT_ROOT" \
   --rendering-method gl_compatibility \
-  --resolution 1920x1080 \
+  --resolution "${WIDTH}x${HEIGHT}" \
   --write-movie "$FRAME_DIR/frame.png" \
   --fixed-fps "$FPS" --disable-vsync \
   res://episode.tscn -- "${PLAYBACK_ARGS[@]}" \
@@ -144,8 +155,7 @@ if [[ "$HAS_NARRATION" == true ]]; then
     -i "$NARRATION_AUDIO" \
     -t "$VIDEO_DURATION" \
     -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p \
-    -c:a aac -b:a 160k \
-    -af 'loudnorm=I=-16:TP=-1.5:LRA=7,aresample=48000' \
+    -c:a aac -b:a 192k \
     -movflags +faststart "$MP4_TMP"
 else
   ffmpeg -y -loglevel error \
@@ -156,7 +166,7 @@ else
 fi
 
 probe="$(ffprobe -v error -select_streams v:0   -show_entries stream=codec_name,width,height,avg_frame_rate   -of csv=p=0 "$MP4_TMP")"
-if [[ "$probe" != "h264,1920,1080,$FPS/1" ]]; then
+if [[ "$probe" != "h264,$WIDTH,$HEIGHT,$FPS/1" ]]; then
   printf 'episode-render: unexpected stream metadata: %s\n' "$probe" >&2
   exit 1
 fi
@@ -178,6 +188,7 @@ if [[ "$HAS_NARRATION" == true ]]; then
     printf 'episode-render: expected AAC narration, got %s\n' "$audio_codec" >&2
     exit 1
   fi
+  delivery_audio_json="$("$SCRIPT_DIR/verify_delivery_audio.sh" "$MP4_TMP")"
 fi
 
 mp4_sha="$(sha256sum "$MP4_TMP" | awk '{print $1}')"
@@ -192,10 +203,17 @@ godot_version="$("$GODOT_BIN" --version | head -1)"
   printf 'video_stream=%s\n' "$probe"
   printf 'video_duration_sec=%s\n' "$output_duration"
 	if [[ "$HAS_NARRATION" == true ]]; then
-		printf 'audio_sha256=%s\n' "$(sha256sum "$NARRATION_AUDIO" | awk '{print $1}')"
+		printf 'audio_source_sha256=%s\n' "$(sha256sum "$NARRATION_SOURCE" | awk '{print $1}')"
+		printf 'audio_normalized_sha256=%s\n' "$(sha256sum "$NARRATION_AUDIO" | awk '{print $1}')"
 		printf 'subtitles_sha256=%s\n' "$(sha256sum "$SUBTITLE_SRT" | awk '{print $1}')"
 		printf 'audio_codec=aac\n'
-		printf 'audio_loudness_target=-16_LUFS\n'
+		printf 'audio_standard=-16_LUFS_-1.5_dBTP_48kHz_mono_PCM24_source\n'
+		printf 'audio_measured_i=%s\n' "$(jq -r '.measured_i' "$LOUDNESS_REPORT")"
+		printf 'audio_measured_tp=%s\n' "$(jq -r '.measured_tp' "$LOUDNESS_REPORT")"
+		printf 'audio_delivery_standard=-16_LUFS_plus_minus_1_-1.0_dBTP_max_48kHz_mono\n'
+		printf 'audio_delivery_measured_i=%s\n' "$(jq -r '.measured_i' <<<"$delivery_audio_json")"
+		printf 'audio_delivery_measured_tp=%s\n' "$(jq -r '.measured_tp' <<<"$delivery_audio_json")"
+		printf 'subtitle_text_exact=true\n'
 	fi
   printf 'engine=%s\n' "$godot_version"
   printf 'renderer=gl_compatibility\n'

@@ -11,7 +11,7 @@ Episode JSON
   -> RunRecord JSON
   -> ResultAnalyzer + EpisodeDirector
   -> ReplayTrack + EpisodeCanvas + EpisodeHud + SRT
-  -> PNG sequence + mmx narration -> H.264/AAC MP4
+  -> native 4K PNG sequence + standardized mmx narration -> H.264/AAC MP4
 ~~~
 
 模拟阶段决定发生了什么；分析阶段决定结果意味着什么；导演阶段决定何时展示；回放阶段只负责画面，不再修改物理状态。
@@ -26,7 +26,7 @@ Episode JSON
 - 问题、镜头节拍、主比较指标及结论；
 - Explain 概念卡、可版本化解说稿、mmx 模型与音色；
 - 可复用的视觉主题；
-- 固定 1920×1080、可选 30/60 FPS 输出规格。
+- 固定 3840×2160 原生输出、可选 30/60 FPS。
 
 Variant override 只允许修改 physics.* 和 scene.* 中已经存在的键。每个 Variant 会重新经过 preset 校验。
 
@@ -37,11 +37,14 @@ scripts/render_episode.sh 创建独立临时目录：
 1. 使用无界面 Godot 顺序运行所有 Variant。
 2. 写入带引擎版本的 RunRecord。
 3. 重新启动 Godot，以 Movie Maker 模式回放记录。
-4. 读取 mmx 生成的 SRT，在 Godot 中绘制避开实验主体的字幕安全带。
-5. 使用 FFmpeg 编码 H.264，并将对应 MP3 重采样、编码为 AAC。
-6. 原子发布 MP4、分析 sidecar 与 provenance manifest。
+4. 忽略排版空白后，逐字符验证讲稿正文与 mmx SRT 正文完全一致。
+5. 对配音做两遍响度分析，生成 `-16 ±1 LUFS`、`≤ -1.5 dBTP`、48 kHz 单声道 PCM24 母版。
+6. 读取同一份 SRT，在 Godot 4K 根视口中绘制字幕安全带和 2 倍矢量画面。
+7. 使用 FFmpeg 编码 H.264，并将标准化母版编码为 AAC 后混入。
+8. 复测 AAC 交付音轨，要求 `-16 ±1 LUFS`、`≤ -1.0 dBTP`、48 kHz 单声道。
+9. 原子发布 MP4、分析 sidecar 与 provenance manifest。
 
-视频 Manifest 记录 Episode、RunRecord、MP4、配音和字幕的 SHA-256，以及 Godot、渲染器和音视频流信息。解说 Manifest 另外记录讲稿、mmx 模型、音色和真实音频时长。修改字幕、布局或主题后可以复用 RunRecord；当前 CLI 为保持简单，每次执行都会重新模拟。
+视频 Manifest 记录 Episode、RunRecord、MP4、原始配音、标准化母版和字幕的 SHA-256，以及 Godot、渲染器、音视频流、实测 LUFS/真峰值和正文一致性结论。解说 Manifest 另外记录讲稿、mmx 模型、音色和真实音频时长。修改音频时可仅重新混音，不必重渲染 4K 画面。
 
 ## 扩展边界
 

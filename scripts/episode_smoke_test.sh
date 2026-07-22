@@ -24,9 +24,9 @@ rate="$(ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate
 duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$OUTPUT_MP4")"
 
 test "$codec" = h264
-test "$width" = 1920
-test "$height" = 1080
-test "$rate" = 60/1
+test "$width" = 3840
+test "$height" = 2160
+test "$rate" = 30/1
 awk -v value="$duration" 'BEGIN { exit !(value >= 1.05 && value <= 1.15) }'
 
 printf 'EPISODE SMOKE: passed (%sx%s %s fps, %ss)\n' "$width" "$height" "$rate" "$duration"

@@ -32,7 +32,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-for required_command in mmx jq ffprobe realpath sha256sum awk; do
+for required_command in mmx jq ffprobe realpath sha256sum awk tr; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'narration: missing command: %s\n' "$required_command" >&2
     exit 2
@@ -112,9 +112,11 @@ for episode_input in "${EPISODES[@]}"; do
     exit 2
   fi
 
-  audio_duration="$(
-    ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$audio"
-  )"
+  "$SCRIPT_DIR/verify_narration_sync.sh" "$episode_abs"
+  "$SCRIPT_DIR/normalize_narration.sh" "$episode_abs"
+  normalized_audio="$output_dir/narration-normalized.wav"
+  loudness_report="$output_dir/narration-loudness.json"
+  audio_duration="$(jq -r '.duration_sec' "$loudness_report")"
   if ! awk -v audio="$audio_duration" -v video="$video_duration" \
     'BEGIN { exit !(audio > 0 && audio <= video) }'; then
     printf 'narration: audio %.3fs exceeds video %.3fs for %s\n' \
@@ -127,13 +129,22 @@ for episode_input in "${EPISODES[@]}"; do
     printf 'episode_sha256=%s\n' "$(sha256sum "$episode_abs" | awk '{print $1}')"
     printf 'script=%s\n' "$(basename "$narration_script")"
     printf 'script_sha256=%s\n' "$(sha256sum "$narration_script" | awk '{print $1}')"
-    printf 'audio_sha256=%s\n' "$(sha256sum "$audio" | awk '{print $1}')"
+    canonical_text="$(tr -d '[:space:]' <"$narration_script")"
+    printf 'canonical_text_sha256=%s\n' \
+      "$(printf '%s' "$canonical_text" | sha256sum | awk '{print $1}')"
+    printf 'subtitle_text_exact=true\n'
+    printf 'source_audio_sha256=%s\n' "$(sha256sum "$audio" | awk '{print $1}')"
+    printf 'normalized_audio_sha256=%s\n' \
+      "$(sha256sum "$normalized_audio" | awk '{print $1}')"
     printf 'subtitles_sha256=%s\n' "$(sha256sum "$subtitles" | awk '{print $1}')"
     printf 'audio_duration_sec=%s\n' "$audio_duration"
     printf 'video_duration_sec=%s\n' "$video_duration"
     printf 'model=%s\n' "$model"
     printf 'voice=%s\n' "$voice"
     printf 'speed=%s\n' "$speed"
+		printf 'audio_standard=-16_LUFS_-1.5_dBTP_48kHz_mono_PCM24\n'
+		printf 'audio_measured_i=%s\n' "$(jq -r '.measured_i' "$loudness_report")"
+		printf 'audio_measured_tp=%s\n' "$(jq -r '.measured_tp' "$loudness_report")"
   } >"$manifest"
 
   printf 'narration: %s audio=%ss video=%ss\n' \

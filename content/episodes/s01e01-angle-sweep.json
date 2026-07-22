@@ -9,8 +9,8 @@
   "base_preset": "res://presets/series-base.json",
   "theme": "res://content/themes/laboratory.json",
   "video": {
-    "width": 1920,
-    "height": 1080,
+    "width": 3840,
+    "height": 2160,
     "fps": 30
   },
 	"narration": {

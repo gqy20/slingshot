@@ -14,6 +14,7 @@ var _boot_frames := -1
 
 
 func _ready() -> void:
+	scale = Vector2(2.0, 2.0)
 	var args := _parse_user_args(OS.get_cmdline_user_args())
 	var preset_path: String = args.get("preset", "res://presets/default.json")
 	var loaded: Dictionary = PresetLoader.load_path(preset_path)
@@ -119,6 +120,7 @@ func _build_runtime(preset: Dictionary, sidecar_path: String) -> Dictionary:
 	var hud = Hud.new()
 	hud.name = "Hud"
 	add_child(hud)
+	hud.scale = Vector2(2.0, 2.0)
 	hud.configure(scene["accent_color"])
 
 	var telemetry = Telemetry.new()

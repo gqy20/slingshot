@@ -60,11 +60,11 @@ trap cleanup EXIT
 printf 'render: preset=%s\n' "$PRESET_ABS"
 printf 'render: output=%s\n' "$OUTPUT_MP4"
 
-if ! xvfb-run -a -s '-screen 0 1920x1080x24' \
+if ! xvfb-run -a -s '-screen 0 3840x2160x24' \
   timeout "${RENDER_TIMEOUT_SEC:-900}" \
   "$GODOT_BIN" --path "$PROJECT_ROOT" \
   --rendering-method gl_compatibility \
-  --resolution 1920x1080 \
+  --resolution 3840x2160 \
   --write-movie "$FRAME_DIR/frame.png" \
   --fixed-fps 60 --disable-vsync \
   -- --preset "$PRESET_ABS" --sidecar "$JSON_TMP" \
@@ -94,7 +94,7 @@ ffmpeg -y -loglevel error \
 probe="$(ffprobe -v error -select_streams v:0 \
   -show_entries stream=codec_name,width,height,avg_frame_rate \
   -of csv=p=0 "$MP4_TMP")"
-if [[ "$probe" != 'h264,1920,1080,60/1' ]]; then
+if [[ "$probe" != 'h264,3840,2160,60/1' ]]; then
   printf 'render: unexpected stream metadata: %s\n' "$probe" >&2
   exit 1
 fi

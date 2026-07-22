@@ -47,7 +47,7 @@ scripts/render_episode.sh content/episodes/smoke.json renders/episode-smoke.mp4
 
 输出：
 
-- MP4：1920×1080、30/60 FPS、H.264 视频，可带 AAC 解说；
+- MP4：3840×2160、30/60 FPS、H.264 视频，可带标准化 AAC 解说；
 - JSON：比较指标、事件和各 Variant 的实验结果；
 - manifest：配置、物理记录和视频的 SHA-256 及渲染环境。
 
@@ -63,7 +63,7 @@ scripts/render_episode.sh content/episodes/s01e01-angle-sweep.json
 scripts/render_episode.sh content/episodes/s01e02-stretch-sweep.json
 ```
 
-`generate_narration.sh` 使用 mmx-cli 的 `speech-2.8-hd` 同时生成 MP3 和精确 SRT。Godot 根据 SRT 绘制字幕，FFmpeg 将同一音轨混入成片；讲稿、模型、音色、时长和 SHA-256 都可追溯。
+`generate_narration.sh` 使用 mmx-cli 的 `speech-2.8-hd` 在同一次合成中生成 MP3 和精确 SRT。流水线会忽略排版空白后逐字符验证“讲稿正文 = SRT 正文”，再以两遍响度分析生成 `-16 ±1 LUFS`、不高于 `-1.5 dBTP`、48 kHz 单声道 24-bit PCM 母版。Godot 根据同一份 SRT 绘制字幕，FFmpeg 将标准化母版编码为 AAC 并混入成片。编码完成后还会复测交付音轨，要求 `-16 ±1 LUFS`、不高于 `-1.0 dBTP`、48 kHz 单声道；讲稿、模型、音色、响度、时长和 SHA-256 都可追溯。
 
 只调整配音时可以跳过 Godot 逐帧渲染，直接以 `-16 LUFS` 目标响度重新混入：
 
@@ -74,11 +74,11 @@ scripts/remux_narration.sh content/episodes/s01e01-angle-sweep.json
 - S01E01：相同弹簧能量下比较 15°、30°、45°、60°、75° 的首次落地距离；
 - S01E02：保持 45°，比较 0.3 m、0.6 m、0.9 m、1.2 m 拉伸距离。
 
-批量渲染默认使用 2 路并行。Ryzen 5 4600U 实测日常使用 2 路、设备空闲时 3 路较合适；其他设备可通过 `--jobs N` 调整：
+原生 4K 批量渲染默认使用 1 路。Ryzen 5 4600U 实测每路峰值约 2.5 GB；内存至少有 8 GB 可用且设备空闲时可显式使用 2 路：
 
 ```bash
-scripts/render_batch.sh --jobs 2
-scripts/render_batch.sh --jobs 3 content/episodes/s01e01-angle-sweep.json content/episodes/s01e02-stretch-sweep.json
+scripts/render_batch.sh
+scripts/render_batch.sh --jobs 2 content/episodes/s01e01-angle-sweep.json content/episodes/s01e02-stretch-sweep.json
 ```
 
 生成 Question、Explain、Setup、Launch、Mid-flight、Landing、Compare 七节拍审查表：
@@ -95,7 +95,7 @@ scripts/render.sh presets/default.json renders/slingshot-physics.mp4
 
 输出：
 
-- `renders/slingshot-physics.mp4`：1920×1080、60 FPS、H.264 视频。
+- `renders/slingshot-physics.mp4`：3840×2160、60 FPS、H.264 视频。
 - `renders/slingshot-physics.json`：本次实验的参数、帧数和碰撞 telemetry。
 
 渲染使用 Godot Movie Maker 逐帧生成无损 PNG，再由 FFmpeg 编码 MP4。渲染速度可以低于实时速度，但固定时间步保证最终视频不掉帧。
@@ -136,7 +136,7 @@ Xvfb 环境中出现“无法创建输入法上下文”或“不支持切换 V-
 - `bird_color`、`target_color`、`accent_color`：HTML 十六进制颜色。
 - `seed`：镜头震动等程序效果的确定性种子。
 
-Episode 固定输出 1920×1080，支持 30 或 60 FPS。当前 1 分钟以上的正片使用 30 FPS，在软件 OpenGL 设备上可以把逐帧渲染量减半；冲突的分辨率或 FPS 会在渲染前被拒绝，以免构图被裁切。
+Episode 原生输出 3840×2160，支持 30 或 60 FPS。逻辑画布保持 1920×1080，再由 Godot 在 4K 根视口中进行 2 倍矢量绘制，因此文字、线条和轨迹不是后期插值放大。当前 1 分钟以上的正片使用 30 FPS；冲突的分辨率或 FPS 会在渲染前被拒绝。
 
 ## 物理口径
 
@@ -166,10 +166,11 @@ F_avg ≈ |J| / Δt
 Godot 也可以直接启动：
 
 ```bash
-xvfb-run -a -s '-screen 0 1920x1080x24' \
+xvfb-run -a -s '-screen 0 3840x2160x24' \
   godot --path . \
   --rendering-method gl_compatibility \
   --write-movie /tmp/slingshot/frame.png \
+  --resolution 3840x2160 \
   --fixed-fps 60 --disable-vsync \
   -- --preset presets/default.json --sidecar /tmp/slingshot/result.json
 ```

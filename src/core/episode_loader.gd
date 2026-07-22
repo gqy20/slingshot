@@ -3,7 +3,7 @@ extends RefCounted
 
 const PresetLoader = preload("res://src/core/preset_loader.gd")
 
-const REQUIRED_VIDEO := {"width": 1920, "height": 1080}
+const REQUIRED_VIDEO_SIZE := Vector2i(3840, 2160)
 const ALLOWED_VIDEO_FPS := [30, 60]
 const ALLOWED_TEMPLATES := ["overlay_comparison"]
 const ALLOWED_GOALS := ["max", "min"]
@@ -30,9 +30,11 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 	if not video_value is Dictionary:
 		return _failure("video must be an object")
 	var video: Dictionary = video_value
-	for key in REQUIRED_VIDEO:
-		if not _is_number(video.get(key)) or int(video[key]) != REQUIRED_VIDEO[key]:
-			return _failure("video.%s must equal %d" % [key, REQUIRED_VIDEO[key]])
+	if not _is_number(video.get("width")) or not _is_number(video.get("height")):
+		return _failure("video width and height must be numeric")
+	var video_size := Vector2i(int(video["width"]), int(video["height"]))
+	if video_size != REQUIRED_VIDEO_SIZE:
+		return _failure("video resolution must be 3840x2160")
 	if not _is_number(video.get("fps")) or int(video["fps"]) not in ALLOWED_VIDEO_FPS:
 		return _failure("video.fps must be one of %s" % [ALLOWED_VIDEO_FPS])
 
@@ -110,8 +112,8 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 		"theme_path": theme_path,
 		"theme": theme_result["theme"],
 		"video": {
-			"width": REQUIRED_VIDEO["width"],
-			"height": REQUIRED_VIDEO["height"],
+			"width": video_size.x,
+			"height": video_size.y,
 			"fps": int(video["fps"]),
 		},
 		"simulation": simulation,

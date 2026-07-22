@@ -22,10 +22,15 @@ if [[ $# -eq 2 ]]; then
 else
   video_abs="$PROJECT_ROOT/renders/episodes/$stem.mp4"
 fi
-audio="$PROJECT_ROOT/renders/narration/$stem/narration.mp3"
+source_audio="$PROJECT_ROOT/renders/narration/$stem/narration.mp3"
+"$SCRIPT_DIR/verify_narration_sync.sh" "$episode_abs"
+"$SCRIPT_DIR/normalize_narration.sh" "$episode_abs"
+audio="$PROJECT_ROOT/renders/narration/$stem/narration-normalized.wav"
+loudness_report="$PROJECT_ROOT/renders/narration/$stem/narration-loudness.json"
 subtitles="$PROJECT_ROOT/renders/narration/$stem/narration.srt"
 manifest="${video_abs%.mp4}.manifest.txt"
-for required_file in "$episode_abs" "$video_abs" "$audio" "$subtitles" "$manifest"; do
+for required_file in "$episode_abs" "$video_abs" "$source_audio" "$audio" \
+  "$loudness_report" "$subtitles" "$manifest"; do
   if [[ ! -s "$required_file" ]]; then
     printf 'narration-remux: required file missing: %s\n' "$required_file" >&2
     exit 2
@@ -50,8 +55,7 @@ ffmpeg -y -loglevel error \
   -map 0:v:0 -map 1:a:0 \
   -t "$video_duration" \
   -c:v copy \
-  -c:a aac -b:a 160k \
-  -af 'loudnorm=I=-16:TP=-1.5:LRA=7,aresample=48000' \
+  -c:a aac -b:a 192k \
   -movflags +faststart "$remux_tmp/output.mp4"
 
 output_duration="$(
@@ -64,24 +68,43 @@ if ! awk -v actual="$output_duration" -v expected="$video_duration" \
     "$output_duration" "$video_duration" >&2
   exit 1
 fi
+delivery_audio_json="$(
+  "$SCRIPT_DIR/verify_delivery_audio.sh" "$remux_tmp/output.mp4"
+)"
 
 video_sha="$(sha256sum "$remux_tmp/output.mp4" | awk '{print $1}')"
-audio_sha="$(sha256sum "$audio" | awk '{print $1}')"
+source_audio_sha="$(sha256sum "$source_audio" | awk '{print $1}')"
+normalized_audio_sha="$(sha256sum "$audio" | awk '{print $1}')"
 subtitles_sha="$(sha256sum "$subtitles" | awk '{print $1}')"
 awk -F= \
   -v video_sha="$video_sha" \
-  -v audio_sha="$audio_sha" \
-  -v subtitles_sha="$subtitles_sha" '
+  -v source_audio_sha="$source_audio_sha" \
+  -v normalized_audio_sha="$normalized_audio_sha" \
+  -v subtitles_sha="$subtitles_sha" \
+  -v measured_i="$(jq -r '.measured_i' "$loudness_report")" \
+  -v measured_tp="$(jq -r '.measured_tp' "$loudness_report")" \
+  -v delivery_i="$(jq -r '.measured_i' <<<"$delivery_audio_json")" \
+  -v delivery_tp="$(jq -r '.measured_tp' <<<"$delivery_audio_json")" '
   BEGIN { OFS = "=" }
   $1 == "video_sha256" { $2 = video_sha }
-  $1 == "audio_sha256" { $2 = audio_sha }
-  $1 == "subtitles_sha256" { $2 = subtitles_sha }
-  $1 == "audio_loudness_target" { found_loudness = 1; $2 = "-16_LUFS" }
+  $1 ~ /^audio_/ || $1 == "subtitles_sha256" || $1 == "subtitle_text_exact" { next }
   { print }
-  END { if (!found_loudness) print "audio_loudness_target=-16_LUFS" }
+  END {
+    print "audio_source_sha256=" source_audio_sha
+    print "audio_normalized_sha256=" normalized_audio_sha
+    print "subtitles_sha256=" subtitles_sha
+    print "audio_codec=aac"
+    print "audio_standard=-16_LUFS_-1.5_dBTP_48kHz_mono_PCM24_source"
+    print "audio_measured_i=" measured_i
+    print "audio_measured_tp=" measured_tp
+    print "audio_delivery_standard=-16_LUFS_plus_minus_1_-1.0_dBTP_max_48kHz_mono"
+    print "audio_delivery_measured_i=" delivery_i
+    print "audio_delivery_measured_tp=" delivery_tp
+    print "subtitle_text_exact=true"
+  }
   ' "$manifest" >"$remux_tmp/manifest.txt"
 
 mv "$remux_tmp/output.mp4" "$video_abs"
 mv "$remux_tmp/manifest.txt" "$manifest"
-printf 'narration-remux: completed %s (%ss, -16 LUFS target)\n' \
+printf 'narration-remux: completed %s (%ss, standardized narration)\n' \
   "$video_abs" "$output_duration"
