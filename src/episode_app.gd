@@ -55,7 +55,8 @@ func _ready() -> void:
 	player.start(
 		episode,
 		bundle,
-		String(args.get("sidecar", ""))
+		String(args.get("sidecar", "")),
+		String(args.get("subtitles", ""))
 	)
 
 
@@ -73,6 +74,7 @@ func _parse_user_args(argv: PackedStringArray) -> Dictionary:
 		"simulate_record": "",
 		"play_record": "",
 		"sidecar": "",
+		"subtitles": "",
 		"boot_only": false,
 	}
 	var index := 0
@@ -93,6 +95,10 @@ func _parse_user_args(argv: PackedStringArray) -> Dictionary:
 			"--sidecar":
 				if index + 1 < argv.size():
 					result["sidecar"] = argv[index + 1]
+					index += 1
+			"--subtitles":
+				if index + 1 < argv.size():
+					result["subtitles"] = argv[index + 1]
 					index += 1
 			"--boot-only":
 				result["boot_only"] = true

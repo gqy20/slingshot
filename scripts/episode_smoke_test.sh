@@ -27,6 +27,6 @@ test "$codec" = h264
 test "$width" = 1920
 test "$height" = 1080
 test "$rate" = 60/1
-awk -v value="$duration" 'BEGIN { exit !(value >= 0.95 && value <= 1.10) }'
+awk -v value="$duration" 'BEGIN { exit !(value >= 1.05 && value <= 1.15) }'
 
 printf 'EPISODE SMOKE: passed (%sx%s %s fps, %ss)\n' "$width" "$height" "$rate" "$duration"

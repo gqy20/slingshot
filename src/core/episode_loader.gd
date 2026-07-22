@@ -3,7 +3,8 @@ extends RefCounted
 
 const PresetLoader = preload("res://src/core/preset_loader.gd")
 
-const REQUIRED_VIDEO := {"width": 1920, "height": 1080, "fps": 60}
+const REQUIRED_VIDEO := {"width": 1920, "height": 1080}
+const ALLOWED_VIDEO_FPS := [30, 60]
 const ALLOWED_TEMPLATES := ["overlay_comparison"]
 const ALLOWED_GOALS := ["max", "min"]
 const ALLOWED_OVERRIDE_PREFIXES := ["physics.", "scene."]
@@ -32,6 +33,8 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 	for key in REQUIRED_VIDEO:
 		if not _is_number(video.get(key)) or int(video[key]) != REQUIRED_VIDEO[key]:
 			return _failure("video.%s must equal %d" % [key, REQUIRED_VIDEO[key]])
+	if not _is_number(video.get("fps")) or int(video["fps"]) not in ALLOWED_VIDEO_FPS:
+		return _failure("video.fps must be one of %s" % [ALLOWED_VIDEO_FPS])
 
 	var simulation_value: Variant = raw.get("simulation")
 	if not simulation_value is Dictionary:
@@ -51,6 +54,9 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 	if not story_result["ok"]:
 		return story_result
 	var story: Dictionary = story_result["story"]
+	var narration_result := _normalize_narration(raw.get("narration", {}), source_path)
+	if not narration_result["ok"]:
+		return narration_result
 
 	var theme_path: String = String(
 		raw.get("theme", "res://content/themes/laboratory.json")
@@ -87,6 +93,7 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 
 	var duration_sec: float = (
 		story["question_sec"]
+		+ story["explain_sec"]
 		+ story["setup_sec"]
 		+ story["flight_sec"]
 		+ story["compare_sec"]
@@ -102,9 +109,14 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 		"base_preset": base_preset_path,
 		"theme_path": theme_path,
 		"theme": theme_result["theme"],
-		"video": REQUIRED_VIDEO.duplicate(true),
+		"video": {
+			"width": REQUIRED_VIDEO["width"],
+			"height": REQUIRED_VIDEO["height"],
+			"fps": int(video["fps"]),
+		},
 		"simulation": simulation,
 		"story": story,
+		"narration": narration_result["narration"],
 		"duration_sec": duration_sec,
 		"variants": normalized_variants,
 	}
@@ -155,6 +167,10 @@ static func _normalize_story(value: Variant) -> Dictionary:
 		if not _positive_finite(story.get(key)):
 			return _failure("story.%s must be positive and finite" % key)
 		story[key] = float(story[key])
+	var explain_value: Variant = story.get("explain_sec", 0.0)
+	if not _is_number(explain_value) or not is_finite(float(explain_value)):
+		return _failure("story.explain_sec must be numeric and finite")
+	story["explain_sec"] = maxf(0.0, float(explain_value))
 	if not story.get("primary_metric") is String or String(story["primary_metric"]).is_empty():
 		return _failure("story.primary_metric must be a non-empty string")
 	story["goal"] = String(story.get("goal", "max"))
@@ -166,11 +182,53 @@ static func _normalize_story(value: Variant) -> Dictionary:
 	story["secondary_label"] = String(story.get("secondary_label", ""))
 	story["secondary_unit"] = String(story.get("secondary_unit", ""))
 	story["control_label"] = String(story.get("control_label", ""))
+	story["explain_title"] = String(story.get("explain_title", ""))
+	story["explain_detail"] = String(story.get("explain_detail", ""))
 	story["conclusion"] = String(story.get("conclusion", ""))
+	story["result_reveal_interval_sec"] = maxf(
+		0.15,
+		float(story.get("result_reveal_interval_sec", 0.3))
+	)
+	story["conclusion_delay_sec"] = maxf(
+		0.0,
+		float(story.get("conclusion_delay_sec", 0.0))
+	)
 	story["show_target"] = bool(story.get("show_target", true))
 	story["sync_event"] = String(story.get("sync_event", ""))
 	story["sync_at"] = clampf(float(story.get("sync_at", 0.68)), 0.15, 0.85)
 	return {"ok": true, "error": "", "story": story}
+
+
+static func _normalize_narration(value: Variant, source_path: String) -> Dictionary:
+	if value == null or value == {}:
+		return {"ok": true, "error": "", "narration": {}}
+	if not value is Dictionary:
+		return _failure("narration must be an object")
+	var raw: Dictionary = value
+	var script_path: String = String(raw.get("script", "")).strip_edges()
+	if script_path.is_empty():
+		return _failure("narration.script must be a non-empty string")
+	if not script_path.begins_with("res://") and not source_path.is_empty():
+		script_path = source_path.get_base_dir().path_join(script_path)
+	if not FileAccess.file_exists(script_path):
+		return _failure("narration script not found: %s" % script_path)
+	var voice: String = String(raw.get("voice", "")).strip_edges()
+	if voice.is_empty():
+		return _failure("narration.voice must be a non-empty string")
+	var speed_value: Variant = raw.get("speed", 1.0)
+	if not _positive_finite(speed_value):
+		return _failure("narration.speed must be positive and finite")
+	return {
+		"ok": true,
+		"error": "",
+		"narration": {
+			"script": script_path,
+			"voice": voice,
+			"model": String(raw.get("model", "speech-2.8-hd")),
+			"language": String(raw.get("language", "Chinese")),
+			"speed": float(speed_value),
+		},
+	}
 
 
 static func _normalize_variant(value: Variant, base_raw: Dictionary, index: int) -> Dictionary:

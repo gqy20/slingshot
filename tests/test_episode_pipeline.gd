@@ -59,9 +59,10 @@ func run(t) -> void:
 	)
 
 	t.check(EpisodeDirector.phase_for_time(episode, 0.0) == "QUESTION", "question phase")
-	t.check(EpisodeDirector.phase_for_time(episode, 0.2) == "SETUP", "setup phase")
-	t.check(EpisodeDirector.phase_for_time(episode, 0.4) == "FLIGHT", "flight phase")
-	t.check(EpisodeDirector.phase_for_time(episode, 0.8) == "COMPARE", "compare phase")
+	t.check(EpisodeDirector.phase_for_time(episode, 0.2) == "EXPLAIN", "explain phase")
+	t.check(EpisodeDirector.phase_for_time(episode, 0.3) == "SETUP", "setup phase")
+	t.check(EpisodeDirector.phase_for_time(episode, 0.5) == "FLIGHT", "flight phase")
+	t.check(EpisodeDirector.phase_for_time(episode, 0.9) == "COMPARE", "compare phase")
 	var times := EpisodeDirector.simulation_times(episode, bundle, 0.5)
 	t.check(times.has("angle-30") and times.has("angle-60"), "director maps every variant")
 

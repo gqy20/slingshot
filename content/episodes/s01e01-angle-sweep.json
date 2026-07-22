@@ -11,18 +11,26 @@
   "video": {
     "width": 1920,
     "height": 1080,
-    "fps": 60
+    "fps": 30
   },
+	"narration": {
+		"script": "res://content/narration/s01e01-angle-sweep.txt",
+		"model": "speech-2.8-hd",
+		"voice": "Chinese (Mandarin)_Reliable_Executive",
+		"language": "Chinese",
+		"speed": 1.0
+	},
   "simulation": {
     "duration_sec": 3.0,
     "tick_rate": 120
   },
   "story": {
     "template": "overlay_comparison",
-    "question_sec": 2.2,
-    "setup_sec": 2.3,
-    "flight_sec": 5.5,
-    "compare_sec": 4.0,
+    "question_sec": 5.8,
+    "explain_sec": 11.7,
+    "setup_sec": 15.9,
+    "flight_sec": 19.7,
+    "compare_sec": 32.9,
     "primary_metric": "flight_range_m",
     "metric_label": "首次落地水平位移",
     "metric_unit": "m",
@@ -30,6 +38,10 @@
     "secondary_label": "最高点",
     "secondary_unit": "m",
     "control_label": "仅改变发射角  ·  k = 160 N/m  ·  x = 0.9 m  ·  m = 1 kg",
+    "explain_title": "水平速度  ↔  滞空时间",
+    "explain_detail": "角度越低，水平分量越大；角度越高，滞空越久。\n最远距离来自两者的平衡。",
+		"result_reveal_interval_sec": 1.8,
+		"conclusion_delay_sec": 13.3,
     "goal": "max",
     "show_target": false,
     "conclusion": "45° 飞得最远；75° 虽然最高，却不是最远。"

@@ -20,12 +20,15 @@
   "story": {
     "template": "overlay_comparison",
     "question_sec": 0.15,
+    "explain_sec": 0.1,
     "setup_sec": 0.15,
     "flight_sec": 0.4,
     "compare_sec": 0.3,
     "primary_metric": "range_m",
     "metric_label": "水平位移",
     "metric_unit": "m",
+		"explain_title": "建立直觉",
+		"explain_detail": "端到端验证 Explain 阶段",
     "goal": "max",
     "conclusion": "框架验证完成"
   },

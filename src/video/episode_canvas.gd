@@ -16,6 +16,7 @@ var trajectories_by_id: Dictionary = {}
 var launch_position_px := Vector2(240, 760)
 var target_position_px := Vector2(1320, 760)
 var ground_y_px := 920.0
+var video_time_sec := 0.0
 
 
 func configure(
@@ -46,11 +47,13 @@ func configure(
 func set_playback(
 	value_phase: String,
 	times: Dictionary,
-	states: Dictionary
+	states: Dictionary,
+	elapsed_video_sec: float = 0.0
 ) -> void:
 	phase = value_phase
 	simulation_times_by_id = times
 	states_by_id = states
+	video_time_sec = elapsed_video_sec
 	queue_redraw()
 
 
@@ -130,20 +133,41 @@ func _draw_reference_target() -> void:
 
 
 func _draw_trajectories() -> void:
-	for variant_value in episode.get("variants", []):
-		var variant: Dictionary = variant_value
+	var variants: Array = episode.get("variants", [])
+	for index in range(variants.size()):
+		var variant: Dictionary = variants[index]
 		var id: String = variant["id"]
 		var color: Color = colors_by_id[id]
 		var points: PackedVector2Array
 		var alpha := 0.2
 		var width := 3.0
-		if phase == "QUESTION":
+		if phase in ["QUESTION", "EXPLAIN"]:
 			continue
 		elif phase == "SETUP":
 			var full_points: PackedVector2Array = trajectories_by_id.get(
 				id, PackedVector2Array()
 			)
-			points = full_points.slice(0, maxi(2, int(full_points.size() * 0.16)))
+			var story: Dictionary = episode["story"]
+			var setup_start := (
+				float(story["question_sec"])
+				+ float(story.get("explain_sec", 0.0))
+			)
+			var setup_progress := clampf(
+				(video_time_sec - setup_start) / float(story["setup_sec"]),
+				0.0,
+				1.0
+			)
+			var reveal_progress := clampf(
+				setup_progress * float(variants.size() + 1) - float(index),
+				0.0,
+				1.0
+			)
+			if reveal_progress <= 0.0:
+				continue
+			points = full_points.slice(
+				0,
+				maxi(2, int(full_points.size() * 0.16 * reveal_progress))
+			)
 			alpha = 0.52
 		elif phase == "FLIGHT":
 			points = ReplayTrack.partial_trajectory(

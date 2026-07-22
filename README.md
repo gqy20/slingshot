@@ -18,6 +18,7 @@ src/
 
 content/
 ├── episodes/       # 单集配置
+├── narration/      # 可版本化的中文解说稿
 └── themes/         # 系列视觉主题
 ```
 
@@ -46,7 +47,7 @@ scripts/render_episode.sh content/episodes/smoke.json renders/episode-smoke.mp4
 
 输出：
 
-- MP4：1920×1080、60 FPS、H.264 视频；
+- MP4：1920×1080、30/60 FPS、H.264 视频，可带 AAC 解说；
 - JSON：比较指标、事件和各 Variant 的实验结果；
 - manifest：配置、物理记录和视频的 SHA-256 及渲染环境。
 
@@ -55,8 +56,19 @@ scripts/render_episode.sh content/episodes/smoke.json renders/episode-smoke.mp4
 当前正片：
 
 ```bash
+scripts/generate_narration.sh \
+  content/episodes/s01e01-angle-sweep.json \
+  content/episodes/s01e02-stretch-sweep.json
 scripts/render_episode.sh content/episodes/s01e01-angle-sweep.json
 scripts/render_episode.sh content/episodes/s01e02-stretch-sweep.json
+```
+
+`generate_narration.sh` 使用 mmx-cli 的 `speech-2.8-hd` 同时生成 MP3 和精确 SRT。Godot 根据 SRT 绘制字幕，FFmpeg 将同一音轨混入成片；讲稿、模型、音色、时长和 SHA-256 都可追溯。
+
+只调整配音时可以跳过 Godot 逐帧渲染，直接以 `-16 LUFS` 目标响度重新混入：
+
+```bash
+scripts/remux_narration.sh content/episodes/s01e01-angle-sweep.json
 ```
 
 - S01E01：相同弹簧能量下比较 15°、30°、45°、60°、75° 的首次落地距离；
@@ -69,7 +81,7 @@ scripts/render_batch.sh --jobs 2
 scripts/render_batch.sh --jobs 3 content/episodes/s01e01-angle-sweep.json content/episodes/s01e02-stretch-sweep.json
 ```
 
-生成 Question、Setup、Launch、Mid-flight、Landing、Compare 六节拍审查表：
+生成 Question、Explain、Setup、Launch、Mid-flight、Landing、Compare 七节拍审查表：
 
 ```bash
 scripts/review_episode.sh renders/episodes/s01e01-angle-sweep.mp4
@@ -124,7 +136,7 @@ Xvfb 环境中出现“无法创建输入法上下文”或“不支持切换 V-
 - `bird_color`、`target_color`、`accent_color`：HTML 十六进制颜色。
 - `seed`：镜头震动等程序效果的确定性种子。
 
-第一版固定输出 1920×1080、60 FPS。冲突的分辨率或 FPS 会在渲染前被拒绝，以免构图被裁切。
+Episode 固定输出 1920×1080，支持 30 或 60 FPS。当前 1 分钟以上的正片使用 30 FPS，在软件 OpenGL 设备上可以把逐帧渲染量减半；冲突的分辨率或 FPS 会在渲染前被拒绝，以免构图被裁切。
 
 ## 物理口径
 

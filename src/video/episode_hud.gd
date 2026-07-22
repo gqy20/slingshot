@@ -1,14 +1,20 @@
 class_name SlingshotEpisodeHud
 extends CanvasLayer
 
+const SubtitleTrack = preload("res://src/playback/subtitle_track.gd")
+
 var episode: Dictionary = {}
 var analysis: Dictionary = {}
+var subtitle_cues: Array = []
 var phase := "QUESTION"
 var system_font: SystemFont
 var title_label: Label
 var tag_label: Label
 var phase_label: Label
 var question_label: Label
+var explain_panel: ColorRect
+var explain_title_label: Label
+var explain_detail_label: Label
 var clock_label: Label
 var legend_panel: ColorRect
 var legend_labels: Array[Label] = []
@@ -16,25 +22,36 @@ var result_panel: ColorRect
 var result_title: Label
 var result_rows: Array[Label] = []
 var conclusion_label: Label
+var subtitle_panel: ColorRect
+var subtitle_label: Label
 
 
 func _ready() -> void:
 	_build_ui()
 
 
-func configure(normalized_episode: Dictionary, comparison: Dictionary) -> void:
+func configure(
+	normalized_episode: Dictionary,
+	comparison: Dictionary,
+	cues: Array = []
+) -> void:
 	episode = normalized_episode
 	analysis = comparison
+	subtitle_cues = cues
 	var theme: Dictionary = episode["theme"]["colors"]
 	tag_label.add_theme_color_override("font_color", theme["ground_line"])
 	title_label.add_theme_color_override("font_color", theme["text"])
 	phase_label.add_theme_color_override("font_color", theme["accent"])
 	question_label.add_theme_color_override("font_color", theme["text"])
+	explain_title_label.add_theme_color_override("font_color", theme["highlight"])
+	explain_detail_label.add_theme_color_override("font_color", theme["text"])
 	clock_label.add_theme_color_override("font_color", theme["muted"])
 	legend_panel.color = Color(theme["panel"], 0.88)
 	result_panel.color = Color(theme["panel"], 0.96)
 	result_title.add_theme_color_override("font_color", theme["accent"])
 	conclusion_label.add_theme_color_override("font_color", theme["text"])
+	subtitle_panel.color = Color(theme["panel"], 0.97)
+	subtitle_label.add_theme_color_override("font_color", theme["text"])
 	var tag := "FRAMEWORK"
 	if int(episode["season"]) > 0:
 		tag = "S%02dE%02d" % [episode["season"], episode["episode"]]
@@ -50,11 +67,15 @@ func set_phase(value: String) -> void:
 	phase = value
 	phase_label.text = {
 		"QUESTION": "提出问题",
+		"EXPLAIN": "建立直觉",
 		"SETUP": "控制变量",
 		"FLIGHT": "同步实验",
 		"COMPARE": "结果揭晓",
 	}.get(phase, phase)
 	question_label.visible = phase in ["QUESTION", "SETUP"]
+	explain_panel.visible = phase == "EXPLAIN"
+	explain_title_label.visible = explain_panel.visible
+	explain_detail_label.visible = explain_panel.visible
 	if phase == "SETUP" and not episode["story"].get("control_label", "").is_empty():
 		question_label.text = episode["story"]["control_label"]
 		question_label.add_theme_font_size_override("font_size", 34)
@@ -73,6 +94,10 @@ func set_phase(value: String) -> void:
 
 
 func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
+	var subtitle_text := SubtitleTrack.text_at(subtitle_cues, video_time_sec)
+	subtitle_label.text = subtitle_text
+	subtitle_panel.visible = not subtitle_text.is_empty()
+	subtitle_label.visible = subtitle_panel.visible
 	if phase == "FLIGHT":
 		var values: Array = simulation_times.values()
 		var simulation_time := 0.0 if values.is_empty() else float(values[0])
@@ -85,9 +110,17 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 			episode["story"]["compare_sec"]
 		)
 		var compare_time := maxf(0.0, video_time_sec - compare_start)
+		var reveal_interval := float(
+			episode["story"].get("result_reveal_interval_sec", 0.3)
+		)
 		for index in range(result_rows.size()):
-			result_rows[index].visible = compare_time >= 0.25 + index * 0.30
-		conclusion_label.visible = compare_time >= 0.55 + result_rows.size() * 0.30
+			result_rows[index].visible = compare_time >= 0.5 + index * reveal_interval
+		var conclusion_delay := float(
+			episode["story"].get("conclusion_delay_sec", 0.0)
+		)
+		if conclusion_delay <= 0.0:
+			conclusion_delay = 0.8 + result_rows.size() * reveal_interval
+		conclusion_label.visible = compare_time >= conclusion_delay
 
 
 func _build_ui() -> void:
@@ -115,6 +148,21 @@ func _build_ui() -> void:
 	question_label.add_theme_color_override("font_outline_color", Color(0.02, 0.05, 0.1, 0.92))
 	add_child(question_label)
 
+	explain_panel = ColorRect.new()
+	explain_panel.position = Vector2(300, 235)
+	explain_panel.size = Vector2(1320, 360)
+	explain_panel.color = Color(0.025, 0.075, 0.13, 0.92)
+	add_child(explain_panel)
+	explain_title_label = _label(Vector2(360, 280), Vector2(1200, 90), 50, Color("#FFD166"))
+	explain_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	explain_title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	add_child(explain_title_label)
+	explain_detail_label = _label(Vector2(380, 385), Vector2(1160, 150), 36, Color("#F4F8FF"))
+	explain_detail_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	explain_detail_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	explain_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(explain_detail_label)
+
 	clock_label = _label(Vector2(1280, 170), Vector2(580, 36), 18, Color("#91A8BF"))
 	clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(clock_label)
@@ -126,17 +174,30 @@ func _build_ui() -> void:
 	add_child(legend_panel)
 
 	result_panel = ColorRect.new()
-	result_panel.position = Vector2(100, 770)
-	result_panel.size = Vector2(1720, 262)
+	result_panel.position = Vector2(100, 675)
+	result_panel.size = Vector2(1720, 245)
 	result_panel.color = Color(0.018, 0.055, 0.095, 0.96)
 	add_child(result_panel)
-	result_title = _label(Vector2(142, 790), Vector2(620, 42), 27, Color("#7CD8FF"))
+	result_title = _label(Vector2(142, 695), Vector2(620, 42), 27, Color("#7CD8FF"))
 	add_child(result_title)
-	conclusion_label = _label(Vector2(1060, 790), Vector2(700, 200), 27, Color("#F4F8FF"))
+	conclusion_label = _label(Vector2(1060, 695), Vector2(700, 190), 27, Color("#F4F8FF"))
 	conclusion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	conclusion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	conclusion_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(conclusion_label)
+
+	subtitle_panel = ColorRect.new()
+	subtitle_panel.position = Vector2(180, 946)
+	subtitle_panel.size = Vector2(1560, 106)
+	subtitle_panel.color = Color(0.018, 0.055, 0.095, 0.97)
+	add_child(subtitle_panel)
+	subtitle_label = _label(Vector2(218, 954), Vector2(1484, 90), 29, Color("#F4F8FF"))
+	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	add_child(subtitle_label)
+	subtitle_panel.visible = false
+	subtitle_label.visible = false
 
 
 func _build_variant_labels() -> void:
@@ -168,6 +229,8 @@ func _build_result_rows() -> void:
 		analysis["metric_label"],
 		"越大越优" if analysis["goal"] == "max" else "越小越优",
 	]
+	explain_title_label.text = episode["story"].get("explain_title", "")
+	explain_detail_label.text = episode["story"].get("explain_detail", "")
 	var rows: Array = analysis["rows"]
 	for index in range(rows.size()):
 		var row: Dictionary = rows[index]
@@ -183,7 +246,7 @@ func _build_result_rows() -> void:
 				analysis.get("secondary_unit", ""),
 			]
 		var label := _label(
-			Vector2(145 + column * 430, 842 + line * 48),
+			Vector2(145 + column * 430, 747 + line * 48),
 			Vector2(405, 42),
 			22,
 			Color("#FFD166") if winner else Color("#D5E4F2")

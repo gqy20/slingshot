@@ -10,7 +10,7 @@ func run(t) -> void:
 		return
 	var episode: Dictionary = loaded["episode"]
 	t.check(episode["variants"].size() == 2, "episode expands variants")
-	t.check_close(episode["duration_sec"], 1.0, 0.0001, "episode duration derives from story")
+	t.check_close(episode["duration_sec"], 1.1, 0.0001, "episode duration derives from story")
 	t.check(
 		episode["variants"][0]["preset"]["physics"]["launch_angle_deg"] == 30.0,
 		"variant override applied"
@@ -35,6 +35,10 @@ func run(t) -> void:
 	bad_override["variants"][0]["overrides"] = {"video.fps": 30}
 	t.check(not EpisodeLoader.validate_dict(bad_override)["ok"], "unsafe override rejected")
 
+	var bad_fps: Dictionary = raw.duplicate(true)
+	bad_fps["video"]["fps"] = 24
+	t.check(not EpisodeLoader.validate_dict(bad_fps)["ok"], "unsupported episode fps rejected")
+
 	var duplicate: Dictionary = raw.duplicate(true)
 	duplicate["variants"][1]["id"] = duplicate["variants"][0]["id"]
 	t.check(not EpisodeLoader.validate_dict(duplicate)["ok"], "duplicate variant ids rejected")
@@ -51,11 +55,17 @@ func run(t) -> void:
 				not story["show_target"],
 				"range episode hides target"
 			)
-			t.check_close(
-				production["episode"]["duration_sec"],
-				14.0,
-				0.0001,
-				"production episode keeps the tighter 14 second pace"
+			t.check(
+				production["episode"]["duration_sec"] >= 60.0,
+				"production episode provides at least one minute"
+			)
+			t.check(
+				production["episode"]["video"]["fps"] == 30,
+				"long-form episode uses device-friendly 30 fps"
+			)
+			t.check(
+				not production["episode"]["narration"].is_empty(),
+				"production episode declares reproducible narration"
 			)
 			t.check(
 				not str(story["control_label"]).is_empty(),

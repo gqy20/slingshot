@@ -11,18 +11,26 @@
   "video": {
     "width": 1920,
     "height": 1080,
-    "fps": 60
+    "fps": 30
   },
+	"narration": {
+		"script": "res://content/narration/s01e02-stretch-sweep.txt",
+		"model": "speech-2.8-hd",
+		"voice": "Chinese (Mandarin)_Reliable_Executive",
+		"language": "Chinese",
+		"speed": 1.0
+	},
   "simulation": {
     "duration_sec": 3.2,
     "tick_rate": 120
   },
   "story": {
     "template": "overlay_comparison",
-    "question_sec": 2.2,
-    "setup_sec": 2.3,
-    "flight_sec": 5.5,
-    "compare_sec": 4.0,
+    "question_sec": 7.2,
+    "explain_sec": 15.4,
+    "setup_sec": 17.85,
+    "flight_sec": 16.85,
+    "compare_sec": 32.7,
     "primary_metric": "flight_range_m",
     "metric_label": "首次落地水平位移",
     "metric_unit": "m",
@@ -30,6 +38,10 @@
     "secondary_label": "能量",
     "secondary_unit": "J",
     "control_label": "仅改变拉伸距离  ·  θ = 45°  ·  k = 160 N/m  ·  m = 1 kg",
+    "explain_title": "E = ½kx²",
+    "explain_detail": "弹簧储能与拉伸距离的平方成正比。\nx × 2  →  E × 4",
+		"result_reveal_interval_sec": 2.0,
+		"conclusion_delay_sec": 14.2,
     "goal": "max",
     "show_target": false,
     "conclusion": "拉伸翻倍，弹簧储能变为四倍；1.2 m 飞得最远。"

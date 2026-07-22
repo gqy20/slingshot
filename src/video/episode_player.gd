@@ -7,6 +7,7 @@ const EpisodeDirector = preload("res://src/video/episode_director.gd")
 const ReplayTrack = preload("res://src/playback/replay_track.gd")
 const ResultAnalyzer = preload("res://src/core/result_analyzer.gd")
 const RunRecord = preload("res://src/core/run_record.gd")
+const SubtitleTrack = preload("res://src/playback/subtitle_track.gd")
 
 var episode: Dictionary = {}
 var bundle: Dictionary = {}
@@ -22,7 +23,8 @@ var last_phase := ""
 func start(
 	normalized_episode: Dictionary,
 	run_bundle: Dictionary,
-	output_sidecar_path: String
+	output_sidecar_path: String,
+	subtitle_path: String = ""
 ) -> void:
 	episode = normalized_episode
 	bundle = run_bundle
@@ -37,7 +39,12 @@ func start(
 	hud = EpisodeHud.new()
 	hud.name = "EpisodeHud"
 	add_child(hud)
-	hud.configure(episode, analysis)
+	var subtitle_result := SubtitleTrack.load_path(subtitle_path)
+	if not subtitle_result["ok"]:
+		push_error(subtitle_result["error"])
+		get_tree().quit(3)
+		return
+	hud.configure(episode, analysis, subtitle_result["cues"])
 
 	frame_index = 0
 	running = true
@@ -59,7 +66,7 @@ func _process(_delta: float) -> void:
 		var record: Dictionary = record_value
 		var id: String = record["variant_id"]
 		states[id] = ReplayTrack.sample(record, float(times.get(id, 0.0)))
-	canvas.set_playback(phase, times, states)
+	canvas.set_playback(phase, times, states, video_time)
 	if phase != last_phase:
 		last_phase = phase
 		hud.set_phase(phase)
@@ -94,6 +101,8 @@ func _finish() -> void:
 		"frame_count": frame_index,
 		"video": episode["video"],
 		"analysis": analysis,
+		"narration": episode.get("narration", {}),
+		"subtitle_cue_count": subtitle_cues_count(),
 		"variants": summaries,
 		"provenance": {
 			"engine": Engine.get_version_info().get("string", "unknown"),
@@ -109,3 +118,7 @@ func _finish() -> void:
 		return
 	print("[episode:playback] sidecar=%s" % sidecar_path)
 	get_tree().quit(0)
+
+
+func subtitle_cues_count() -> int:
+	return hud.subtitle_cues.size() if is_instance_valid(hud) else 0

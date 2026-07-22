@@ -9,6 +9,9 @@ static func phase_for_time(episode: Dictionary, video_time_sec: float) -> String
 	var cursor := float(story["question_sec"])
 	if video_time_sec < cursor:
 		return "QUESTION"
+	cursor += float(story.get("explain_sec", 0.0))
+	if video_time_sec < cursor:
+		return "EXPLAIN"
 	cursor += float(story["setup_sec"])
 	if video_time_sec < cursor:
 		return "SETUP"
@@ -24,7 +27,11 @@ static func simulation_times(
 	video_time_sec: float
 ) -> Dictionary:
 	var story: Dictionary = episode["story"]
-	var flight_start := float(story["question_sec"]) + float(story["setup_sec"])
+	var flight_start := (
+		float(story["question_sec"])
+		+ float(story.get("explain_sec", 0.0))
+		+ float(story["setup_sec"])
+	)
 	var local_time := clampf(
 		video_time_sec - flight_start,
 		0.0,
