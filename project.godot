@@ -1,0 +1,35 @@
+; Engine configuration file.
+; Edit this file as text so the project remains CLI-first.
+
+config_version=5
+
+[application]
+
+config/name="Slingshot Physics Video"
+run/main_scene="res://main.tscn"
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[editor]
+
+movie_writer/movie_file="renders/movie.png"
+movie_writer/fps=60
+movie_writer/disable_vsync=true
+
+[physics]
+
+common/physics_ticks_per_second=120
+2d/default_gravity=981.0
+2d/default_gravity_vector=Vector2(0, 1)
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.05, 0.07, 0.12, 1)

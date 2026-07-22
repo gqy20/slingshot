@@ -1,0 +1,6 @@
+.godot/
+.render-tmp/
+renders/*
+!renders/.gitkeep
+*.log
+*.out

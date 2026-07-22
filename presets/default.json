@@ -1,0 +1,29 @@
+{
+  "id": "basic-shot",
+  "seed": 20260722,
+  "duration_sec": 12.0,
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 60
+  },
+  "physics": {
+    "pixels_per_meter": 100.0,
+    "gravity_mps2": 9.81,
+    "bird_mass_kg": 1.0,
+    "target_mass_kg": 3.0,
+    "spring_k_npm": 160.0,
+    "stretch_m": 0.9,
+    "efficiency": 0.82,
+    "launch_angle_deg": 45.0
+  },
+  "scene": {
+    "ground_y_m": 9.2,
+    "launch_position_m": [2.4, 7.6],
+    "target_position_m": [13.2, 7.6],
+    "bird_color": "#E94F37",
+    "accent_color": "#35C2FF",
+    "target_color": "#73C66A"
+  }
+}
+
