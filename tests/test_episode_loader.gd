@@ -46,7 +46,33 @@ func run(t) -> void:
 		var production := EpisodeLoader.load_path(production_path)
 		t.check(production["ok"], "production episode loads: %s" % production_path)
 		if production["ok"]:
+			var story: Dictionary = production["episode"]["story"]
 			t.check(
-				not production["episode"]["story"]["show_target"],
+				not story["show_target"],
 				"range episode hides target"
 			)
+			t.check_close(
+				production["episode"]["duration_sec"],
+				14.0,
+				0.0001,
+				"production episode keeps the tighter 14 second pace"
+			)
+			t.check(
+				not str(story["control_label"]).is_empty(),
+				"production episode states its controlled variables"
+			)
+
+	var episode_one: Dictionary = EpisodeLoader.load_path(
+		"res://content/episodes/s01e01-angle-sweep.json"
+	)["episode"]
+	var episode_two: Dictionary = EpisodeLoader.load_path(
+		"res://content/episodes/s01e02-stretch-sweep.json"
+	)["episode"]
+	t.check(
+		episode_one["story"]["secondary_metric"] == "max_height_m",
+		"angle episode compares height as well as range"
+	)
+	t.check(
+		episode_two["story"]["secondary_metric"] == "spring_energy_j",
+		"stretch episode exposes the energy evidence"
+	)

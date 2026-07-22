@@ -19,16 +19,20 @@
   },
   "story": {
     "template": "overlay_comparison",
-    "question_sec": 2.5,
-    "setup_sec": 2.5,
+    "question_sec": 2.2,
+    "setup_sec": 2.3,
     "flight_sec": 5.5,
-    "compare_sec": 5.5,
+    "compare_sec": 4.0,
     "primary_metric": "flight_range_m",
     "metric_label": "首次落地水平位移",
     "metric_unit": "m",
+    "secondary_metric": "max_height_m",
+    "secondary_label": "最高点",
+    "secondary_unit": "m",
+    "control_label": "仅改变发射角  ·  k = 160 N/m  ·  x = 0.9 m  ·  m = 1 kg",
     "goal": "max",
     "show_target": false,
-    "conclusion": "本组条件下，45° 的首次落地距离最远。"
+    "conclusion": "45° 飞得最远；75° 虽然最高，却不是最远。"
   },
   "variants": [
     {

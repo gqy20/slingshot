@@ -65,6 +65,13 @@ func run(t) -> void:
 	var times := EpisodeDirector.simulation_times(episode, bundle, 0.5)
 	t.check(times.has("angle-30") and times.has("angle-60"), "director maps every variant")
 
+	episode["story"]["secondary_metric"] = "range_m"
+	episode["story"]["secondary_label"] = "secondary"
+	episode["story"]["secondary_unit"] = "m"
 	var analysis := ResultAnalyzer.analyze(episode, bundle)
 	t.check(analysis["winner_id"] == "angle-30", "analyzer selects max metric")
 	t.check_close(analysis["winner_value"], 4.0, 0.0001, "analyzer reports winner value")
+	t.check(
+		analysis["secondary_metric"] == "range_m",
+		"analyzer carries secondary evidence metadata"
+	)

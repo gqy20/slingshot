@@ -62,6 +62,19 @@ scripts/render_episode.sh content/episodes/s01e02-stretch-sweep.json
 - S01E01：相同弹簧能量下比较 15°、30°、45°、60°、75° 的首次落地距离；
 - S01E02：保持 45°，比较 0.3 m、0.6 m、0.9 m、1.2 m 拉伸距离。
 
+批量渲染默认使用 2 路并行。Ryzen 5 4600U 实测日常使用 2 路、设备空闲时 3 路较合适；其他设备可通过 `--jobs N` 调整：
+
+```bash
+scripts/render_batch.sh --jobs 2
+scripts/render_batch.sh --jobs 3 content/episodes/s01e01-angle-sweep.json content/episodes/s01e02-stretch-sweep.json
+```
+
+生成 Question、Setup、Launch、Mid-flight、Landing、Compare 六节拍审查表：
+
+```bash
+scripts/review_episode.sh renders/episodes/s01e01-angle-sweep.mp4
+```
+
 ## 传统单次实验
 
 ```bash

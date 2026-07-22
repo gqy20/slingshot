@@ -55,26 +55,39 @@ func set_phase(value: String) -> void:
 		"COMPARE": "结果揭晓",
 	}.get(phase, phase)
 	question_label.visible = phase in ["QUESTION", "SETUP"]
+	if phase == "SETUP" and not episode["story"].get("control_label", "").is_empty():
+		question_label.text = episode["story"]["control_label"]
+		question_label.add_theme_font_size_override("font_size", 34)
+	else:
+		question_label.text = episode["question"]
+		question_label.add_theme_font_size_override("font_size", 50)
 	legend_panel.visible = phase in ["SETUP", "FLIGHT", "COMPARE"]
 	for label in legend_labels:
 		label.visible = legend_panel.visible
 	result_panel.visible = phase == "COMPARE"
 	result_title.visible = result_panel.visible
-	conclusion_label.visible = result_panel.visible
+	conclusion_label.visible = false
 	for row in result_rows:
-		row.visible = result_panel.visible
+		row.visible = false
 	clock_label.visible = phase == "FLIGHT"
 
 
 func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
-	if phase != "FLIGHT":
-		return
-	var values: Array = simulation_times.values()
-	var simulation_time := 0.0 if values.is_empty() else float(values[0])
-	clock_label.text = "实验时间  %05.2f s   ·   视频时间  %05.2f s" % [
-		simulation_time,
-		video_time_sec,
-	]
+	if phase == "FLIGHT":
+		var values: Array = simulation_times.values()
+		var simulation_time := 0.0 if values.is_empty() else float(values[0])
+		clock_label.text = "实验时间  %05.2f s   ·   视频时间  %05.2f s" % [
+			simulation_time,
+			video_time_sec,
+		]
+	elif phase == "COMPARE":
+		var compare_start := float(episode["duration_sec"]) - float(
+			episode["story"]["compare_sec"]
+		)
+		var compare_time := maxf(0.0, video_time_sec - compare_start)
+		for index in range(result_rows.size()):
+			result_rows[index].visible = compare_time >= 0.25 + index * 0.30
+		conclusion_label.visible = compare_time >= 0.55 + result_rows.size() * 0.30
 
 
 func _build_ui() -> void:
@@ -161,17 +174,26 @@ func _build_result_rows() -> void:
 		var column := index % 2
 		var line := index / 2
 		var winner: bool = row["variant_id"] == analysis["winner_id"]
+		var secondary := ""
+		var secondary_metric: String = analysis.get("secondary_metric", "")
+		if not secondary_metric.is_empty() and row["metrics"].has(secondary_metric):
+			secondary = "  ·  %s %.2f %s" % [
+				analysis.get("secondary_label", ""),
+				float(row["metrics"][secondary_metric]),
+				analysis.get("secondary_unit", ""),
+			]
 		var label := _label(
 			Vector2(145 + column * 430, 842 + line * 48),
 			Vector2(405, 42),
 			22,
 			Color("#FFD166") if winner else Color("#D5E4F2")
 		)
-		label.text = "%s%s   %.2f %s" % [
+		label.text = "%s%s   %.2f %s%s" % [
 			"★ " if winner else "• ",
 			row["label"],
 			row["value"],
 			analysis["metric_unit"],
+			secondary,
 		]
 		add_child(label)
 		result_rows.append(label)
