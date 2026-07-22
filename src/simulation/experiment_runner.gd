@@ -109,6 +109,8 @@ func _start_next_variant() -> void:
 		),
 		"max_height_m": 0.0,
 		"range_m": 0.0,
+		"flight_range_m": 0.0,
+		"flight_time_sec": 0.0,
 		"impact_speed_mps": 0.0,
 		"impulse_ns": 0.0,
 		"average_force_n": 0.0,
@@ -146,11 +148,25 @@ func _capture_frame() -> void:
 
 
 func _on_bird_body_entered(body: Node) -> void:
+	if body == current_world.ground and not _has_event("first_ground_contact"):
+		var preset: Dictionary = current_variant["preset"]
+		var ppm: float = preset["physics"]["pixels_per_meter"]
+		current_metrics["flight_range_m"] = maxf(
+			0.0,
+			current_world.bird.position.x / ppm - preset["scene"]["launch_position_m"].x
+		)
+		current_metrics["flight_time_sec"] = elapsed_sec
+		current_events.append({
+			"type": "first_ground_contact",
+			"time_sec": elapsed_sec,
+			"range_m": current_metrics["flight_range_m"],
+		})
+		call_deferred("_freeze_landed_bird")
+		return
 	if pending_collision or body != current_world.target:
 		return
-	for event in current_events:
-		if event.get("type") == "first_contact":
-			return
+	if _has_event("first_contact"):
+		return
 	var physics: Dictionary = current_variant["preset"]["physics"]
 	pending_collision = true
 	pre_collision_bird_velocity = last_bird_velocity
@@ -159,10 +175,28 @@ func _on_bird_body_entered(body: Node) -> void:
 	)
 
 
+func _freeze_landed_bird() -> void:
+	if current_world == null or not active:
+		return
+	current_world.bird.freeze = true
+	current_world.bird.linear_velocity = Vector2.ZERO
+	current_world.bird.angular_velocity = 0.0
+
+
+func _has_event(event_type: String) -> bool:
+	for event in current_events:
+		if event.get("type") == event_type:
+			return true
+	return false
+
+
 func _finish_variant() -> void:
 	if not active:
 		return
 	active = false
+	if not _has_event("first_ground_contact"):
+		current_metrics["flight_range_m"] = current_metrics["range_m"]
+		current_metrics["flight_time_sec"] = elapsed_sec
 	var record := {
 		"variant_id": current_variant["id"],
 		"label": current_variant["label"],

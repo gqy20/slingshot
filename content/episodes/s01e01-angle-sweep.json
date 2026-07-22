@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "id": "s01e01-angle-sweep",
+  "series": "平行物理实验室",
+  "season": 1,
+  "episode": 1,
+  "title": "哪个角度飞得最远？",
+  "question": "同样的弹簧能量，15° 到 75° 谁会飞得最远？",
+  "base_preset": "res://presets/series-base.json",
+  "theme": "res://content/themes/laboratory.json",
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 60
+  },
+  "simulation": {
+    "duration_sec": 3.0,
+    "tick_rate": 120
+  },
+  "story": {
+    "template": "overlay_comparison",
+    "question_sec": 2.5,
+    "setup_sec": 2.5,
+    "flight_sec": 5.5,
+    "compare_sec": 5.5,
+    "primary_metric": "flight_range_m",
+    "metric_label": "首次落地水平位移",
+    "metric_unit": "m",
+    "goal": "max",
+    "show_target": false,
+    "conclusion": "本组条件下，45° 的首次落地距离最远。"
+  },
+  "variants": [
+    {
+      "id": "angle-15",
+      "label": "15°",
+      "color": "#35C2FF",
+      "overrides": {"physics.launch_angle_deg": 15}
+    },
+    {
+      "id": "angle-30",
+      "label": "30°",
+      "color": "#5EE1A2",
+      "overrides": {"physics.launch_angle_deg": 30}
+    },
+    {
+      "id": "angle-45",
+      "label": "45°",
+      "color": "#FFD166",
+      "overrides": {"physics.launch_angle_deg": 45}
+    },
+    {
+      "id": "angle-60",
+      "label": "60°",
+      "color": "#FF8C66",
+      "overrides": {"physics.launch_angle_deg": 60}
+    },
+    {
+      "id": "angle-75",
+      "label": "75°",
+      "color": "#C77DFF",
+      "overrides": {"physics.launch_angle_deg": 75}
+    }
+  ]
+}

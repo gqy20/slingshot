@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "id": "s01e02-stretch-sweep",
+  "series": "平行物理实验室",
+  "season": 1,
+  "episode": 2,
+  "title": "弹簧拉得越长，会飞多远？",
+  "question": "角度保持 45°，拉伸距离从 0.3 m 增加到 1.2 m 会怎样？",
+  "base_preset": "res://presets/series-base.json",
+  "theme": "res://content/themes/laboratory.json",
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 60
+  },
+  "simulation": {
+    "duration_sec": 3.2,
+    "tick_rate": 120
+  },
+  "story": {
+    "template": "overlay_comparison",
+    "question_sec": 2.5,
+    "setup_sec": 2.5,
+    "flight_sec": 5.5,
+    "compare_sec": 5.5,
+    "primary_metric": "flight_range_m",
+    "metric_label": "首次落地水平位移",
+    "metric_unit": "m",
+    "goal": "max",
+    "show_target": false,
+    "conclusion": "拉伸越长，弹簧储能按 x² 增长；本组中 1.2 m 飞得最远。"
+  },
+  "variants": [
+    {
+      "id": "stretch-03",
+      "label": "0.3 m",
+      "color": "#35C2FF",
+      "overrides": {"physics.stretch_m": 0.3}
+    },
+    {
+      "id": "stretch-06",
+      "label": "0.6 m",
+      "color": "#5EE1A2",
+      "overrides": {"physics.stretch_m": 0.6}
+    },
+    {
+      "id": "stretch-09",
+      "label": "0.9 m",
+      "color": "#FFD166",
+      "overrides": {"physics.stretch_m": 0.9}
+    },
+    {
+      "id": "stretch-12",
+      "label": "1.2 m",
+      "color": "#FF5D8F",
+      "overrides": {"physics.stretch_m": 1.2}
+    }
+  ]
+}

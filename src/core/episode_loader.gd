@@ -163,6 +163,7 @@ static func _normalize_story(value: Variant) -> Dictionary:
 	story["metric_label"] = String(story.get("metric_label", story["primary_metric"]))
 	story["metric_unit"] = String(story.get("metric_unit", ""))
 	story["conclusion"] = String(story.get("conclusion", ""))
+	story["show_target"] = bool(story.get("show_target", true))
 	story["sync_event"] = String(story.get("sync_event", ""))
 	story["sync_at"] = clampf(float(story.get("sync_at", 0.68)), 0.15, 0.85)
 	return {"ok": true, "error": "", "story": story}

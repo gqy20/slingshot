@@ -52,6 +52,16 @@ scripts/render_episode.sh content/episodes/smoke.json renders/episode-smoke.mp4
 
 脚本先顺序模拟所有 Variant，再启动独立回放进程录制视频。导演节奏不会改变已经产生的物理结果。
 
+当前正片：
+
+```bash
+scripts/render_episode.sh content/episodes/s01e01-angle-sweep.json
+scripts/render_episode.sh content/episodes/s01e02-stretch-sweep.json
+```
+
+- S01E01：相同弹簧能量下比较 15°、30°、45°、60°、75° 的首次落地距离；
+- S01E02：保持 45°，比较 0.3 m、0.6 m、0.9 m、1.2 m 拉伸距离。
+
 ## 传统单次实验
 
 ```bash

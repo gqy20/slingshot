@@ -38,3 +38,15 @@ func run(t) -> void:
 	var duplicate: Dictionary = raw.duplicate(true)
 	duplicate["variants"][1]["id"] = duplicate["variants"][0]["id"]
 	t.check(not EpisodeLoader.validate_dict(duplicate)["ok"], "duplicate variant ids rejected")
+
+	for production_path in [
+		"res://content/episodes/s01e01-angle-sweep.json",
+		"res://content/episodes/s01e02-stretch-sweep.json",
+	]:
+		var production := EpisodeLoader.load_path(production_path)
+		t.check(production["ok"], "production episode loads: %s" % production_path)
+		if production["ok"]:
+			t.check(
+				not production["episode"]["story"]["show_target"],
+				"range episode hides target"
+			)

@@ -58,11 +58,13 @@ func _draw() -> void:
 	_draw_background()
 	_draw_grid()
 	_draw_sling()
-	_draw_target_platform()
-	_draw_reference_target()
+	if episode["story"].get("show_target", true):
+		_draw_target_platform()
+		_draw_reference_target()
 	_draw_trajectories()
 	if phase in ["FLIGHT", "COMPARE"]:
-		_draw_variant_targets()
+		if episode["story"].get("show_target", true):
+			_draw_variant_targets()
 		_draw_variant_birds()
 
 
@@ -135,9 +137,14 @@ func _draw_trajectories() -> void:
 		var points: PackedVector2Array
 		var alpha := 0.2
 		var width := 3.0
-		if phase in ["QUESTION", "SETUP"]:
-			points = trajectories_by_id.get(id, PackedVector2Array())
-			alpha = 0.18 if phase == "QUESTION" else 0.42
+		if phase == "QUESTION":
+			continue
+		elif phase == "SETUP":
+			var full_points: PackedVector2Array = trajectories_by_id.get(
+				id, PackedVector2Array()
+			)
+			points = full_points.slice(0, maxi(2, int(full_points.size() * 0.16)))
+			alpha = 0.52
 		elif phase == "FLIGHT":
 			points = ReplayTrack.partial_trajectory(
 				records_by_id[id],

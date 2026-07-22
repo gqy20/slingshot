@@ -102,7 +102,7 @@ func _build_ui() -> void:
 	question_label.add_theme_color_override("font_outline_color", Color(0.02, 0.05, 0.1, 0.92))
 	add_child(question_label)
 
-	clock_label = _label(Vector2(1280, 102), Vector2(580, 36), 20, Color("#91A8BF"))
+	clock_label = _label(Vector2(1280, 170), Vector2(580, 36), 18, Color("#91A8BF"))
 	clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	add_child(clock_label)
 
