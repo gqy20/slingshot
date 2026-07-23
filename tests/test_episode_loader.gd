@@ -100,6 +100,20 @@ func run(t) -> void:
 				not production["episode"]["narration"].is_empty(),
 				"production episode declares reproducible narration"
 			)
+			t.check_close(
+				production["episode"]["narration"]["speed"],
+				1.18,
+				0.0001,
+				"production narration declares an intentional speech speed"
+			)
+			t.check(
+				production["episode"]["narration"]["pitch"] == 0,
+				"production narration keeps a reproducible pitch"
+			)
+			t.check(
+				not production["episode"]["narration"]["pronunciations"].is_empty(),
+				"production narration declares difficult-term pronunciations"
+			)
 			t.check(
 				not str(story["control_label"]).is_empty(),
 				"production episode states its controlled variables"

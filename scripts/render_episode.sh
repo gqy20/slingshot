@@ -96,6 +96,7 @@ NARRATION_SOURCE="$NARRATION_DIR/narration.mp3"
 NARRATION_AUDIO="${NARRATION_AUDIO:-$NARRATION_DIR/narration-normalized.wav}"
 LOUDNESS_REPORT="$NARRATION_DIR/narration-loudness.json"
 SUBTITLE_SRT="${SUBTITLE_SRT:-$NARRATION_DIR/narration.srt}"
+SOUND_DESIGN_AUDIO="$RENDER_AUDIO_DIR/$episode_name/sound-design.wav"
 HAS_NARRATION="$(jq -r '(.narration // {}) | length > 0' "$EPISODE_ABS")"
 if [[ "${EPISODE_SKIP_NARRATION:-0}" == 1 ]]; then
 	HAS_NARRATION=false
@@ -103,6 +104,7 @@ fi
 if [[ "$HAS_NARRATION" == true ]]; then
   "$SCRIPT_DIR/verify_narration_sync.sh" "$EPISODE_ABS"
   "$SCRIPT_DIR/normalize_narration.sh" "$EPISODE_ABS"
+  "$SCRIPT_DIR/build_sound_design.sh" "$EPISODE_ABS"
   if [[ ! -s "$NARRATION_AUDIO" || ! -s "$SUBTITLE_SRT" || ! -s "$LOUDNESS_REPORT" ]]; then
     printf 'episode-render: narration missing; run scripts/generate_narration.sh %s\n' \
       "$EPISODE_ABS" >&2
@@ -246,8 +248,10 @@ fi
 if [[ "$HAS_NARRATION" == true ]]; then
   ffmpeg -y -loglevel error \
     -framerate "$FPS" -i "$FRAME_DIR/frame%08d.png" \
-    -i "$NARRATION_AUDIO" \
+    -i "$NARRATION_AUDIO" -i "$SOUND_DESIGN_AUDIO" \
     -t "$VIDEO_DURATION" \
+    -filter_complex '[2:a]volume=0.70[sfx];[sfx][1:a]sidechaincompress=threshold=0.02:ratio=6:attack=20:release=250[sfxduck];[1:a][sfxduck]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.89[aout]' \
+    -map 0:v:0 -map '[aout]' \
     -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p \
     -c:a aac -b:a 192k \
     -movflags +faststart "$MP4_TMP"
@@ -300,6 +304,8 @@ godot_version="$("$GODOT_BIN" --version | head -1)"
 		printf 'audio_source_sha256=%s\n' "$(sha256sum "$NARRATION_SOURCE" | awk '{print $1}')"
 		printf 'audio_normalized_sha256=%s\n' "$(sha256sum "$NARRATION_AUDIO" | awk '{print $1}')"
 		printf 'subtitles_sha256=%s\n' "$(sha256sum "$SUBTITLE_SRT" | awk '{print $1}')"
+		printf 'sound_design_sha256=%s\n' "$(sha256sum "$SOUND_DESIGN_AUDIO" | awk '{print $1}')"
+		printf 'audio_mix=voice_plus_ducked_beat_sfx\n'
 		printf 'audio_codec=aac\n'
 		printf 'audio_standard=-16_LUFS_-1.5_dBTP_48kHz_mono_PCM24_source\n'
 		printf 'audio_measured_i=%s\n' "$(jq -r '.measured_i' "$LOUDNESS_REPORT")"

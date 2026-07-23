@@ -19,7 +19,11 @@
 		"model": "speech-2.8-hd",
 		"voice": "Chinese (Mandarin)_Reliable_Executive",
 		"language": "Chinese",
-		"speed": 1.0
+		"speed": 1.18,
+		"volume": 1.0,
+		"pitch": 0,
+		"subtitle_type": "sentence",
+		"pronunciations": ["滞空/(zhi4)(kong1)", "余弦/(yu2)(xian2)", "正弦/(zheng4)(xian2)"]
 	},
   "simulation": {
     "duration_sec": 3.0,

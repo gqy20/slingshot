@@ -319,8 +319,25 @@ static func _normalize_narration(value: Variant, source_path: String) -> Diction
 	if voice.is_empty():
 		return _failure("narration.voice must be a non-empty string")
 	var speed_value: Variant = raw.get("speed", 1.0)
-	if not _positive_finite(speed_value):
-		return _failure("narration.speed must be positive and finite")
+	if not _is_number(speed_value) or float(speed_value) < 0.5 or float(speed_value) > 2.0:
+		return _failure("narration.speed must be between 0.5 and 2.0")
+	var volume_value: Variant = raw.get("volume", 1.0)
+	if not _is_number(volume_value) or float(volume_value) < 0.0 or float(volume_value) > 10.0:
+		return _failure("narration.volume must be between 0 and 10")
+	var pitch_value: Variant = raw.get("pitch", 0)
+	if not _is_number(pitch_value) or int(pitch_value) < -12 or int(pitch_value) > 12:
+		return _failure("narration.pitch must be between -12 and 12")
+	var subtitle_type := String(raw.get("subtitle_type", "sentence"))
+	if subtitle_type != "sentence":
+		return _failure("narration.subtitle_type must be sentence for mmx SRT exports")
+	var pronunciation_value: Variant = raw.get("pronunciations", [])
+	if not pronunciation_value is Array:
+		return _failure("narration.pronunciations must be an array")
+	var pronunciations: Array[String] = []
+	for item in pronunciation_value:
+		if not item is String or not "/" in String(item) or String(item).strip_edges().is_empty():
+			return _failure("narration pronunciations must use from/to strings")
+		pronunciations.append(String(item).strip_edges())
 	return {
 		"ok": true,
 		"error": "",
@@ -330,6 +347,10 @@ static func _normalize_narration(value: Variant, source_path: String) -> Diction
 			"model": String(raw.get("model", "speech-2.8-hd")),
 			"language": String(raw.get("language", "Chinese")),
 			"speed": float(speed_value),
+			"volume": float(volume_value),
+			"pitch": int(pitch_value),
+			"subtitle_type": subtitle_type,
+			"pronunciations": pronunciations,
 		},
 	}
 

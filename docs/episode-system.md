@@ -28,6 +28,7 @@ Episode JSON
 - `renders/previews/`：不作为正式交付的视觉实验。
 - `renders/smoke/`：框架和冒烟测试产物。
 - `renders/narration/<episode>/`：原始配音、标准化母版、SRT 与响度报告。
+- `renders/audio/<episode>/`：由 Beat cue 确定性生成的音效轨与 provenance。
 
 最终 bundle 使用相同 basename；抽帧采用 `<episode>--<milliseconds>ms--<label>.png`。`renders/.gdignore` 阻止 Godot 把生成媒体当作项目资源导入。
 
@@ -53,10 +54,10 @@ scripts/render_episode.sh 创建独立临时目录：
 2. 写入带引擎版本的 RunRecord。
 3. 默认将完整帧区间拆成两个绝对时间分片，启动两个 Godot Movie Maker Worker 并行回放同一份记录。
 4. 忽略排版空白后，逐字符验证讲稿正文与 mmx SRT 正文完全一致。
-5. 对配音做两遍响度分析，生成 `-16 ±1 LUFS`、`≤ -1.5 dBTP`、48 kHz 单声道 PCM24 母版。
+5. 验证 MiniMax `<#x#>` 停顿标记和发音表，对配音做两遍响度分析，生成 `-16 ±1 LUFS`、`≤ -1.5 dBTP`、48 kHz 单声道 PCM24 母版。
 6. 读取同一份 SRT，在 3840×2160 根视口中，将 1920×1080 设计坐标按 2 倍直接绘制；不存在 1080p 视频放大步骤。
 7. 将物理轨迹映射到分阶段 Plot Area，并逐帧审计小鸟、速度箭头与文字保留区的相交情况。
-8. 校验分片帧数及相邻边界，按全局帧号合并 PNG，再使用一次 FFmpeg 编码 H.264，并将标准化母版编码为 AAC 后混入。
+8. 校验分片帧数及相邻边界，按全局帧号合并 PNG，再使用一次 FFmpeg 编码 H.264；Beat 音效先由解说 sidechain 压低，再与标准化语音混合并编码为 AAC。
 9. 复测 AAC 交付音轨，要求 `-16 ±1 LUFS`、`≤ -1.0 dBTP`、48 kHz 单声道。
 10. 原子发布 MP4、分析 sidecar 与 provenance manifest。
 

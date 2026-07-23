@@ -66,6 +66,8 @@ func _draw() -> void:
 	_draw_sling()
 	if phase == "EXPLAIN":
 		_draw_explanation_module()
+	elif phase == "QUESTION":
+		_draw_cold_open_teaser()
 	if episode["story"].get("show_target", true):
 		_draw_target_platform()
 		_draw_reference_target()
@@ -74,6 +76,7 @@ func _draw() -> void:
 		if episode["story"].get("show_target", true):
 			_draw_variant_targets()
 		_draw_variant_birds()
+		_draw_event_effects()
 
 
 func _draw_explanation_module() -> void:
@@ -443,11 +446,15 @@ func _draw_variant_birds() -> void:
 		if state.is_empty():
 			continue
 		var winner: bool = phase == "COMPARE" and id == analysis.get("winner_id")
+		var focus_id := String(current_beat.get("focus", ""))
+		var bird_alpha := 1.0 if winner else 0.88
+		if not focus_id.is_empty() and id != focus_id:
+			bird_alpha = 0.48
 		_draw_bird(
 			state["bird_position_px"],
 			float(state["bird_rotation"]),
 			colors_by_id[id],
-			1.0 if winner else 0.88,
+			bird_alpha,
 			winner,
 			state["bird_velocity_px_s"],
 			index
@@ -458,6 +465,107 @@ func _draw_variant_birds() -> void:
 				state["bird_velocity_px_s"],
 				colors_by_id[id]
 			)
+
+
+func _draw_cold_open_teaser() -> void:
+	var focus_id := String(current_beat.get("focus", ""))
+	if focus_id.is_empty() or not records_by_id.has(focus_id):
+		return
+	var record: Dictionary = records_by_id[focus_id]
+	var duration := float(record.get("duration_sec", 0.0))
+	var teaser_time := duration * lerpf(0.18, 0.84, smoothstep(0.0, 1.0, _beat_progress()))
+	var state := ReplayTrack.sample(record, teaser_time)
+	var full_points: PackedVector2Array = trajectories_by_id.get(focus_id, PackedVector2Array())
+	var reveal_count := mini(full_points.size(), maxi(2, int(full_points.size() * 0.82)))
+	var teaser_points := _map_points(full_points.slice(0, reveal_count))
+	if teaser_points.size() >= 2:
+		draw_polyline(teaser_points, Color(colors_by_id[focus_id], 0.28), 4.0, true)
+	_draw_bird(
+		state["bird_position_px"],
+		float(state["bird_rotation"]),
+		colors_by_id[focus_id],
+		1.0,
+		false,
+		state["bird_velocity_px_s"],
+		0
+	)
+	var bird_position := _map_point(state["bird_position_px"])
+	var bob := sin(video_time_sec * 3.5) * 7.0
+	draw_string(
+		VideoTypography.personality(),
+		bird_position + Vector2(48, -58 + bob),
+		"?",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		58,
+		episode["theme"]["colors"]["accent"]
+	)
+
+
+func _draw_event_effects() -> void:
+	var beat_id := String(current_beat.get("id", ""))
+	if beat_id == "launch":
+		_draw_release_burst()
+	elif beat_id == "landing":
+		_draw_landing_dust()
+	elif phase == "COMPARE" and _beat_progress() > 0.18:
+		_draw_result_celebration()
+
+
+func _draw_release_burst() -> void:
+	var progress := clampf(_beat_progress() * 4.0, 0.0, 1.0)
+	if progress >= 1.0:
+		return
+	var center := _map_point(launch_position_px)
+	var color: Color = episode["theme"]["colors"]["accent"]
+	for ray_index in range(10):
+		var angle := TAU * float(ray_index) / 10.0 + 0.18
+		var direction := Vector2.from_angle(angle)
+		var start := center + direction * lerpf(18.0, 58.0, progress)
+		var finish := start + direction * lerpf(24.0, 4.0, progress)
+		draw_line(start, finish, Color(color, 1.0 - progress), 4.0, true)
+	draw_arc(center, lerpf(24.0, 86.0, progress), 0.0, TAU, 40, Color(color, 0.65 * (1.0 - progress)), 4.0, true)
+
+
+func _draw_landing_dust() -> void:
+	var theme_colors: Dictionary = episode["theme"]["colors"]
+	for index in range(episode["variants"].size()):
+		var variant: Dictionary = episode["variants"][index]
+		var state: Dictionary = states_by_id.get(variant["id"], {})
+		if state.is_empty():
+			continue
+		var position := _map_point(state["bird_position_px"])
+		var ground := _map_point(Vector2(state["bird_position_px"].x, ground_y_px))
+		if absf(position.y - ground.y) > 36.0:
+			continue
+		for puff_index in range(4):
+			var seed := float(index * 7 + puff_index)
+			var pulse := fposmod(_beat_progress() * 3.0 + seed * 0.17, 1.0)
+			var puff_position := ground + Vector2((puff_index - 1.5) * 18.0, -pulse * 34.0)
+			draw_circle(puff_position, lerpf(8.0, 22.0, pulse), Color(theme_colors["muted"], 0.18 * (1.0 - pulse)))
+
+
+func _draw_result_celebration() -> void:
+	var winner_id := String(analysis.get("winner_id", ""))
+	var state: Dictionary = states_by_id.get(winner_id, {})
+	if state.is_empty():
+		return
+	var center := _map_point(state["bird_position_px"])
+	var winner_color: Color = colors_by_id[winner_id]
+	var pulse := 0.5 + 0.5 * sin(video_time_sec * 5.0)
+	for index in range(12):
+		var angle := TAU * float(index) / 12.0 + video_time_sec * 0.12
+		var radius := 72.0 + float(index % 3) * 18.0 + pulse * 8.0
+		var point := center + Vector2.from_angle(angle) * radius
+		var size := 4.0 + float(index % 2) * 3.0
+		draw_rect(Rect2(point - Vector2.ONE * size, Vector2.ONE * size * 2.0), Color(winner_color, 0.62), true)
+	var crown := PackedVector2Array([
+		center + Vector2(-30, -52), center + Vector2(-22, -82),
+		center + Vector2(-4, -62), center + Vector2(8, -88),
+		center + Vector2(25, -62), center + Vector2(31, -82),
+		center + Vector2(34, -50),
+	])
+	draw_polyline(crown, episode["theme"]["colors"]["accent"], 5.0, true)
 
 
 func _draw_variant_targets() -> void:

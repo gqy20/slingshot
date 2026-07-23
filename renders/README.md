@@ -10,6 +10,7 @@ renders/
 ├── previews/                      non-final visual experiments
 ├── smoke/                         framework and smoke-test artifacts
 ├── narration/<episode>/           speech, subtitles, loudness, provenance
+├── audio/<episode>/               deterministic beat SFX and provenance
 └── archive/
     ├── releases/<version>/         recoverable superseded episode bundles
     ├── validation/                 equivalence and pipeline evidence

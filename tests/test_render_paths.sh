@@ -12,6 +12,7 @@ test "$RENDER_CONTACT_SHEETS_DIR" = "$PROJECT_ROOT/renders/contact-sheets"
 test "$RENDER_PREVIEWS_DIR" = "$PROJECT_ROOT/renders/previews"
 test "$RENDER_SMOKE_DIR" = "$PROJECT_ROOT/renders/smoke"
 test "$RENDER_NARRATION_DIR" = "$PROJECT_ROOT/renders/narration"
+test "$RENDER_AUDIO_DIR" = "$PROJECT_ROOT/renders/audio"
 test -f "$RENDER_ROOT/.gdignore"
 test -f "$RENDER_ROOT/README.md"
 

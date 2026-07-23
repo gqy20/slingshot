@@ -27,7 +27,8 @@ renders/
 ├── contact-sheets/ # 七节拍等联络表
 ├── previews/       # 非最终视觉实验
 ├── smoke/          # 冒烟与框架测试产物
-└── narration/      # 逐集音频、SRT 与响度报告
+├── narration/      # 逐集语音、SRT 与响度报告
+└── audio/          # 按 Beat 生成的确定性音效与记录
 ```
 
 Episode 系统的完整边界和数据流见 [Episode 视频系统](docs/episode-system.md)。
@@ -53,6 +54,14 @@ command -v xvfb-run ffprobe
 scripts/render_episode.sh content/episodes/smoke.json renders/smoke/episode-smoke.mp4
 ```
 
+首次克隆后安装项目内 Git hooks：
+
+```bash
+scripts/install_git_hooks.sh
+```
+
+提交信息采用 Conventional Commits，例如 `feat(audio): add timed speech controls`。项目 hook 会拒绝缺少类型、超长主题或不规范 scope 的提交标题。
+
 输出：
 
 - MP4：3840×2160、30/60 FPS、H.264 视频，可带标准化 AAC 解说；
@@ -71,7 +80,9 @@ scripts/render_episode.sh content/episodes/s01e01-angle-sweep.json
 scripts/render_episode.sh content/episodes/s01e02-stretch-sweep.json
 ```
 
-`generate_narration.sh` 使用 mmx-cli 的 `speech-2.8-hd` 在同一次合成中生成 MP3 和精确 SRT。流水线会忽略排版空白后逐字符验证“讲稿正文 = SRT 正文”，再以两遍响度分析生成 `-16 ±1 LUFS`、不高于 `-1.5 dBTP`、48 kHz 单声道 24-bit PCM 母版。实验量统一使用阿拉伯数字，朗读字幕采用中文单位。Godot 根据同一份 SRT 绘制字幕，FFmpeg 将标准化母版编码为 AAC 并混入成片。编码完成后还会复测交付音轨，要求 `-16 ±1 LUFS`、不高于 `-1.0 dBTP`、48 kHz 单声道；讲稿、模型、音色、响度、时长和 SHA-256 都可追溯。
+`generate_narration.sh` 使用 mmx-cli 的 `speech-2.8-hd` 在同一次合成中生成 MP3 和句级 SRT。Episode 固定音色、0.5–2.0 范围内的语速、音量、-12–12 级的音高与难词发音表；讲稿使用 MiniMax `<#x#>` 标记精确控制 0.01–99.99 秒停顿。校验时会从讲稿和字幕中移除非朗读控制标记，再逐字符确认“实际朗读正文 = SRT 正文”。实验量统一使用阿拉伯数字，朗读字幕采用中文单位。
+
+语音经过两遍响度分析，生成 `-16 ±1 LUFS`、不高于 `-1.5 dBTP`、48 kHz 单声道 24-bit PCM 母版。发射、落地、揭晓等 Beat 会生成独立音效轨，混音时以解说作为 sidechain 自动压低音效；Godot 使用同一份 SRT 绘制字幕。AAC 编码后再复测交付音轨，要求 `-16 ±1 LUFS`、不高于 `-1.0 dBTP`、48 kHz 单声道。讲稿、MMX CLI 版本、模型、音色、控制参数、音效、响度、时长和 SHA-256 均写入 manifest。
 
 Episode 在渲染前会执行布局审计：每个阶段拥有独立 Plot Area，逐帧检查小鸟与速度箭头是否进入标题、图例、结果或字幕区域；字幕限制为最多 88 个字符和两条显式行。结果阶段使用左侧轨迹、右侧数据的分栏布局。弹弓拉伸、回弹、能量光点与小鸟的蓄力、飞行形变、眨眼和落地反馈都由视频时间确定性驱动，不改变物理记录。
 

@@ -19,7 +19,11 @@
 		"model": "speech-2.8-hd",
 		"voice": "Chinese (Mandarin)_Reliable_Executive",
 		"language": "Chinese",
-		"speed": 1.0
+		"speed": 1.18,
+		"volume": 1.0,
+		"pitch": 0,
+		"subtitle_type": "sentence",
+		"pronunciations": ["劲度系数/(jin4)(du4)(xi4)(shu4)", "焦耳/(jiao1)(er3)"]
 	},
   "simulation": {
     "duration_sec": 3.2,

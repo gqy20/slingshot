@@ -9,6 +9,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 . "$SCRIPT_DIR/render_paths.sh"
+. "$SCRIPT_DIR/narration_text.sh"
 for required_command in jq realpath awk tr sha256sum; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'narration-sync: missing command: %s\n' "$required_command" >&2
@@ -30,14 +31,15 @@ if [[ ! -s "$narration_script" || ! -s "$subtitles" ]]; then
   exit 2
 fi
 
-script_text="$(tr -d '[:space:]' <"$narration_script")"
+validate_speech_controls "$narration_script"
+script_text="$(canonical_speech_text <"$narration_script")"
 subtitle_text="$(
   awk '
     !/^[0-9]+$/ && !/-->/ && NF {
       gsub(/[[:space:]\r]/, "")
       printf "%s", $0
     }
-  ' "$subtitles"
+  ' "$subtitles" | canonical_speech_text
 )"
 if [[ -z "$script_text" || "$script_text" != "$subtitle_text" ]]; then
   printf 'narration-sync: SRT text does not exactly match script for %s\n' "$stem" >&2

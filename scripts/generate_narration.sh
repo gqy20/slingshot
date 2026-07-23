@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 . "$SCRIPT_DIR/render_paths.sh"
+. "$SCRIPT_DIR/narration_text.sh"
 REUSE=0
 EPISODES=()
 
@@ -67,6 +68,8 @@ for episode_input in "${EPISODES[@]}"; do
   voice="$(jq -er '.narration.voice' "$episode_abs")"
   language="$(jq -r '.narration.language // "Chinese"' "$episode_abs")"
   speed="$(jq -r '.narration.speed // 1.0' "$episode_abs")"
+  volume="$(jq -r '.narration.volume // 1.0' "$episode_abs")"
+  pitch="$(jq -r '.narration.pitch // 0' "$episode_abs")"
   video_duration="$(jq -r '
     .story.question_sec
     + (.story.explain_sec // 0)
@@ -80,6 +83,7 @@ for episode_input in "${EPISODES[@]}"; do
   subtitles="$output_dir/narration.srt"
   manifest="$output_dir/narration.manifest.txt"
   mkdir -p "$output_dir"
+	validate_speech_controls "$narration_script"
 
   if [[ "$REUSE" -eq 0 ]]; then
     narration_tmp="$(mktemp -d /tmp/slingshot-narration.XXXXXX)"
@@ -87,12 +91,19 @@ for episode_input in "${EPISODES[@]}"; do
       rm -rf "$narration_tmp"
     }
     trap cleanup EXIT
+    pronunciation_args=()
+    while IFS= read -r pronunciation; do
+      pronunciation_args+=(--pronunciation "$pronunciation")
+    done < <(jq -r '.narration.pronunciations[]? // empty' "$episode_abs")
     mmx speech synthesize \
       --text-file "$narration_script" \
       --model "$model" \
       --voice "$voice" \
       --speed "$speed" \
+      --volume "$volume" \
+      --pitch "$pitch" \
       --language "$language" \
+			"${pronunciation_args[@]}" \
       --format mp3 \
       --sample-rate 32000 \
       --bitrate 128000 \
@@ -130,7 +141,7 @@ for episode_input in "${EPISODES[@]}"; do
     printf 'episode_sha256=%s\n' "$(sha256sum "$episode_abs" | awk '{print $1}')"
     printf 'script=%s\n' "$(basename "$narration_script")"
     printf 'script_sha256=%s\n' "$(sha256sum "$narration_script" | awk '{print $1}')"
-    canonical_text="$(tr -d '[:space:]' <"$narration_script")"
+    canonical_text="$(canonical_speech_text <"$narration_script")"
     printf 'canonical_text_sha256=%s\n' \
       "$(printf '%s' "$canonical_text" | sha256sum | awk '{print $1}')"
     printf 'subtitle_text_exact=true\n'
@@ -143,6 +154,11 @@ for episode_input in "${EPISODES[@]}"; do
     printf 'model=%s\n' "$model"
     printf 'voice=%s\n' "$voice"
     printf 'speed=%s\n' "$speed"
+		printf 'volume=%s\n' "$volume"
+		printf 'pitch=%s\n' "$pitch"
+		printf 'subtitle_type=sentence\n'
+		printf 'pause_control=minimax_text_tag_0.01_to_99.99_seconds\n'
+		printf 'mmx_cli=%s\n' "$(mmx --version | head -1)"
 		printf 'audio_standard=-16_LUFS_-1.5_dBTP_48kHz_mono_PCM24\n'
 		printf 'audio_measured_i=%s\n' "$(jq -r '.measured_i' "$loudness_report")"
 		printf 'audio_measured_tp=%s\n' "$(jq -r '.measured_tp' "$loudness_report")"
