@@ -50,31 +50,31 @@
     {
       "id": "angle-15",
       "label": "15°",
-      "color": "#35C2FF",
+      "color": "#5B7FA3",
       "overrides": {"physics.launch_angle_deg": 15}
     },
     {
       "id": "angle-30",
       "label": "30°",
-      "color": "#5EE1A2",
+      "color": "#5F9E9A",
       "overrides": {"physics.launch_angle_deg": 30}
     },
     {
       "id": "angle-45",
       "label": "45°",
-      "color": "#FFD166",
+      "color": "#8EB48B",
       "overrides": {"physics.launch_angle_deg": 45}
     },
     {
       "id": "angle-60",
       "label": "60°",
-      "color": "#FF8C66",
+      "color": "#D0B56A",
       "overrides": {"physics.launch_angle_deg": 60}
     },
     {
       "id": "angle-75",
       "label": "75°",
-      "color": "#C77DFF",
+      "color": "#E48865",
       "overrides": {"physics.launch_angle_deg": 75}
     }
   ]

@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/render_paths.sh"
 REUSE=0
 EPISODES=()
 
@@ -74,7 +75,7 @@ for episode_input in "${EPISODES[@]}"; do
     + .story.compare_sec
   ' "$episode_abs")"
 
-  output_dir="$PROJECT_ROOT/renders/narration/$stem"
+  output_dir="$RENDER_NARRATION_DIR/$stem"
   audio="$output_dir/narration.mp3"
   subtitles="$output_dir/narration.srt"
   manifest="$output_dir/narration.manifest.txt"

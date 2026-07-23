@@ -8,6 +8,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/render_paths.sh"
 GODOT_BIN="${GODOT_BIN:-godot}"
 
 for required_command in "$GODOT_BIN" xvfb-run ffmpeg ffprobe realpath sha256sum timeout jq awk; do
@@ -45,7 +46,7 @@ fi
 if [[ $# -eq 2 ]]; then
   OUTPUT_INPUT="$2"
 else
-  OUTPUT_INPUT="$PROJECT_ROOT/renders/episodes/${episode_name}.mp4"
+  OUTPUT_INPUT="$RENDER_FINAL_DIR/${episode_name}.mp4"
 fi
 if [[ "$OUTPUT_INPUT" != *.mp4 ]]; then
   printf 'episode-render: output must end in .mp4: %s\n' "$OUTPUT_INPUT" >&2
@@ -58,7 +59,7 @@ OUTPUT_DIR_ABS="$(cd "$OUTPUT_DIR" && pwd)"
 OUTPUT_MP4="$OUTPUT_DIR_ABS/$(basename "$OUTPUT_INPUT")"
 OUTPUT_JSON="${OUTPUT_MP4%.mp4}.json"
 OUTPUT_MANIFEST="${OUTPUT_MP4%.mp4}.manifest.txt"
-NARRATION_DIR="$PROJECT_ROOT/renders/narration/$episode_name"
+NARRATION_DIR="$RENDER_NARRATION_DIR/$episode_name"
 NARRATION_SOURCE="$NARRATION_DIR/narration.mp3"
 NARRATION_AUDIO="${NARRATION_AUDIO:-$NARRATION_DIR/narration-normalized.wav}"
 LOUDNESS_REPORT="$NARRATION_DIR/narration-loudness.json"

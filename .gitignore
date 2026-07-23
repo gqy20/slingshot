@@ -2,6 +2,7 @@
 .render-tmp/
 .experiment-cache/
 renders/*
-!renders/.gitkeep
+!renders/.gdignore
+!renders/README.md
 *.log
 *.out

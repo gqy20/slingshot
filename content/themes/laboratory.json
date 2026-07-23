@@ -1,14 +1,18 @@
 {
-  "id": "laboratory",
+  "id": "editorial-science-lab",
   "colors": {
-    "background": "#07111F",
-    "stage": "#0B1728",
-    "ground": "#102A2B",
-    "ground_line": "#5EE1A2",
-    "panel": "#07182A",
-    "accent": "#7CD8FF",
-    "text": "#F4F8FF",
-    "muted": "#91A8BF",
-    "highlight": "#FFD166"
+    "background": "#0E1116",
+    "stage": "#131820",
+    "surface": "#161B22",
+    "surface_elevated": "#1D2430",
+    "divider": "#2D3642",
+    "ground": "#23322E",
+    "ground_line": "#6E8A80",
+    "panel": "#161B22",
+    "accent": "#F0B35A",
+    "accent_soft": "#2A2418",
+    "text": "#F2F0E9",
+    "muted": "#9AA4B2",
+    "highlight": "#F0B35A"
   }
 }

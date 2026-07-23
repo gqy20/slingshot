@@ -8,6 +8,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/render_paths.sh"
 for required_command in jq realpath awk tr sha256sum; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'narration-sync: missing command: %s\n' "$required_command" >&2
@@ -23,7 +24,7 @@ if [[ "$script_value" != res://* ]]; then
   exit 2
 fi
 narration_script="$PROJECT_ROOT/${script_value#res://}"
-subtitles="$PROJECT_ROOT/renders/narration/$stem/narration.srt"
+subtitles="$RENDER_NARRATION_DIR/$stem/narration.srt"
 if [[ ! -s "$narration_script" || ! -s "$subtitles" ]]; then
   printf 'narration-sync: script or subtitles missing for %s\n' "$stem" >&2
   exit 2

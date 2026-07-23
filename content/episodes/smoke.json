@@ -36,7 +36,7 @@
     {
       "id": "angle-30",
       "label": "30°",
-      "color": "#35C2FF",
+      "color": "#5B7FA3",
       "overrides": {
         "physics.launch_angle_deg": 30
       }
@@ -44,7 +44,7 @@
     {
       "id": "angle-60",
       "label": "60°",
-      "color": "#FF5D8F",
+      "color": "#E48865",
       "overrides": {
         "physics.launch_angle_deg": 60
       }

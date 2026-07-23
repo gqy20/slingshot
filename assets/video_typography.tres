@@ -1,31 +1,45 @@
-[gd_resource type="Theme" load_steps=5 format=3]
+[gd_resource type="Theme" load_steps=7 format=3]
 
-[ext_resource type="FontFile" path="res://assets/fonts/NotoSansSC-VF.otf" id="1_font"]
+[ext_resource type="FontFile" path="res://assets/fonts/SarasaGothicSC-Regular.ttf" id="1_regular"]
+[ext_resource type="FontFile" path="res://assets/fonts/SarasaGothicSC-SemiBold.ttf" id="2_semibold"]
+[ext_resource type="FontFile" path="res://assets/fonts/SarasaGothicSC-Bold.ttf" id="3_bold"]
+[ext_resource type="FontFile" path="res://assets/fonts/SarasaMonoSC-SemiBold.ttf" id="4_mono"]
+[ext_resource type="FontFile" path="res://assets/fonts/SmileySans-Oblique.ttf" id="5_smiley"]
 
-[sub_resource type="FontVariation" id="FontVariation_regular"]
-base_font = ExtResource("1_font")
-variation_opentype = {
-"wght": 400.0
-}
-
-[sub_resource type="FontVariation" id="FontVariation_medium"]
-base_font = ExtResource("1_font")
-variation_opentype = {
-"wght": 600.0
-}
-
-[sub_resource type="FontVariation" id="FontVariation_bold"]
-base_font = ExtResource("1_font")
-variation_opentype = {
-"wght": 700.0
-}
+[sub_resource type="FontVariation" id="FontVariation_smiley"]
+base_font = ExtResource("5_smiley")
+fallbacks = [ExtResource("3_bold")]
 
 [resource]
-default_font = SubResource("FontVariation_regular")
-default_font_size = 27
-VideoRegular/base_type = &"Label"
-VideoRegular/fonts/font = SubResource("FontVariation_regular")
-VideoMedium/base_type = &"Label"
-VideoMedium/fonts/font = SubResource("FontVariation_medium")
-VideoBold/base_type = &"Label"
-VideoBold/fonts/font = SubResource("FontVariation_bold")
+default_font = ExtResource("1_regular")
+default_font_size = 30
+VideoHero/base_type = &"Label"
+VideoHero/fonts/font = SubResource("FontVariation_smiley")
+VideoHero/font_sizes/font_size = 56
+VideoAccent/base_type = &"Label"
+VideoAccent/fonts/font = SubResource("FontVariation_smiley")
+VideoAccent/font_sizes/font_size = 40
+VideoDisplay/base_type = &"Label"
+VideoDisplay/fonts/font = ExtResource("3_bold")
+VideoDisplay/font_sizes/font_size = 48
+VideoTitle/base_type = &"Label"
+VideoTitle/fonts/font = ExtResource("2_semibold")
+VideoTitle/font_sizes/font_size = 28
+VideoSection/base_type = &"Label"
+VideoSection/fonts/font = ExtResource("2_semibold")
+VideoSection/font_sizes/font_size = 26
+VideoBody/base_type = &"Label"
+VideoBody/fonts/font = ExtResource("1_regular")
+VideoBody/font_sizes/font_size = 30
+VideoSubtitle/base_type = &"Label"
+VideoSubtitle/fonts/font = ExtResource("2_semibold")
+VideoSubtitle/font_sizes/font_size = 30
+VideoData/base_type = &"Label"
+VideoData/fonts/font = ExtResource("4_mono")
+VideoData/font_sizes/font_size = 22
+VideoDataMeta/base_type = &"Label"
+VideoDataMeta/fonts/font = ExtResource("4_mono")
+VideoDataMeta/font_sizes/font_size = 16
+VideoMeta/base_type = &"Label"
+VideoMeta/fonts/font = ExtResource("2_semibold")
+VideoMeta/font_sizes/font_size = 16

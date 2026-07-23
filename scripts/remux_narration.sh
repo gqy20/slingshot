@@ -8,6 +8,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/render_paths.sh"
 for required_command in ffmpeg ffprobe jq realpath sha256sum awk; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'narration-remux: missing command: %s\n' "$required_command" >&2
@@ -20,14 +21,14 @@ stem="$(basename "${episode_abs%.json}")"
 if [[ $# -eq 2 ]]; then
   video_abs="$(realpath "$2")"
 else
-  video_abs="$PROJECT_ROOT/renders/episodes/$stem.mp4"
+  video_abs="$RENDER_FINAL_DIR/$stem.mp4"
 fi
-source_audio="$PROJECT_ROOT/renders/narration/$stem/narration.mp3"
+source_audio="$RENDER_NARRATION_DIR/$stem/narration.mp3"
 "$SCRIPT_DIR/verify_narration_sync.sh" "$episode_abs"
 "$SCRIPT_DIR/normalize_narration.sh" "$episode_abs"
-audio="$PROJECT_ROOT/renders/narration/$stem/narration-normalized.wav"
-loudness_report="$PROJECT_ROOT/renders/narration/$stem/narration-loudness.json"
-subtitles="$PROJECT_ROOT/renders/narration/$stem/narration.srt"
+audio="$RENDER_NARRATION_DIR/$stem/narration-normalized.wav"
+loudness_report="$RENDER_NARRATION_DIR/$stem/narration-loudness.json"
+subtitles="$RENDER_NARRATION_DIR/$stem/narration.srt"
 manifest="${video_abs%.mp4}.manifest.txt"
 for required_file in "$episode_abs" "$video_abs" "$source_audio" "$audio" \
   "$loudness_report" "$subtitles" "$manifest"; do

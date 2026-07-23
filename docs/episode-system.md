@@ -16,6 +16,17 @@ Episode JSON
 
 模拟阶段决定发生了什么；分析阶段决定结果意味着什么；导演阶段决定何时展示；回放阶段只负责画面，不再修改物理状态。
 
+## 输出目录
+
+- `renders/final/`：正式 Episode 的 MP4、JSON sidecar 与 manifest。
+- `renders/frames/<episode>/`：通过 `scripts/extract_frame.sh` 生成的单帧。
+- `renders/contact-sheets/<episode>/`：七节拍等联络表及采样说明。
+- `renders/previews/`：不作为正式交付的视觉实验。
+- `renders/smoke/`：框架和冒烟测试产物。
+- `renders/narration/<episode>/`：原始配音、标准化母版、SRT 与响度报告。
+
+最终 bundle 使用相同 basename；抽帧采用 `<episode>--<milliseconds>ms--<label>.png`。`renders/.gdignore` 阻止 Godot 把生成媒体当作项目资源导入。
+
 ## Episode 配置
 
 每个 Episode 包含：
@@ -39,7 +50,7 @@ scripts/render_episode.sh 创建独立临时目录：
 3. 重新启动 Godot，以 Movie Maker 模式回放记录。
 4. 忽略排版空白后，逐字符验证讲稿正文与 mmx SRT 正文完全一致。
 5. 对配音做两遍响度分析，生成 `-16 ±1 LUFS`、`≤ -1.5 dBTP`、48 kHz 单声道 PCM24 母版。
-6. 读取同一份 SRT，在 Godot 4K 根视口中绘制字幕安全带和 2 倍矢量画面。
+6. 读取同一份 SRT，在 3840×2160 根视口中，将 1920×1080 设计坐标按 2 倍直接绘制；不存在 1080p 视频放大步骤。
 7. 将物理轨迹映射到分阶段 Plot Area，并逐帧审计小鸟、速度箭头与文字保留区的相交情况。
 8. 使用 FFmpeg 编码 H.264，并将标准化母版编码为 AAC 后混入。
 9. 复测 AAC 交付音轨，要求 `-16 ±1 LUFS`、`≤ -1.0 dBTP`、48 kHz 单声道。
@@ -61,3 +72,7 @@ scripts/render_episode.sh 创建独立临时目录：
 新增视频模板时，应优先扩展 Director、Layout 或 Overlay，而不是让模拟层感知镜头。
 
 EpisodeLayout 为 Question、Explain、Setup、Flight、Compare 分别定义 Plot Area 和文字保留区。动画坐标使用等比映射，避免改变抛物线角度；Compare 阶段将轨迹压缩到左侧，右侧独占结果面板。渲染入口会对 RunRecord 的所有飞行帧执行主体包围盒审计。趣味动效只读取视频时间、速度和事件，作为物理位置之上的视觉变换层。
+
+视觉系统采用 Editorial Science Lab token。背景、表面、分割线、正文、次级文字和品牌强调色由 `content/themes/laboratory.json` 集中定义；界面只使用中性色与单一琥珀强调色。每集的实验组颜色来自共享的低值冷色到高值暖色数据色阶，只允许出现在轨迹、小鸟、图例色条和结果色条中，胜者通过线宽、星标和光环表达。
+
+排版使用项目内置的 Sarasa Gothic SC、Sarasa Mono SC 与 Smiley Sans。`assets/video_typography.tres` 定义 Hero、Accent、Display、Title、Section、Body、Subtitle、Data、DataMeta、Meta 角色；HUD 只能选择角色，不得自行创建临时字号。Hero 与 Accent 使用得意黑表现片头问题和结果短强调，并以 Sarasa Gothic SC Bold 作为缺字回退；连续字幕、正文与解释标题使用 Gothic，公式、计时和实验数据使用 Mono。得意黑不得用于长段文字、字幕、图例或数据列。

@@ -8,6 +8,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/render_paths.sh"
 
 for required_command in ffmpeg ffprobe realpath sha256sum awk jq; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
@@ -26,7 +27,7 @@ stem="$(basename "${VIDEO_ABS%.mp4}")"
 if [[ $# -eq 2 ]]; then
   OUTPUT_INPUT="$2"
 else
-  OUTPUT_INPUT="$PROJECT_ROOT/renders/reviews/${stem}-seven-beat.png"
+  OUTPUT_INPUT="$RENDER_CONTACT_SHEETS_DIR/$stem/${stem}--seven-beat.png"
 fi
 OUTPUT_DIR="$(dirname "$OUTPUT_INPUT")"
 mkdir -p "$OUTPUT_DIR"
@@ -126,7 +127,7 @@ for sample in "${samples[@]}"; do
 done
 
 ffmpeg -y -loglevel error -i "$VIDEO_ABS" \
-  -vf "select='$select_expr',scale=640:360,tile=4x2:padding=4:margin=4:color=#07111F" \
+  -vf "select='$select_expr',scale=640:360,tile=4x2:padding=4:margin=4:color=#0E1116" \
   -frames:v 1 "$OUTPUT_PNG"
 
 {

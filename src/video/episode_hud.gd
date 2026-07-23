@@ -10,22 +10,25 @@ var analysis: Dictionary = {}
 var subtitle_cues: Array = []
 var phase := "QUESTION"
 
-var regular_font: Font
-var medium_font: Font
-var bold_font: Font
 var identity_panel: Panel
 var identity_style: StyleBoxFlat
+var identity_accent: ColorRect
 var phase_panel: Panel
 var phase_style: StyleBoxFlat
+var phase_dot_label: Label
 var explain_panel: Panel
 var explain_style: StyleBoxFlat
 var result_panel: Panel
 var result_style: StyleBoxFlat
+var result_divider: ColorRect
 var subtitle_panel: Panel
 var subtitle_style: StyleBoxFlat
 var legend_chips: Array[Panel] = []
+var legend_styles: Array[StyleBoxFlat] = []
 var legend_labels: Array[Label] = []
+var legend_swatches: Array[ColorRect] = []
 var result_rows: Array[Label] = []
+var result_swatches: Array[ColorRect] = []
 
 var title_label: Label
 var tag_label: Label
@@ -35,6 +38,7 @@ var explain_title_label: Label
 var explain_detail_label: Label
 var clock_label: Label
 var result_title: Label
+var result_callout_label: Label
 var conclusion_label: Label
 var subtitle_label: Label
 
@@ -52,24 +56,28 @@ func configure(
 	analysis = comparison
 	subtitle_cues = cues
 	var colors: Dictionary = episode["theme"]["colors"]
-	identity_style.bg_color = Color(colors["panel"], 0.82)
-	identity_style.border_color = Color(colors["accent"], 0.22)
-	phase_style.bg_color = Color(colors["accent"], 0.12)
-	phase_style.border_color = Color(colors["accent"], 0.55)
-	explain_style.bg_color = Color(colors["panel"], 0.94)
-	explain_style.border_color = Color(colors["accent"], 0.22)
-	result_style.bg_color = Color(colors["panel"], 0.96)
-	result_style.border_color = Color(colors["accent"], 0.25)
-	subtitle_style.bg_color = Color(colors["panel"], 0.96)
-	subtitle_style.border_color = Color(colors["accent"], 0.18)
-	tag_label.add_theme_color_override("font_color", colors["ground_line"])
+	identity_style.bg_color = Color(colors["surface"], 0.94)
+	identity_style.border_color = colors["divider"]
+	identity_accent.color = colors["accent"]
+	phase_style.bg_color = Color(colors["surface_elevated"], 0.94)
+	phase_style.border_color = colors["divider"]
+	explain_style.bg_color = Color(colors["surface_elevated"], 0.97)
+	explain_style.border_color = colors["divider"]
+	result_style.bg_color = Color(colors["surface_elevated"], 0.98)
+	result_style.border_color = colors["divider"]
+	subtitle_style.bg_color = Color(colors["background"], 0.94)
+	subtitle_style.border_color = colors["divider"]
+	result_divider.color = colors["divider"]
+	tag_label.add_theme_color_override("font_color", colors["accent"])
 	title_label.add_theme_color_override("font_color", colors["text"])
-	phase_label.add_theme_color_override("font_color", colors["accent"])
+	phase_dot_label.add_theme_color_override("font_color", colors["accent"])
+	phase_label.add_theme_color_override("font_color", colors["muted"])
 	question_label.add_theme_color_override("font_color", colors["text"])
-	explain_title_label.add_theme_color_override("font_color", colors["highlight"])
+	explain_title_label.add_theme_color_override("font_color", colors["accent"])
 	explain_detail_label.add_theme_color_override("font_color", colors["text"])
 	clock_label.add_theme_color_override("font_color", colors["muted"])
-	result_title.add_theme_color_override("font_color", colors["accent"])
+	result_title.add_theme_color_override("font_color", colors["text"])
+	result_callout_label.add_theme_color_override("font_color", colors["text"])
 	conclusion_label.add_theme_color_override("font_color", colors["text"])
 	subtitle_label.add_theme_color_override("font_color", colors["text"])
 
@@ -87,23 +95,24 @@ func configure(
 func set_phase(value: String) -> void:
 	phase = value
 	phase_label.text = {
-		"QUESTION": "●  提出问题",
-		"EXPLAIN": "●  建立直觉",
-		"SETUP": "●  控制变量",
-		"FLIGHT": "●  同步实验",
-		"COMPARE": "●  结果揭晓",
+		"QUESTION": "提出问题",
+		"EXPLAIN": "建立直觉",
+		"SETUP": "控制变量",
+		"FLIGHT": "同步实验",
+		"COMPARE": "结果揭晓",
 	}.get(phase, phase)
 	question_label.visible = phase in ["QUESTION", "SETUP"]
 	if phase == "SETUP" and not episode["story"].get("control_label", "").is_empty():
 		question_label.text = episode["story"]["control_label"]
 		question_label.position = EpisodeLayout.SETUP_COPY_RECT.position
 		question_label.size = EpisodeLayout.SETUP_COPY_RECT.size
-		question_label.add_theme_font_size_override("font_size", 30)
+		question_label.theme_type_variation = VideoTypography.BODY
 	else:
 		question_label.text = episode["question"]
 		question_label.position = EpisodeLayout.QUESTION_RECT.position
 		question_label.size = EpisodeLayout.QUESTION_RECT.size
-		question_label.add_theme_font_size_override("font_size", 48)
+		question_label.theme_type_variation = VideoTypography.HERO
+	_reset_label_motion(question_label)
 
 	explain_panel.visible = phase == "EXPLAIN"
 	explain_title_label.visible = explain_panel.visible
@@ -113,13 +122,20 @@ func set_phase(value: String) -> void:
 		chip.visible = show_legend
 	result_panel.visible = phase == "COMPARE"
 	result_title.visible = result_panel.visible
+	result_divider.visible = result_panel.visible
+	result_callout_label.visible = false
 	conclusion_label.visible = false
-	for row in result_rows:
-		row.visible = false
+	for index in range(result_rows.size()):
+		result_rows[index].visible = false
+		result_swatches[index].visible = false
 	clock_label.visible = phase == "FLIGHT"
 
 
 func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
+	if phase == "QUESTION":
+		_apply_label_intro(question_label, video_time_sec / 0.55)
+	else:
+		_reset_label_motion(question_label)
 	var subtitle_text := SubtitleTrack.text_at(subtitle_cues, video_time_sec)
 	subtitle_label.text = subtitle_text
 	subtitle_panel.visible = not subtitle_text.is_empty()
@@ -137,65 +153,72 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 			episode["story"].get("result_reveal_interval_sec", 0.3)
 		)
 		for index in range(result_rows.size()):
-			result_rows[index].visible = compare_time >= 0.5 + index * reveal_interval
+			var revealed := compare_time >= 0.5 + index * reveal_interval
+			result_rows[index].visible = revealed
+			result_swatches[index].visible = revealed
 		var conclusion_delay := float(
 			episode["story"].get("conclusion_delay_sec", 0.0)
 		)
 		if conclusion_delay <= 0.0:
 			conclusion_delay = 0.8 + result_rows.size() * reveal_interval
-		conclusion_label.visible = compare_time >= conclusion_delay
+		var show_conclusion := compare_time >= conclusion_delay
+		result_callout_label.visible = show_conclusion
+		conclusion_label.visible = show_conclusion
+		if show_conclusion:
+			_apply_label_intro(
+				result_callout_label,
+				(compare_time - conclusion_delay) / 0.4
+			)
 
 
 func _build_ui() -> void:
-	regular_font = VideoTypography.regular()
-	medium_font = VideoTypography.medium()
-	bold_font = VideoTypography.bold()
-
-	var identity_result := _panel(EpisodeLayout.IDENTITY_RECT, Color("#07182A"), 16, 1)
+	var identity_result := _panel(EpisodeLayout.IDENTITY_RECT, Color("#161B22"), 16, 1)
 	identity_panel = identity_result["panel"]
 	identity_style = identity_result["style"]
 	add_child(identity_panel)
-	var identity_accent := ColorRect.new()
+	identity_accent = ColorRect.new()
 	identity_accent.position = Vector2(14, 13)
 	identity_accent.size = Vector2(4, 46)
-	identity_accent.color = Color("#5EE1A2")
+	identity_accent.color = Color("#F0B35A")
 	identity_panel.add_child(identity_accent)
-	tag_label = _label(Vector2(30, 9), Vector2(620, 24), 17, Color("#5EE1A2"), medium_font)
+	tag_label = _label(Vector2(30, 8), Vector2(620, 24), VideoTypography.META, Color("#F0B35A"))
 	identity_panel.add_child(tag_label)
-	title_label = _label(Vector2(30, 32), Vector2(630, 34), 27, Color("#F4F8FF"), medium_font)
+	title_label = _label(Vector2(30, 31), Vector2(630, 36), VideoTypography.TITLE, Color("#F2F0E9"))
 	identity_panel.add_child(title_label)
 
-	var phase_result := _panel(EpisodeLayout.PHASE_RECT, Color("#0A2238"), 24, 1)
+	var phase_result := _panel(EpisodeLayout.PHASE_RECT, Color("#1D2430"), 24, 1)
 	phase_panel = phase_result["panel"]
 	phase_style = phase_result["style"]
 	add_child(phase_panel)
-	phase_label = _label(Vector2(15, 7), Vector2(210, 34), 19, Color("#7CD8FF"), medium_font)
+	phase_dot_label = _label(Vector2(22, 5), Vector2(22, 34), VideoTypography.META, Color("#F0B35A"))
+	phase_dot_label.text = "●"
+	phase_dot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	phase_panel.add_child(phase_dot_label)
+	phase_label = _label(Vector2(43, 5), Vector2(166, 34), VideoTypography.META, Color("#9AA4B2"))
 	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	phase_panel.add_child(phase_label)
 
 	question_label = _label(
 		EpisodeLayout.QUESTION_RECT.position,
 		EpisodeLayout.QUESTION_RECT.size,
-		48,
-		Color("#F4F8FF"),
-		bold_font
+		VideoTypography.HERO,
+		Color("#F2F0E9")
 	)
 	question_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	question_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	question_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	question_label.add_theme_constant_override("outline_size", 10)
-	question_label.add_theme_color_override("font_outline_color", Color(0.02, 0.05, 0.1, 0.9))
 	add_child(question_label)
 
-	var explain_result := _panel(EpisodeLayout.EXPLAIN_RECT, Color("#07182A"), 22, 1)
+	var explain_result := _panel(EpisodeLayout.EXPLAIN_RECT, Color("#1D2430"), 22, 1)
 	explain_panel = explain_result["panel"]
 	explain_style = explain_result["style"]
 	add_child(explain_panel)
-	explain_title_label = _label(Vector2(54, 48), Vector2(952, 82), 45, Color("#FFD166"), bold_font)
+	explain_title_label = _label(Vector2(54, 48), Vector2(952, 82), VideoTypography.DISPLAY, Color("#F0B35A"))
 	explain_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	explain_title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	explain_panel.add_child(explain_title_label)
-	explain_detail_label = _label(Vector2(70, 150), Vector2(920, 190), 32, Color("#F4F8FF"), regular_font)
+	explain_detail_label = _label(Vector2(70, 150), Vector2(920, 190), VideoTypography.BODY, Color("#F2F0E9"))
 	explain_detail_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	explain_detail_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	explain_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -204,36 +227,45 @@ func _build_ui() -> void:
 	clock_label = _label(
 		EpisodeLayout.CLOCK_RECT.position,
 		EpisodeLayout.CLOCK_RECT.size,
-		16,
-		Color("#91A8BF"),
-		medium_font
+		VideoTypography.DATA_META,
+		Color("#9AA4B2")
 	)
 	clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(clock_label)
 
-	var result_result := _panel(EpisodeLayout.RESULT_RECT, Color("#07182A"), 22, 1)
+	var result_result := _panel(EpisodeLayout.RESULT_RECT, Color("#1D2430"), 22, 1)
 	result_panel = result_result["panel"]
 	result_style = result_result["style"]
 	add_child(result_panel)
-	result_title = _label(Vector2(38, 32), Vector2(664, 50), 27, Color("#7CD8FF"), bold_font)
+	result_title = _label(Vector2(38, 32), Vector2(664, 50), VideoTypography.SECTION, Color("#F2F0E9"))
 	result_panel.add_child(result_title)
-	var divider := ColorRect.new()
-	divider.position = Vector2(38, 475)
-	divider.size = Vector2(664, 2)
-	divider.color = Color(0.49, 0.85, 1.0, 0.18)
-	result_panel.add_child(divider)
-	conclusion_label = _label(Vector2(46, 500), Vector2(648, 165), 27, Color("#F4F8FF"), medium_font)
+	result_divider = ColorRect.new()
+	result_divider.position = Vector2(38, 475)
+	result_divider.size = Vector2(664, 1)
+	result_divider.color = Color("#2D3642")
+	result_panel.add_child(result_divider)
+	result_callout_label = _label(
+		Vector2(46, 490),
+		Vector2(648, 58),
+		VideoTypography.ACCENT,
+		Color("#F2F0E9")
+	)
+	result_callout_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	result_callout_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	result_callout_label.visible = false
+	result_panel.add_child(result_callout_label)
+	conclusion_label = _label(Vector2(46, 554), Vector2(648, 108), VideoTypography.BODY, Color("#F2F0E9"))
 	conclusion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	conclusion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	conclusion_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	result_panel.add_child(conclusion_label)
 
-	var subtitle_result := _panel(EpisodeLayout.SUBTITLE_RECT, Color("#07182A"), 18, 1)
+	var subtitle_result := _panel(EpisodeLayout.SUBTITLE_RECT, Color("#0E1116"), 18, 1)
 	subtitle_panel = subtitle_result["panel"]
 	subtitle_style = subtitle_result["style"]
 	add_child(subtitle_panel)
-	subtitle_label = _label(Vector2(34, 6), Vector2(1532, 88), 27, Color("#F4F8FF"), medium_font)
+	subtitle_label = _label(Vector2(34, 6), Vector2(1532, 88), VideoTypography.SUBTITLE, Color("#F2F0E9"))
 	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -245,8 +277,11 @@ func _build_variant_chips() -> void:
 	for chip in legend_chips:
 		chip.queue_free()
 	legend_chips.clear()
+	legend_styles.clear()
 	legend_labels.clear()
+	legend_swatches.clear()
 	var variants: Array = episode["variants"]
+	var colors: Dictionary = episode["theme"]["colors"]
 	var cell_width := EpisodeLayout.LEGEND_RECT.size.x / variants.size()
 	for index in range(variants.size()):
 		var variant: Dictionary = variants[index]
@@ -254,24 +289,34 @@ func _build_variant_chips() -> void:
 			EpisodeLayout.LEGEND_RECT.position + Vector2(index * cell_width + 5, 0),
 			Vector2(cell_width - 10, EpisodeLayout.LEGEND_RECT.size.y)
 		)
-		var chip_result := _panel(rect, Color(variant["color"], 0.10), 14, 1)
+		var chip_result := _panel(rect, Color(colors["surface"], 0.82), 12, 0)
 		var chip: Panel = chip_result["panel"]
 		var style: StyleBoxFlat = chip_result["style"]
-		style.border_color = Color(variant["color"], 0.30)
 		add_child(chip)
-		var label := _label(Vector2(8, 7), Vector2(rect.size.x - 16, 38), 20, variant["color"], medium_font)
+		var swatch := ColorRect.new()
+		swatch.position = Vector2(14, 13)
+		swatch.size = Vector2(5, 20)
+		swatch.color = variant["color"]
+		chip.add_child(swatch)
+		var label := _label(Vector2(28, 5), Vector2(rect.size.x - 38, 36), VideoTypography.DATA, colors["text"])
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		label.text = "●  %s" % variant["label"]
+		label.text = variant["label"]
 		chip.add_child(label)
 		legend_chips.append(chip)
+		legend_styles.append(style)
 		legend_labels.append(label)
+		legend_swatches.append(swatch)
 
 
 func _build_result_rows() -> void:
 	for old_row in result_rows:
 		old_row.queue_free()
+	for old_swatch in result_swatches:
+		old_swatch.queue_free()
 	result_rows.clear()
+	result_swatches.clear()
+	var colors: Dictionary = episode["theme"]["colors"]
 	result_title.text = "%s  /  %s" % [
 		analysis["metric_label"],
 		"越大越优" if analysis["goal"] == "max" else "越小越优",
@@ -280,7 +325,6 @@ func _build_result_rows() -> void:
 	explain_detail_label.text = episode["story"].get("explain_detail", "")
 	var rows: Array = analysis["rows"]
 	var step := minf(62.0, 350.0 / maxf(1.0, rows.size()))
-	var row_font_size := 21 if rows.size() <= 6 else 18
 	for index in range(rows.size()):
 		var row: Dictionary = rows[index]
 		var winner: bool = row["variant_id"] == analysis["winner_id"]
@@ -292,16 +336,20 @@ func _build_result_rows() -> void:
 				float(row["metrics"][secondary_metric]),
 				analysis.get("secondary_unit", ""),
 			]
+		var swatch := ColorRect.new()
+		swatch.position = Vector2(42, 111 + index * step)
+		swatch.size = Vector2(12 if winner else 6, maxf(18.0, step - 24.0))
+		swatch.color = Color.from_string("#%s" % row["color_html"], Color.WHITE)
+		result_panel.add_child(swatch)
 		var label := _label(
-			Vector2(42, 100 + index * step),
-			Vector2(656, maxf(34.0, step - 4.0)),
-			row_font_size,
-			Color("#FFD166") if winner else Color("#D5E4F2"),
-			bold_font if winner else medium_font
+			Vector2(66, 100 + index * step),
+			Vector2(630, maxf(34.0, step - 4.0)),
+			VideoTypography.DATA,
+			colors["text"]
 		)
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.text = "%s%s   %.2f %s%s" % [
-			"★ " if winner else "• ",
+			"★  " if winner else "",
 			row["label"],
 			row["value"],
 			analysis["metric_unit"],
@@ -309,13 +357,32 @@ func _build_result_rows() -> void:
 		]
 		result_panel.add_child(label)
 		result_rows.append(label)
+		result_swatches.append(swatch)
 	var conclusion: String = analysis.get("conclusion", "")
+	result_callout_label.text = "本轮最优"
 	if conclusion.is_empty():
 		for row in rows:
 			if row["variant_id"] == analysis["winner_id"]:
 				conclusion = "本轮最优：%s" % row["label"]
 				break
+	for row in rows:
+		if row["variant_id"] == analysis["winner_id"]:
+			result_callout_label.text = "本轮最优  ·  %s" % row["label"]
+			break
 	conclusion_label.text = conclusion
+
+
+func _apply_label_intro(label: Label, raw_progress: float) -> void:
+	var progress := clampf(raw_progress, 0.0, 1.0)
+	var eased := 1.0 - pow(1.0 - progress, 3.0)
+	label.pivot_offset = label.size * 0.5
+	label.scale = Vector2.ONE * lerpf(0.94, 1.0, eased)
+	label.modulate.a = eased
+
+
+func _reset_label_motion(label: Label) -> void:
+	label.scale = Vector2.ONE
+	label.modulate.a = 1.0
 
 
 func _panel(
@@ -337,7 +404,7 @@ func _panel(
 	style.border_width_top = border_width
 	style.border_width_right = border_width
 	style.border_width_bottom = border_width
-	style.border_color = Color(0.49, 0.85, 1.0, 0.22)
+	style.border_color = Color("#2D3642")
 	panel.add_theme_stylebox_override("panel", style)
 	return {"panel": panel, "style": style}
 
@@ -345,15 +412,12 @@ func _panel(
 func _label(
 	position_value: Vector2,
 	size_value: Vector2,
-	font_size: int,
-	color: Color,
-	font: Font
+	role: StringName,
+	color: Color
 ) -> Label:
 	var label := Label.new()
 	label.position = position_value
 	label.size = size_value
-	label.theme = VideoTypography.theme()
-	label.add_theme_font_override("font", font)
-	label.add_theme_font_size_override("font_size", font_size)
+	VideoTypography.apply_role(label, role)
 	label.add_theme_color_override("font_color", color)
 	return label

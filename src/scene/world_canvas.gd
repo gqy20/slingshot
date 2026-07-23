@@ -11,9 +11,9 @@ var gravity_mps2 := 9.81
 var ground_y_px := 920.0
 var launch_position_px := Vector2(240, 760)
 var target_position_px := Vector2(1320, 760)
-var accent_color := Color("#35C2FF")
+var accent_color := Color("#F0B35A")
 var trail := PackedVector2Array()
-var label_font := VideoTypography.medium()
+var label_font := VideoTypography.data()
 
 
 func configure(preset: Dictionary) -> void:
@@ -52,13 +52,13 @@ func set_phase(value: String) -> void:
 
 
 func _draw() -> void:
-	draw_rect(Rect2(0, 0, 1920, 1080), Color("#10182A"), true)
-	draw_circle(Vector2(1650, 175), 92.0, Color("#FFD166"))
-	draw_circle(Vector2(1650, 175), 125.0, Color(1.0, 0.82, 0.4, 0.08))
+	draw_rect(Rect2(0, 0, 1920, 1080), Color("#0E1116"), true)
+	draw_circle(Vector2(1650, 175), 92.0, Color("#F0B35A"))
+	draw_circle(Vector2(1650, 175), 125.0, Color("#F0B35A", 0.08))
 	_draw_cloud(Vector2(370, 160), 1.0)
 	_draw_cloud(Vector2(940, 235), 0.72)
-	draw_rect(Rect2(0, ground_y_px, 1920, 1080 - ground_y_px), Color("#263D36"), true)
-	draw_line(Vector2(0, ground_y_px), Vector2(1920, ground_y_px), Color("#84D17A"), 8.0)
+	draw_rect(Rect2(0, ground_y_px, 1920, 1080 - ground_y_px), Color("#23322E"), true)
+	draw_line(Vector2(0, ground_y_px), Vector2(1920, ground_y_px), Color("#6E8A80"), 8.0)
 	_draw_grid()
 	_draw_sling()
 	_draw_target_platform()
@@ -69,14 +69,14 @@ func _draw() -> void:
 
 
 func _draw_cloud(center: Vector2, scale_factor: float) -> void:
-	var color := Color(0.8, 0.9, 1.0, 0.13)
+	var color := Color("#9AA4B2", 0.10)
 	draw_circle(center + Vector2(-50, 8) * scale_factor, 40.0 * scale_factor, color)
 	draw_circle(center, 54.0 * scale_factor, color)
 	draw_circle(center + Vector2(55, 10) * scale_factor, 35.0 * scale_factor, color)
 
 
 func _draw_grid() -> void:
-	var grid_color := Color(0.45, 0.7, 0.9, 0.08)
+	var grid_color := Color("#2D3642", 0.34)
 	for x in range(0, 1921, 100):
 		draw_line(Vector2(x, 0), Vector2(x, ground_y_px), grid_color, 1.0)
 	for y in range(20, int(ground_y_px), 100):
@@ -94,8 +94,8 @@ func _draw_sling() -> void:
 
 func _draw_target_platform() -> void:
 	var top := target_position_px.y + 75.0
-	draw_rect(Rect2(target_position_px.x - 95, top, 190, ground_y_px - top), Color("#4D6D50"), true)
-	draw_rect(Rect2(target_position_px.x - 110, top - 12, 220, 20), Color("#86A96B"), true)
+	draw_rect(Rect2(target_position_px.x - 95, top, 190, ground_y_px - top), Color("#23322E"), true)
+	draw_rect(Rect2(target_position_px.x - 110, top - 12, 220, 20), Color("#6E8A80"), true)
 
 
 func _draw_trajectory() -> void:
@@ -120,7 +120,7 @@ func _draw_vectors() -> void:
 	var origin: Vector2 = last_snapshot["bird_position_px"]
 	var velocity: Vector2 = last_snapshot.get("velocity_px_s", Vector2.ZERO)
 	_draw_arrow(origin, origin + velocity * 0.16, accent_color, "v")
-	_draw_arrow(origin, origin + Vector2(0, gravity_mps2 * 16.0), Color("#FFD166"), "g")
+	_draw_arrow(origin, origin + Vector2(0, gravity_mps2 * 16.0), Color("#F0B35A"), "g")
 
 
 func _draw_arrow(start: Vector2, finish: Vector2, color: Color, label: String) -> void:
@@ -147,4 +147,4 @@ func _draw_impact() -> void:
 		return
 	var radius := 45.0 + age * 210.0
 	var alpha := 1.0 - age / 1.2
-	draw_arc(target_position_px, radius, 0.0, TAU, 64, Color(1.0, 0.82, 0.35, alpha), 10.0, true)
+	draw_arc(target_position_px, radius, 0.0, TAU, 64, Color("#F0B35A", alpha), 10.0, true)

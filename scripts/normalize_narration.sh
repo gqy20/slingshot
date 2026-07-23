@@ -8,6 +8,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/render_paths.sh"
 for required_command in ffmpeg ffprobe jq realpath sha256sum awk; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'narration-normalize: missing command: %s\n' "$required_command" >&2
@@ -17,7 +18,7 @@ done
 
 episode_abs="$(realpath "$1")"
 stem="$(basename "${episode_abs%.json}")"
-output_dir="$PROJECT_ROOT/renders/narration/$stem"
+output_dir="$RENDER_NARRATION_DIR/$stem"
 source_audio="$output_dir/narration.mp3"
 normalized_audio="$output_dir/narration-normalized.wav"
 report="$output_dir/narration-loudness.json"

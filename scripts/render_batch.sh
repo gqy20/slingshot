@@ -3,8 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/render_paths.sh"
 JOBS="${RENDER_JOBS:-1}"
-OUTPUT_DIR="$PROJECT_ROOT/renders/episodes"
+OUTPUT_DIR="$RENDER_FINAL_DIR"
 EPISODES=()
 
 usage() {

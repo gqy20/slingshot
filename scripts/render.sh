@@ -8,6 +8,7 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+. "$SCRIPT_DIR/render_paths.sh"
 GODOT_BIN="${GODOT_BIN:-godot}"
 
 for required_command in "$GODOT_BIN" xvfb-run ffmpeg ffprobe realpath; do
@@ -27,7 +28,7 @@ if [[ $# -eq 2 ]]; then
   OUTPUT_INPUT="$2"
 else
   preset_name="$(basename "${PRESET_ABS%.json}")"
-  OUTPUT_INPUT="$PROJECT_ROOT/renders/${preset_name}.mp4"
+  OUTPUT_INPUT="$RENDER_PREVIEWS_DIR/${preset_name}.mp4"
 fi
 if [[ "$OUTPUT_INPUT" != *.mp4 ]]; then
   printf 'render: output must end in .mp4: %s\n' "$OUTPUT_INPUT" >&2

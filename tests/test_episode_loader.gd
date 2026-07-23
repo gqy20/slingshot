@@ -16,9 +16,13 @@ func run(t) -> void:
 		"variant override applied"
 	)
 	t.check(
-		episode["variants"][1]["preset"]["scene"]["bird_color"] == Color("#FF5D8F"),
+		episode["variants"][1]["preset"]["scene"]["bird_color"] == Color("#E48865"),
 		"variant color applied to preset"
 	)
+	var colors: Dictionary = episode["theme"]["colors"]
+	t.check(colors["background"] == Color("#0E1116"), "editorial background token loads")
+	t.check(colors["surface_elevated"] == Color("#1D2430"), "elevated surface token loads")
+	t.check(colors["accent"] == Color("#F0B35A"), "brand accent token loads")
 
 	var raw: Variant = JSON.parse_string(
 		FileAccess.get_file_as_string("res://content/episodes/smoke.json")

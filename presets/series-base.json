@@ -21,8 +21,8 @@
     "ground_y_m": 11.7,
     "launch_position_m": [2.4, 9.6],
     "target_position_m": [26.0, 9.6],
-    "bird_color": "#E94F37",
-    "accent_color": "#35C2FF",
-    "target_color": "#73C66A"
+    "bird_color": "#E48865",
+    "accent_color": "#F0B35A",
+    "target_color": "#6E8A80"
   }
 }

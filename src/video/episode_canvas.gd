@@ -75,8 +75,8 @@ func _draw_background() -> void:
 	draw_rect(Rect2(Vector2.ZERO, EpisodeLayout.CANVAS_SIZE), colors["background"], true)
 	draw_rect(Rect2(0, 100, 1920, 820), colors["stage"], true)
 	var plot := EpisodeLayout.plot_rect_for_phase(phase)
-	draw_rect(plot, Color(colors["stage"], 0.56), true)
-	draw_rect(Rect2(plot.position, Vector2(plot.size.x, 2)), Color(colors["accent"], 0.10), true)
+	draw_rect(plot, Color(colors["surface"], 0.34), true)
+	draw_rect(Rect2(plot.position, Vector2(plot.size.x, 1)), colors["divider"], true)
 	var glow_center := _map_point(Vector2(1550, 220))
 	var scale_value := _world_scale()
 	for band in range(5):
@@ -84,7 +84,7 @@ func _draw_background() -> void:
 		draw_circle(
 			glow_center,
 			(110.0 + band * 44.0) * scale_value,
-			Color(0.2, 0.75, 1.0, alpha)
+			Color(colors["accent"], alpha)
 		)
 	var ground_start := _map_point(Vector2(0, ground_y_px))
 	var ground_end := _map_point(Vector2(1920, ground_y_px))
@@ -100,8 +100,9 @@ func _draw_background() -> void:
 
 
 func _draw_grid() -> void:
-	var minor := Color(0.35, 0.72, 0.9, 0.045)
-	var major := Color(0.35, 0.72, 0.9, 0.09)
+	var colors: Dictionary = episode["theme"]["colors"]
+	var minor := Color(colors["divider"], 0.24)
+	var major := Color(colors["divider"], 0.44)
 	for x in range(0, 1921, 50):
 		var color := major if x % 200 == 0 else minor
 		draw_line(
@@ -121,6 +122,7 @@ func _draw_grid() -> void:
 
 
 func _draw_sling() -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
 	var scale_value := _world_scale()
 	var base := launch_position_px + Vector2(-46, 104)
 	var left_foot := _map_point(base + Vector2(-34, 70))
@@ -129,9 +131,9 @@ func _draw_sling() -> void:
 	var right_tip_source := base + Vector2(14, -34)
 	var left_tip := _map_point(left_tip_source)
 	var right_tip := _map_point(right_tip_source)
-	var frame_shadow := Color("#251A1D")
-	var frame_color := Color("#8B5A3A")
-	var frame_highlight := Color("#C27A47")
+	var frame_shadow := Color("#1B1715")
+	var frame_color := Color("#76513C")
+	var frame_highlight := Color("#B47A53")
 	for points in [[left_foot, left_tip], [right_foot, right_tip]]:
 		draw_line(points[0], points[1], frame_shadow, maxf(9.0, 30.0 * scale_value), true)
 		draw_line(points[0], points[1], frame_color, maxf(7.0, 22.0 * scale_value), true)
@@ -159,20 +161,20 @@ func _draw_sling() -> void:
 	draw_line(
 		pouch - pouch_perpendicular * maxf(5.0, 12.0 * scale_value),
 		pouch + pouch_perpendicular * maxf(5.0, 12.0 * scale_value),
-		Color("#5A3440"),
+		Color("#57434B"),
 		maxf(5.0, 11.0 * scale_value),
 		true
 	)
 
 	var base_left := _map_point(base + Vector2(-48, 64))
 	var base_right := _map_point(base + Vector2(48, 86))
-	draw_rect(Rect2(base_left, base_right - base_left), Color("#5B3928"), true)
+	draw_rect(Rect2(base_left, base_right - base_left), Color("#4A3528"), true)
 	for wrap_index in range(3):
 		var wrap_y := lerpf(base_left.y + 4, base_right.y - 4, float(wrap_index + 1) / 4.0)
 		draw_line(
 			Vector2(base_left.x + 8, wrap_y),
 			Vector2(base_right.x - 8, wrap_y),
-			Color(0.86, 0.62, 0.36, 0.35),
+			Color(colors["accent"], 0.22),
 			1.5,
 			true
 		)
@@ -193,9 +195,10 @@ func _draw_sling() -> void:
 
 
 func _sling_state() -> Dictionary:
+	var theme_colors: Dictionary = episode["theme"]["colors"]
 	var result := {
 		"pouch_position": launch_position_px,
-		"color": Color("#8A4054"),
+		"color": theme_colors["ground_line"],
 		"tension": 0.12,
 		"rotation": 0.0,
 		"variant_index": 0,
@@ -246,9 +249,9 @@ func _draw_elastic_band(
 	var sag := (1.0 - tension) * 10.0 * side
 	var middle := start.lerp(finish, 0.53) + perpendicular * sag
 	var points := PackedVector2Array([start, middle, finish])
-	draw_polyline(points, Color("#241824"), 9.0, true)
+	draw_polyline(points, Color("#171419"), 9.0, true)
 	draw_polyline(points, Color(accent, 0.72 + tension * 0.20), 4.5, true)
-	draw_polyline(points, Color(1.0, 0.78, 0.55, 0.18 + tension * 0.20), 1.2, true)
+	draw_polyline(points, Color(1.0, 0.86, 0.66, 0.14 + tension * 0.18), 1.2, true)
 
 
 func _draw_tension_sparks(start: Vector2, finish: Vector2, color: Color, seed: int) -> void:
@@ -261,19 +264,20 @@ func _draw_tension_sparks(start: Vector2, finish: Vector2, color: Color, seed: i
 
 
 func _draw_target_platform() -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
 	var top := target_position_px.y + 75.0
 	if top >= ground_y_px:
 		return
 	var top_left := _map_point(Vector2(target_position_px.x - 90, top))
 	var bottom_right := _map_point(Vector2(target_position_px.x + 90, ground_y_px))
-	draw_rect(Rect2(top_left, bottom_right - top_left), Color("#264B43"), true)
+	draw_rect(Rect2(top_left, bottom_right - top_left), colors["ground"], true)
 	var cap_left := _map_point(Vector2(target_position_px.x - 105, top - 10))
 	var cap_right := _map_point(Vector2(target_position_px.x + 105, top + 8))
-	draw_rect(Rect2(cap_left, cap_right - cap_left), Color("#5A8E6D"), true)
+	draw_rect(Rect2(cap_left, cap_right - cap_left), colors["ground_line"], true)
 
 
 func _draw_reference_target() -> void:
-	_draw_target(target_position_px, 0.0, Color("#A7B7B2"), 0.42)
+	_draw_target(target_position_px, 0.0, episode["theme"]["colors"]["muted"], 0.32)
 
 
 func _draw_trajectories() -> void:
@@ -375,6 +379,7 @@ func _draw_bird(
 	variant_index: int,
 	preview: bool = false
 ) -> void:
+	var theme_colors: Dictionary = episode["theme"]["colors"]
 	var position := _map_point(source_position)
 	var visual_scale := maxf(0.72, _world_scale())
 	var direction := velocity.normalized() if velocity.length() > 1.0 else Vector2.RIGHT.rotated(rotation_value)
@@ -437,7 +442,7 @@ func _draw_bird(
 		]),
 		Color(color.lightened(0.04), alpha)
 	)
-	draw_circle(Vector2.ZERO, 25.0, Color("#07111F"))
+	draw_circle(Vector2.ZERO, 25.0, theme_colors["background"])
 	draw_circle(Vector2(-2, -1), 22.0, Color(color, alpha))
 	draw_circle(Vector2(-7, 8), 13.0, Color(color.darkened(0.16), alpha))
 	draw_colored_polygon(
@@ -454,18 +459,18 @@ func _draw_bird(
 		PackedVector2Array([
 			Vector2(20, -4), Vector2(43, 4), Vector2(20, 13),
 		]),
-		Color("#FFD166", alpha)
+		Color(theme_colors["accent"], alpha)
 	)
 	var blink_phase := fposmod(video_time_sec + variant_index * 0.71, 3.6)
 	if blink_phase > 3.42:
-		draw_line(Vector2(5, -10), Vector2(16, -9), Color("#F4F8FF"), 3.0, true)
+		draw_line(Vector2(5, -10), Vector2(16, -9), Color(theme_colors["text"], alpha), 3.0, true)
 	else:
-		draw_circle(Vector2(10, -10), 7.0, Color(1, 1, 1, alpha))
-		draw_circle(Vector2(13, -10), 3.0, Color("#07111F"))
+		draw_circle(Vector2(10, -10), 7.0, Color(theme_colors["text"], alpha))
+		draw_circle(Vector2(13, -10), 3.0, theme_colors["background"])
 	draw_line(
 		Vector2(4, -19),
 		Vector2(18, -16 if winner else -15),
-		Color("#3B1B2A"),
+		Color("#2B2024"),
 		3.5,
 		true
 	)
@@ -482,7 +487,11 @@ func _draw_bird(
 					side * (18.0 + dust_index * 8.0) * landing_elapsed,
 					8.0 - landing_elapsed * (14.0 + dust_index * 2.0)
 				)
-				draw_circle(dust_position, 3.0 + dust_index, Color(0.72, 0.82, 0.84, dust_alpha * 0.28))
+				draw_circle(
+					dust_position,
+					3.0 + dust_index,
+					Color(theme_colors["muted"], dust_alpha * 0.24)
+				)
 
 
 func _draw_target(position: Vector2, rotation_value: float, color: Color, alpha: float) -> void:

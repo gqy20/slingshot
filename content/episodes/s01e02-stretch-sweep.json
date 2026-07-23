@@ -50,25 +50,25 @@
     {
       "id": "stretch-03",
       "label": "0.3 m",
-      "color": "#35C2FF",
+      "color": "#5B7FA3",
       "overrides": {"physics.stretch_m": 0.3}
     },
     {
       "id": "stretch-06",
       "label": "0.6 m",
-      "color": "#5EE1A2",
+      "color": "#67A192",
       "overrides": {"physics.stretch_m": 0.6}
     },
     {
       "id": "stretch-09",
       "label": "0.9 m",
-      "color": "#FFD166",
+      "color": "#BAB56F",
       "overrides": {"physics.stretch_m": 0.9}
     },
     {
       "id": "stretch-12",
       "label": "1.2 m",
-      "color": "#FF5D8F",
+      "color": "#E48865",
       "overrides": {"physics.stretch_m": 1.2}
     }
   ]

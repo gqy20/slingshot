@@ -5,13 +5,12 @@ const VideoTypography = preload("res://src/video/video_typography.gd")
 
 var last_snapshot: Dictionary = {}
 var phase := "INTRO"
-var accent_color := Color("#35C2FF")
+var accent_color := Color("#F0B35A")
 var phase_label: Label
 var info_label: Label
 var formula_label: Label
 var summary_panel: ColorRect
 var summary_label: Label
-var system_font: Font
 
 
 func _ready() -> void:
@@ -35,51 +34,52 @@ func set_snapshot(snapshot: Dictionary) -> void:
 
 
 func _build_ui() -> void:
-	system_font = VideoTypography.regular()
-
 	var top_band := ColorRect.new()
 	top_band.position = Vector2(44, 38)
 	top_band.size = Vector2(620, 84)
-	top_band.color = Color(0.035, 0.055, 0.1, 0.9)
+	top_band.color = Color("#161B22", 0.94)
 	add_child(top_band)
-	phase_label = _label(Vector2(70, 53), Vector2(570, 55), 34, accent_color)
+	phase_label = _label(Vector2(70, 53), Vector2(570, 55), VideoTypography.TITLE, accent_color)
 	add_child(phase_label)
 
 	var info_panel := ColorRect.new()
 	info_panel.position = Vector2(1490, 270)
 	info_panel.size = Vector2(380, 470)
-	info_panel.color = Color(0.035, 0.055, 0.1, 0.88)
+	info_panel.color = Color("#1D2430", 0.94)
 	add_child(info_panel)
-	info_label = _label(Vector2(1530, 300), Vector2(310, 410), 25, Color("#EAF4FF"))
+	info_label = _label(Vector2(1530, 300), Vector2(310, 410), VideoTypography.DATA, Color("#F2F0E9"))
 	add_child(info_label)
 
 	var formula_band := ColorRect.new()
 	formula_band.position = Vector2(44, 958)
 	formula_band.size = Vector2(1828, 82)
-	formula_band.color = Color(0.035, 0.055, 0.1, 0.92)
+	formula_band.color = Color("#161B22", 0.96)
 	add_child(formula_band)
-	formula_label = _label(Vector2(80, 978), Vector2(1760, 50), 27, Color("#C9D7EA"))
+	formula_label = _label(Vector2(80, 978), Vector2(1760, 50), VideoTypography.DATA, Color("#9AA4B2"))
 	formula_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(formula_label)
 
 	summary_panel = ColorRect.new()
 	summary_panel.position = Vector2(470, 245)
 	summary_panel.size = Vector2(980, 530)
-	summary_panel.color = Color(0.035, 0.055, 0.1, 0.96)
+	summary_panel.color = Color("#1D2430", 0.98)
 	add_child(summary_panel)
-	summary_label = _label(Vector2(540, 305), Vector2(840, 410), 34, Color.WHITE)
+	summary_label = _label(Vector2(540, 305), Vector2(840, 410), VideoTypography.BODY, Color("#F2F0E9"))
 	summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	add_child(summary_label)
 	_refresh()
 
 
-func _label(position_value: Vector2, size_value: Vector2, font_size: int, color: Color) -> Label:
+func _label(
+	position_value: Vector2,
+	size_value: Vector2,
+	role: StringName,
+	color: Color
+) -> Label:
 	var label := Label.new()
 	label.position = position_value
 	label.size = size_value
-	label.theme = VideoTypography.theme()
-	label.add_theme_font_override("font", system_font)
-	label.add_theme_font_size_override("font_size", font_size)
+	VideoTypography.apply_role(label, role)
 	label.add_theme_color_override("font_color", color)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
