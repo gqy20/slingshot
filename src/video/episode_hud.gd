@@ -5,6 +5,7 @@ const SubtitleTrack = preload("res://src/playback/subtitle_track.gd")
 const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 const VideoTypography = preload("res://src/video/video_typography.gd")
 const FormulaRenderer = preload("res://src/video/formula_renderer.gd")
+const EpisodeDirector = preload("res://src/video/episode_director.gd")
 
 var episode: Dictionary = {}
 var analysis: Dictionary = {}
@@ -83,6 +84,8 @@ func configure(
 	result_callout_label.add_theme_color_override("font_color", colors["text"])
 	conclusion_label.add_theme_color_override("font_color", colors["text"])
 	subtitle_label.add_theme_color_override("font_color", colors["text"])
+	subtitle_label.add_theme_color_override("font_outline_color", colors["background"])
+	subtitle_label.add_theme_constant_override("outline_size", 9)
 
 	var tag := "FRAMEWORK"
 	if int(episode["season"]) > 0:
@@ -111,7 +114,7 @@ func set_phase(value: String) -> void:
 		"COMPARE": "数据",
 	}.get(phase, phase)
 	phase_panel.visible = false
-	question_label.visible = phase in ["QUESTION", "SETUP"]
+	question_label.visible = false
 	if phase == "SETUP" and not episode["story"].get("control_label", "").is_empty():
 		question_label.text = episode["story"]["control_label"]
 		question_label.position = EpisodeLayout.SETUP_COPY_RECT.position
@@ -124,41 +127,64 @@ func set_phase(value: String) -> void:
 		question_label.theme_type_variation = VideoTypography.HERO
 	_reset_label_motion(question_label)
 
-	explain_panel.visible = phase == "EXPLAIN"
-	explain_title_label.visible = explain_panel.visible
-	explain_detail_label.visible = explain_panel.visible
+	explain_panel.visible = false
+	explain_title_label.visible = false
+	explain_detail_label.visible = false
 	formula_renderer.visible = false
-	var show_legend := phase in ["SETUP", "FLIGHT", "COMPARE"]
 	for chip in legend_chips:
-		chip.visible = show_legend
-	result_panel.visible = phase == "COMPARE"
-	result_title.visible = result_panel.visible
-	result_divider.visible = result_panel.visible
+		chip.visible = false
+	result_panel.visible = false
+	result_title.visible = false
+	result_divider.visible = false
 	result_callout_label.visible = false
 	conclusion_label.visible = false
 	for index in range(result_rows.size()):
 		result_rows[index].visible = false
 		result_swatches[index].visible = false
-	clock_label.visible = phase == "FLIGHT"
+	clock_label.visible = false
 
 
 func set_beat(beat: Dictionary) -> void:
 	current_beat = beat
+	var layers: Array = beat.get("layers", [])
+	var show_identity := "identity" in layers
+	identity_panel.visible = show_identity
 	if not beat.is_empty():
 		phase_label.text = String(beat.get("label", phase_label.text))
 		if phase == "QUESTION" and not String(beat.get("headline", "")).is_empty():
 			question_label.text = String(beat["headline"])
+	question_label.visible = "headline" in layers
 	var formula_step := int(beat.get("formula_step", -1))
-	var show_formula := phase == "EXPLAIN" and formula_step >= 0
+	var show_formula := "formula" in layers and formula_step >= 0
+	explain_panel.visible = show_formula
 	formula_renderer.visible = show_formula
-	explain_title_label.visible = phase == "EXPLAIN" and not show_formula
-	explain_detail_label.visible = phase == "EXPLAIN" and not show_formula
+	explain_title_label.visible = false
+	explain_detail_label.visible = false
 	if show_formula:
 		formula_renderer.set_step(formula_step)
+	for chip in legend_chips:
+		chip.visible = "legend" in layers
+	var show_results := "results" in layers
+	result_panel.visible = show_results
+	result_title.visible = show_results
+	result_divider.visible = show_results
+	clock_label.visible = "clock" in layers
+	if not show_results:
+		result_callout_label.visible = false
+		conclusion_label.visible = false
+		for index in range(result_rows.size()):
+			result_rows[index].visible = false
+			result_swatches[index].visible = false
+	var immersive := String(beat.get("mode", "measurement")) == "immersive"
+	var colors: Dictionary = episode["theme"]["colors"]
+	subtitle_style.bg_color = Color(colors["background"], 0.0 if immersive else 0.94)
+	subtitle_style.border_color = Color(colors["divider"], 0.0 if immersive else 1.0)
 
 
 func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 	phase_panel.visible = (
+		identity_panel.visible
+		and
 		bool(current_beat.get("chapter", false))
 		and video_time_sec - float(current_beat.get("at", video_time_sec)) < 1.8
 	)
@@ -171,13 +197,25 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 		_reset_label_motion(question_label)
 	var subtitle_text := SubtitleTrack.text_at(subtitle_cues, video_time_sec)
 	subtitle_label.text = subtitle_text
-	subtitle_panel.visible = not subtitle_text.is_empty()
+	var layers: Array = current_beat.get("layers", [])
+	subtitle_panel.visible = "subtitle" in layers and not subtitle_text.is_empty()
 	subtitle_label.visible = subtitle_panel.visible
-	if phase == "FLIGHT":
+	if "formula" in layers:
+		var progress := EpisodeDirector.beat_progress(current_beat, video_time_sec)
+		var reveal_at := float(current_beat.get("formula_reveal", 0.42))
+		var formula_progress := smoothstep(reveal_at, minf(0.98, reveal_at + 0.16), progress)
+		formula_renderer.visible = formula_progress > 0.001
+		formula_renderer.modulate.a = formula_progress
+		explain_panel.visible = formula_progress > 0.001
+		explain_panel.modulate.a = formula_progress
+	else:
+		formula_renderer.modulate.a = 1.0
+		explain_panel.modulate.a = 1.0
+	if phase == "FLIGHT" and "clock" in layers:
 		var values: Array = simulation_times.values()
 		var simulation_time := 0.0 if values.is_empty() else float(values[0])
 		clock_label.text = "飞行时间  %05.2f s" % simulation_time
-	elif phase == "COMPARE":
+	elif phase == "COMPARE" and "results" in layers:
 		var compare_time := EpisodeLayout.phase_elapsed(episode, phase, video_time_sec)
 		var reveal_interval := float(
 			episode["story"].get("result_reveal_interval_sec", 0.3)

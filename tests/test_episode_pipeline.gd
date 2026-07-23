@@ -65,6 +65,15 @@ func run(t) -> void:
 	t.check(EpisodeDirector.phase_for_time(episode, 0.5) == "FLIGHT", "flight phase")
 	t.check(EpisodeDirector.phase_for_time(episode, 0.9) == "COMPARE", "compare phase")
 	t.check(EpisodeDirector.beat_for_time(episode, 0.0)["id"] == "question", "first beat")
+	var first_beat: Dictionary = EpisodeDirector.beat_for_time(episode, 0.0)
+	t.check(first_beat["mode"] == "immersive", "director exposes immersive shot mode")
+	t.check(EpisodeDirector.has_layer(first_beat, "headline"), "director exposes beat layers")
+	t.check_close(
+		EpisodeDirector.beat_progress(first_beat, 0.1),
+		0.5,
+		0.0001,
+		"director calculates deterministic beat progress"
+	)
 	var times := EpisodeDirector.simulation_times(episode, bundle, 0.5)
 	t.check(times.has("angle-30") and times.has("angle-60"), "director maps every variant")
 

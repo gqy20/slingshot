@@ -8,6 +8,12 @@ const ALLOWED_VIDEO_FPS := [30, 60]
 const ALLOWED_TEMPLATES := ["overlay_comparison"]
 const ALLOWED_GOALS := ["max", "min"]
 const ALLOWED_BEAT_PHASES := ["QUESTION", "EXPLAIN", "SETUP", "FLIGHT", "COMPARE"]
+const ALLOWED_SHOT_MODES := ["immersive", "measurement"]
+const ALLOWED_BEAT_LAYERS := [
+	"world", "subjects", "trajectories", "annotations",
+	"identity", "headline", "legend", "grid", "formula", "clock", "results", "subtitle",
+]
+const IMMERSIVE_FORBIDDEN_LAYERS := ["legend", "grid", "formula", "clock", "results"]
 const ALLOWED_OVERRIDE_PREFIXES := ["physics.", "scene."]
 
 
@@ -141,7 +147,7 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 		if not value[index] is Dictionary:
 			return _failure("beats[%d] must be an object" % index)
 		var raw: Dictionary = value[index]
-		for key in ["id", "label", "phase", "shot"]:
+		for key in ["id", "label", "phase", "shot", "mode", "intent", "primary_subject"]:
 			if not raw.get(key) is String or String(raw[key]).strip_edges().is_empty():
 				return _failure("beats[%d].%s must be a non-empty string" % [index, key])
 		var id := String(raw["id"]).strip_edges()
@@ -157,6 +163,26 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 		var beat_duration := float(raw["duration"])
 		if absf(at - cursor) > 0.001:
 			return _failure("beats[%d] must start at %.3f" % [index, cursor])
+		var mode := String(raw["mode"]).strip_edges()
+		if mode not in ALLOWED_SHOT_MODES:
+			return _failure("beats[%d].mode must be immersive or measurement" % index)
+		var layers_value: Variant = raw.get("layers")
+		if not layers_value is Array or layers_value.is_empty():
+			return _failure("beats[%d].layers must be a non-empty array" % index)
+		var layers: Array[String] = []
+		for layer_value in layers_value:
+			var layer := String(layer_value).strip_edges()
+			if layer not in ALLOWED_BEAT_LAYERS:
+				return _failure("beats[%d] has invalid layer: %s" % [index, layer])
+			if layer in layers:
+				return _failure("beats[%d] has duplicate layer: %s" % [index, layer])
+			if mode == "immersive" and layer in IMMERSIVE_FORBIDDEN_LAYERS:
+				return _failure("beats[%d] immersive shot cannot show %s" % [index, layer])
+			layers.append(layer)
+		if "formula" in layers and "results" in layers:
+			return _failure("beats[%d] cannot show formula and results together" % index)
+		if "formula" in layers and int(raw.get("formula_step", -1)) < 0:
+			return _failure("beats[%d] formula layer requires formula_step" % index)
 		beats.append({
 			"id": id,
 			"label": String(raw["label"]).strip_edges(),
@@ -164,6 +190,10 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 			"at": at,
 			"duration": beat_duration,
 			"shot": String(raw["shot"]).strip_edges(),
+			"mode": mode,
+			"intent": String(raw["intent"]).strip_edges(),
+			"primary_subject": String(raw["primary_subject"]).strip_edges(),
+			"layers": layers,
 			"focus": String(raw.get("focus", "")),
 			"focus_secondary": String(raw.get("focus_secondary", "")),
 			"focus_label": String(raw.get("focus_label", "")),
@@ -171,6 +201,7 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 			"headline": String(raw.get("headline", "")),
 			"overlay": String(raw.get("overlay", "")),
 			"formula_step": int(raw.get("formula_step", -1)),
+			"formula_reveal": clampf(float(raw.get("formula_reveal", 0.42)), 0.0, 0.85),
 			"sfx": String(raw.get("sfx", "")),
 			"chapter": bool(raw.get("chapter", false)),
 		})

@@ -62,17 +62,20 @@ func set_playback(
 
 func _draw() -> void:
 	_draw_background()
-	_draw_grid()
-	_draw_sling()
-	if phase == "EXPLAIN":
+	if _has_layer("grid"):
+		_draw_grid()
+	if _has_layer("world"):
+		_draw_sling()
+	if phase == "EXPLAIN" and _has_layer("annotations"):
 		_draw_explanation_module()
-	elif phase == "QUESTION":
+	elif phase == "QUESTION" and _has_layer("subjects"):
 		_draw_cold_open_teaser()
-	if episode["story"].get("show_target", true):
+	if _has_layer("world") and episode["story"].get("show_target", true):
 		_draw_target_platform()
 		_draw_reference_target()
-	_draw_trajectories()
-	if phase in ["FLIGHT", "COMPARE"]:
+	if _has_layer("trajectories"):
+		_draw_trajectories()
+	if phase in ["FLIGHT", "COMPARE"] and _has_layer("subjects"):
 		if episode["story"].get("show_target", true):
 			_draw_variant_targets()
 		_draw_variant_birds()
@@ -96,6 +99,7 @@ func _draw_angle_module() -> void:
 	var tip := origin + Vector2(cos(angle), -sin(angle)) * vector_length
 	var horizontal_tip := Vector2(tip.x, origin.y)
 	var progress := _beat_progress()
+	var handoff := _formula_handoff()
 	draw_arc(origin, 105.0, -angle, 0.0, 36, Color(theme_colors["accent"], 0.72), 4.0, true)
 	draw_string(
 		VideoTypography.data(),
@@ -112,9 +116,28 @@ func _draw_angle_module() -> void:
 	draw_dashed_line(horizontal_tip, tip, Color(theme_colors["muted"], 0.32), 2.0, 8.0, true)
 	var pulse := 0.7 + 0.3 * sin(progress * TAU)
 	draw_circle(tip, 13.0 + pulse * 4.0, Color(theme_colors["highlight"], 0.30))
-	_draw_module_label(origin + Vector2(122, 42), "vₓ  水平分量", episode["variants"][0]["color"])
+	var horizontal_token_start := origin + Vector2(176, 42)
+	var horizontal_token_finish := Vector2(plot.end.x - 54, plot.position.y + 205)
+	_draw_migrating_token(
+		horizontal_token_start,
+		horizontal_token_finish,
+		"vₓ",
+		episode["variants"][0]["color"],
+		handoff
+	)
 	_draw_module_label(origin + Vector2(315, -126), "vᵧ  垂直分量", episode["variants"][-1]["color"])
 	_draw_module_label(origin + Vector2(214, -250), "v  初速度", theme_colors["highlight"])
+	var clock_center := origin + Vector2(465, -275)
+	draw_arc(clock_center, 34.0, 0.0, TAU, 32, Color(theme_colors["muted"], 0.55), 3.0, true)
+	draw_line(clock_center, clock_center + Vector2(4, -21), theme_colors["accent"], 3.0, true)
+	draw_line(clock_center, clock_center + Vector2(17, 8), theme_colors["accent"], 3.0, true)
+	_draw_migrating_token(
+		clock_center + Vector2(46, 8),
+		Vector2(plot.end.x - 54, plot.position.y + 275),
+		"t",
+		theme_colors["accent"],
+		handoff
+	)
 
 
 func _draw_energy_module() -> void:
@@ -123,6 +146,7 @@ func _draw_energy_module() -> void:
 	var baseline := plot.position + Vector2(92, 560)
 	var variants: Array = episode["variants"]
 	var step := clampi(int(current_beat.get("formula_step", 0)), 0, 2)
+	var handoff := _formula_handoff()
 	var max_energy := 0.0
 	var energies: Array[float] = []
 	for variant_value in variants:
@@ -151,7 +175,21 @@ func _draw_energy_module() -> void:
 	coils.append(spring_finish)
 	draw_polyline(coils, theme_colors["accent"], 5.0, true)
 	draw_line(spring_start + Vector2(0, -48), spring_start + Vector2(0, 48), theme_colors["muted"], 5.0, true)
-	_draw_module_label(spring_finish + Vector2(-34, -64), "x", theme_colors["accent"])
+	_draw_migrating_token(
+		spring_finish + Vector2(-18, -64),
+		Vector2(plot.end.x - 52, plot.position.y + 190),
+		"x",
+		theme_colors["accent"],
+		handoff
+	)
+	var energy_token_start := baseline + Vector2(480, -280)
+	_draw_migrating_token(
+		energy_token_start,
+		Vector2(plot.end.x - 52, plot.position.y + 270),
+		"E",
+		theme_colors["highlight"],
+		handoff
+	)
 
 
 func _draw_arrow(start: Vector2, finish: Vector2, color: Color, width: float) -> void:
@@ -164,6 +202,26 @@ func _draw_arrow(start: Vector2, finish: Vector2, color: Color, width: float) ->
 
 func _draw_module_label(position: Vector2, value: String, color: Color) -> void:
 	draw_string(VideoTypography.data(), position, value, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, color)
+
+
+func _draw_migrating_token(
+	start: Vector2,
+	finish: Vector2,
+	value: String,
+	color: Color,
+	progress: float
+) -> void:
+	var eased := smoothstep(0.0, 1.0, progress)
+	var position := start.lerp(finish, eased)
+	if eased > 0.02:
+		draw_dashed_line(start, position, Color(color, 0.22 * eased), 2.0, 9.0, true)
+	draw_circle(position + Vector2(10, -8), 24.0, Color(color, 0.08 + 0.08 * eased))
+	draw_string(VideoTypography.data(), position, value, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, color)
+
+
+func _formula_handoff() -> float:
+	var reveal := float(current_beat.get("formula_reveal", 0.42))
+	return smoothstep(maxf(0.0, reveal - 0.30), reveal, _beat_progress())
 
 
 func _beat_progress() -> float:
@@ -179,11 +237,13 @@ func _beat_progress() -> float:
 
 func _draw_background() -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
+	var mode := _shot_mode()
 	draw_rect(Rect2(Vector2.ZERO, EpisodeLayout.CANVAS_SIZE), colors["background"], true)
 	draw_rect(Rect2(0, 0, 1920, 920), colors["stage"], true)
-	var plot := EpisodeLayout.plot_rect_for_phase(phase)
-	draw_rect(plot, Color(colors["surface"], 0.34), true)
-	draw_rect(Rect2(plot.position, Vector2(plot.size.x, 1)), colors["divider"], true)
+	var plot := EpisodeLayout.plot_rect_for_phase(phase, mode)
+	if mode == "measurement":
+		draw_rect(plot, Color(colors["surface"], 0.34), true)
+		draw_rect(Rect2(plot.position, Vector2(plot.size.x, 1)), colors["divider"], true)
 	var glow_center := _map_point(Vector2(1550, 220))
 	var scale_value := _world_scale()
 	for band in range(5):
@@ -427,8 +487,13 @@ func _draw_trajectories() -> void:
 			width = 4.0
 		else:
 			points = trajectories_by_id.get(id, PackedVector2Array())
-			alpha = 0.98 if id == analysis.get("winner_id") else 0.34
-			width = 8.0 if id == analysis.get("winner_id") else 3.0
+			var focus_id := String(current_beat.get("focus", ""))
+			if not focus_id.is_empty():
+				alpha = 0.98 if id == focus_id else 0.14
+				width = 8.0 if id == focus_id else 2.0
+			else:
+				alpha = 0.98 if id == analysis.get("winner_id") else 0.34
+				width = 8.0 if id == analysis.get("winner_id") else 3.0
 		var mapped_points := _map_points(points)
 		if mapped_points.size() >= 2:
 			draw_polyline(mapped_points, Color(color, alpha), maxf(2.0, width * _world_scale()), true)
@@ -445,7 +510,7 @@ func _draw_variant_birds() -> void:
 		var state: Dictionary = states_by_id.get(id, {})
 		if state.is_empty():
 			continue
-		var winner: bool = phase == "COMPARE" and id == analysis.get("winner_id")
+		var winner: bool = _winner_emphasis_enabled() and id == analysis.get("winner_id")
 		var focus_id := String(current_beat.get("focus", ""))
 		var bird_alpha := 1.0 if winner else 0.88
 		if not focus_id.is_empty() and id != focus_id:
@@ -526,7 +591,7 @@ func _draw_event_effects() -> void:
 		_draw_release_burst()
 	elif beat_id == "landing":
 		_draw_landing_dust()
-	elif phase == "COMPARE" and _beat_progress() > 0.18:
+	elif _winner_emphasis_enabled() and _beat_progress() > 0.18:
 		_draw_result_celebration()
 
 
@@ -761,7 +826,7 @@ func _draw_velocity_vector(position: Vector2, velocity: Vector2, color: Color) -
 
 
 func _map_point(point: Vector2) -> Vector2:
-	return EpisodeLayout.map_world(point, phase)
+	return EpisodeLayout.map_world(point, phase, _shot_mode())
 
 
 func _map_points(points: PackedVector2Array) -> PackedVector2Array:
@@ -772,4 +837,17 @@ func _map_points(points: PackedVector2Array) -> PackedVector2Array:
 
 
 func _world_scale() -> float:
-	return EpisodeLayout.world_scale(phase)
+	return EpisodeLayout.world_scale(phase, _shot_mode())
+
+
+func _shot_mode() -> String:
+	return String(current_beat.get("mode", "measurement"))
+
+
+func _has_layer(layer: String) -> bool:
+	var layers: Array = current_beat.get("layers", [])
+	return layer in layers
+
+
+func _winner_emphasis_enabled() -> bool:
+	return phase == "COMPARE" and _has_layer("results")

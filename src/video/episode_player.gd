@@ -156,6 +156,9 @@ func _finish() -> void:
 		"layout": {
 			"plot_safe_by_phase": true,
 			"subject_overlap_audited": true,
+			"shot_modes": ["immersive", "measurement"],
+			"one_intent_per_beat": true,
+			"layer_profiles_validated": true,
 			"subtitle_max_characters": 88,
 			"subtitle_max_explicit_lines": 2,
 		},

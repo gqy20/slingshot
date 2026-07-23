@@ -14,7 +14,9 @@ const RESULT_RECT := Rect2(1120.0, 180.0, 740.0, 710.0)
 const SUBTITLE_RECT := Rect2(160.0, 944.0, 1600.0, 100.0)
 
 
-static func plot_rect_for_phase(phase: String) -> Rect2:
+static func plot_rect_for_phase(phase: String, mode: String = "measurement") -> Rect2:
+	if mode == "immersive":
+		return Rect2(40.0, 100.0, 1840.0, 790.0)
 	match phase:
 		"QUESTION":
 			return Rect2(80.0, 340.0, 1760.0, 550.0)
@@ -28,25 +30,25 @@ static func plot_rect_for_phase(phase: String) -> Rect2:
 			return Rect2(70.0, 180.0, 1780.0, 710.0)
 
 
-static func world_scale(phase: String) -> float:
-	var target := plot_rect_for_phase(phase)
+static func world_scale(phase: String, mode: String = "measurement") -> float:
+	var target := plot_rect_for_phase(phase, mode)
 	return minf(
 		target.size.x / SOURCE_WORLD_RECT.size.x,
 		target.size.y / SOURCE_WORLD_RECT.size.y
 	)
 
 
-static func world_offset(phase: String) -> Vector2:
-	var target := plot_rect_for_phase(phase)
-	var scale_value := world_scale(phase)
+static func world_offset(phase: String, mode: String = "measurement") -> Vector2:
+	var target := plot_rect_for_phase(phase, mode)
+	var scale_value := world_scale(phase, mode)
 	var fitted_size := SOURCE_WORLD_RECT.size * scale_value
 	return target.position + (target.size - fitted_size) * 0.5
 
 
-static func map_world(point: Vector2, phase: String) -> Vector2:
+static func map_world(point: Vector2, phase: String, mode: String = "measurement") -> Vector2:
 	return (
-		world_offset(phase)
-		+ (point - SOURCE_WORLD_RECT.position) * world_scale(phase)
+		world_offset(phase, mode)
+		+ (point - SOURCE_WORLD_RECT.position) * world_scale(phase, mode)
 	)
 
 

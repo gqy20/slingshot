@@ -64,20 +64,20 @@
     "conclusion": "45° 飞得最远；75° 虽然最高，却不是最远。"
   },
   "beats": [
-	{"id":"cold-open","label":"最高 ≠ 最远","phase":"QUESTION","at":0,"duration":5,"shot":"contrast","focus":"angle-75","focus_secondary":"angle-45","focus_label":"最高","focus_secondary_label":"最远","headline":"最高 ≠ 最远","overlay":"contrast-teaser","sfx":"cold-open","chapter":true},
-	{"id":"quick-controls","label":"同速 · 变角度","phase":"QUESTION","at":5,"duration":5,"shot":"controls","focus":"angle-75","focus_secondary":"angle-45","focus_label":"75°","focus_secondary_label":"45°","headline":"同一速度\n只改变角度","overlay":"quick-controls"},
-	{"id":"question","label":"75° 最高，45° 最远","phase":"QUESTION","at":10,"duration":5,"shot":"hero","focus":"angle-75","focus_secondary":"angle-45","headline":"为什么 75° 最高\n却不是最远？","overlay":"display-hook"},
-	{"id":"distance-model","label":"R = vₓ · t","phase":"EXPLAIN","at":15,"duration":10,"shot":"relation","overlay":"angle-tradeoff","formula_step":0,"chapter":true},
-	{"id":"tradeoff","label":"vₓ ↓ · t ↑","phase":"EXPLAIN","at":25,"duration":10,"shot":"formula","overlay":"angle-equation","formula_step":1},
-	{"id":"ideal-result","label":"理想最优角 45°","phase":"EXPLAIN","at":35,"duration":10,"shot":"formula","overlay":"angle-equation","formula_step":2},
-	{"id":"controls","label":"5 组同速发射","phase":"SETUP","at":45,"duration":7,"shot":"setup","overlay":"controls","chapter":true},
-	{"id":"predictions","label":"15° → 75°","phase":"SETUP","at":52,"duration":8,"shot":"setup","focus":"angle-45","overlay":"protractor"},
-	{"id":"launch","label":"同时释放","phase":"FLIGHT","at":60,"duration":8,"shot":"launch","sfx":"release","chapter":true},
-	{"id":"mid-flight","label":"轨迹分化","phase":"FLIGHT","at":68,"duration":7,"shot":"follow","focus":"angle-45"},
-	{"id":"landing","label":"首次落地","phase":"FLIGHT","at":75,"duration":5,"shot":"landing","sfx":"landing"},
-	{"id":"ranking","label":"射程排名","phase":"COMPARE","at":80,"duration":9,"shot":"ranking","focus":"angle-45","sfx":"result","chapter":true},
-	{"id":"counterexample","label":"75° 最高","phase":"COMPARE","at":89,"duration":9,"shot":"comparison","focus":"angle-75","overlay":"counterexample"},
-	{"id":"takeaway","label":"45° 最远","phase":"COMPARE","at":98,"duration":22,"shot":"takeaway","focus":"angle-45","overlay":"assumptions"}
+	{"id":"cold-open","label":"最高 ≠ 最远","phase":"QUESTION","at":0,"duration":5,"shot":"contrast","mode":"immersive","intent":"contrast-height-range","primary_subject":"angle-75-and-angle-45","layers":["world","subjects","trajectories","headline","subtitle"],"focus":"angle-75","focus_secondary":"angle-45","focus_label":"最高","focus_secondary_label":"最远","headline":"最高 ≠ 最远","overlay":"contrast-teaser","sfx":"cold-open","chapter":true},
+	{"id":"quick-controls","label":"同速 · 变角度","phase":"QUESTION","at":5,"duration":5,"shot":"controls","mode":"measurement","intent":"isolate-launch-angle","primary_subject":"launch-vectors","layers":["world","subjects","headline","identity","subtitle"],"focus":"angle-75","focus_secondary":"angle-45","focus_label":"75°","focus_secondary_label":"45°","headline":"同一速度\n只改变角度","overlay":"quick-controls"},
+	{"id":"question","label":"75° 最高，45° 最远","phase":"QUESTION","at":10,"duration":5,"shot":"hero","mode":"immersive","intent":"ask-range-question","primary_subject":"question","layers":["world","subjects","headline","subtitle"],"focus":"angle-75","focus_secondary":"angle-45","headline":"为什么 75° 最高\n却不是最远？","overlay":"display-hook"},
+	{"id":"distance-model","label":"R = vₓ · t","phase":"EXPLAIN","at":15,"duration":10,"shot":"relation","mode":"measurement","intent":"derive-range-factors","primary_subject":"horizontal-velocity","layers":["world","annotations","formula","identity","subtitle"],"overlay":"angle-tradeoff","formula_step":0,"formula_reveal":0.48,"chapter":true},
+	{"id":"tradeoff","label":"vₓ ↓ · t ↑","phase":"EXPLAIN","at":25,"duration":10,"shot":"formula","mode":"measurement","intent":"compare-opposing-effects","primary_subject":"velocity-components","layers":["world","annotations","formula","identity","subtitle"],"overlay":"angle-equation","formula_step":1,"formula_reveal":0.42},
+	{"id":"ideal-result","label":"理想最优角 45°","phase":"EXPLAIN","at":35,"duration":10,"shot":"formula","mode":"measurement","intent":"locate-ideal-maximum","primary_subject":"angle-term","layers":["world","annotations","formula","identity","subtitle"],"overlay":"angle-equation","formula_step":2,"formula_reveal":0.36},
+	{"id":"controls","label":"5 组同速发射","phase":"SETUP","at":45,"duration":7,"shot":"setup","mode":"measurement","intent":"show-controlled-variants","primary_subject":"five-launch-angles","layers":["world","trajectories","legend","grid","headline","identity","subtitle"],"overlay":"controls","chapter":true},
+	{"id":"predictions","label":"15° → 75°","phase":"SETUP","at":52,"duration":8,"shot":"setup","mode":"measurement","intent":"predict-angle-order","primary_subject":"angle-45","layers":["world","trajectories","legend","grid","identity","subtitle"],"focus":"angle-45","overlay":"protractor"},
+	{"id":"launch","label":"同时释放","phase":"FLIGHT","at":60,"duration":8,"shot":"launch","mode":"immersive","intent":"observe-simultaneous-launch","primary_subject":"birds","layers":["world","subjects","trajectories","subtitle"],"sfx":"release","chapter":true},
+	{"id":"mid-flight","label":"轨迹分化","phase":"FLIGHT","at":68,"duration":7,"shot":"follow","mode":"immersive","intent":"observe-trajectory-separation","primary_subject":"angle-45","layers":["world","subjects","trajectories","subtitle"],"focus":"angle-45"},
+	{"id":"landing","label":"首次落地","phase":"FLIGHT","at":75,"duration":5,"shot":"landing","mode":"immersive","intent":"observe-first-landings","primary_subject":"landing-birds","layers":["world","subjects","trajectories","subtitle"],"sfx":"landing"},
+	{"id":"ranking","label":"射程排名","phase":"COMPARE","at":80,"duration":9,"shot":"ranking","mode":"measurement","intent":"rank-flight-range","primary_subject":"result-ranking","layers":["world","trajectories","grid","results","identity","subtitle"],"focus":"angle-45","sfx":"result","chapter":true},
+	{"id":"counterexample","label":"75° 最高","phase":"COMPARE","at":89,"duration":9,"shot":"comparison","mode":"immersive","intent":"reveal-height-counterexample","primary_subject":"angle-75","layers":["world","subjects","trajectories","subtitle"],"focus":"angle-75","overlay":"counterexample"},
+	{"id":"takeaway","label":"45° 最远","phase":"COMPARE","at":98,"duration":22,"shot":"takeaway","mode":"measurement","intent":"state-angle-conclusion","primary_subject":"angle-45-result","layers":["world","subjects","results","identity","subtitle"],"focus":"angle-45","overlay":"assumptions"}
   ],
   "variants": [
     {

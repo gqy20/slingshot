@@ -32,6 +32,22 @@ static func beat_for_time(episode: Dictionary, video_time_sec: float) -> Diction
 	return beats[-1]
 
 
+static func beat_progress(beat: Dictionary, video_time_sec: float) -> float:
+	if beat.is_empty():
+		return 0.0
+	return clampf(
+		(video_time_sec - float(beat.get("at", video_time_sec)))
+		/ maxf(0.001, float(beat.get("duration", 1.0))),
+		0.0,
+		1.0
+	)
+
+
+static func has_layer(beat: Dictionary, layer: String) -> bool:
+	var layers: Array = beat.get("layers", [])
+	return layer in layers
+
+
 static func simulation_times(
 	episode: Dictionary,
 	bundle: Dictionary,

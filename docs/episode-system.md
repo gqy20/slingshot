@@ -19,7 +19,11 @@ Episode JSON
 
 `display_hook` 只负责短屏幕标题；`question` 与 narration 负责完整表述。`beats` 是连续、无重叠的绝对时间线，每项包含 Phase、shot、focus、overlay、formula step 与 sfx cue。Loader 会拒绝时间缺口、重叠、重复 ID 和未覆盖完整时长的配置。
 
+每个 Beat 同时声明 `mode`、唯一 `intent`、`primary_subject` 与 `layers`。`immersive` 只允许物理世界、主体、轨迹、极少量标题和字幕；`measurement` 才允许网格、图例、时钟、公式或结果。公式与结果不能同镜，沉浸镜头不能携带测量 UI。可见层由 Beat 而非 Phase 决定，因此同一个 COMPARE 阶段可以先显示数据排名，再退出所有面板，以全屏轨迹揭示反例。
+
 科学解释使用 `story.explanation` 描述 `relation`（变量关系）或 `derivation`（逐步推导）。每一步只保留一个概念、一条公式和一句白话结论，条件固定显示在步骤轨道下方。公式源码交给固定版本的 Typst 生成 SVG，`equation` 字段保留为检索、测试与加载失败时的文本兜底；中文概念、结论和条件仍由统一的 Godot Typography Theme 排版。
+
+解释镜头使用两段式编排：前半段只呈现物理箭头、计时器、量尺、弹簧或能量条，关键符号沿确定性路径移动到公式区域；到达 Beat 的 `formula_reveal` 后，再淡入 Typst 完整公式。Godot 负责因果动画，Typst 只负责最终数学排版。
 
 旁白配置固定 MMX 模型、音色、语速、音量、音高、语言增强、句级字幕和发音表。讲稿中的 `<#x#>` 是 MiniMax 原生停顿标记，范围为 0.01–99.99 秒且只能位于两段可发音文本之间；校验器会拒绝连续、越界或超过两位小数的标记。当前要求 mmx-cli ≥ 1.0.18，以正确序列化重复的 `--pronunciation` 参数。
 

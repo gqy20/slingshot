@@ -60,6 +60,26 @@ func run(t) -> void:
 	broken_beats["beats"][1]["at"] = 0.25
 	t.check(not EpisodeLoader.validate_dict(broken_beats)["ok"], "beat timeline rejects gaps")
 
+	var missing_intent: Dictionary = raw.duplicate(true)
+	missing_intent["beats"][0].erase("intent")
+	t.check(not EpisodeLoader.validate_dict(missing_intent)["ok"], "beat requires one explicit intent")
+
+	var immersive_results: Dictionary = raw.duplicate(true)
+	immersive_results["beats"][0]["layers"].append("results")
+	t.check(
+		not EpisodeLoader.validate_dict(immersive_results)["ok"],
+		"immersive beat rejects measurement-only result UI"
+	)
+
+	var competing_layers: Dictionary = raw.duplicate(true)
+	competing_layers["beats"][1]["layers"].append("formula")
+	competing_layers["beats"][1]["layers"].append("results")
+	competing_layers["beats"][1]["formula_step"] = 0
+	t.check(
+		not EpisodeLoader.validate_dict(competing_layers)["ok"],
+		"one beat cannot ask viewers to read formula and results together"
+	)
+
 	for production_path in [
 		"res://content/episodes/s01e01-angle-sweep.json",
 		"res://content/episodes/s01e02-stretch-sweep.json",
@@ -76,6 +96,18 @@ func run(t) -> void:
 				"production episode targets two minutes"
 			)
 			t.check(production["episode"]["beats"].size() == 14, "production has 14 beats")
+			var immersive_count := 0
+			var measurement_count := 0
+			for beat in production["episode"]["beats"]:
+				t.check(not String(beat["intent"]).is_empty(), "beat has one narrative intent")
+				t.check(not String(beat["primary_subject"]).is_empty(), "beat has a primary subject")
+				t.check(not beat["layers"].is_empty(), "beat declares an explicit layer profile")
+				if beat["mode"] == "immersive":
+					immersive_count += 1
+				else:
+					measurement_count += 1
+			t.check(immersive_count >= 6, "production uses immersive shots for phenomena")
+			t.check(measurement_count >= 6, "production retains measurement shots for evidence")
 			t.check(
 				production["episode"]["series"] == "物理实验室",
 				"production uses the concise series name"

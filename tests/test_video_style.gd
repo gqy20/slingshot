@@ -95,6 +95,33 @@ func run(t) -> void:
 	)
 	hud.free()
 
+	var narrative_hud := EpisodeHud.new()
+	narrative_hud._build_ui()
+	var narrative_episode: Dictionary = EpisodeLoader.load_path(
+		"res://content/episodes/s01e01-angle-sweep.json"
+	)["episode"]
+	narrative_hud.configure(narrative_episode, {
+		"metric_label": "射程",
+		"rows": [],
+		"winner_id": "angle-45",
+		"winner_value": 0.0,
+		"goal": "max",
+		"metric_unit": "m",
+		"primary_metric": "flight_range_m",
+	})
+	var launch_beat: Dictionary = narrative_episode["beats"][8]
+	narrative_hud.set_phase("FLIGHT")
+	narrative_hud.set_beat(launch_beat)
+	t.check(not narrative_hud.identity_panel.visible, "immersive launch removes persistent identity UI")
+	t.check(not narrative_hud.clock_label.visible, "immersive launch removes the instrument clock")
+	t.check(not narrative_hud.legend_chips[0].visible, "immersive launch removes the legend")
+	var ranking_beat: Dictionary = narrative_episode["beats"][11]
+	narrative_hud.set_phase("COMPARE")
+	narrative_hud.set_beat(ranking_beat)
+	t.check(narrative_hud.result_panel.visible, "measurement ranking enables result evidence")
+	t.check(not narrative_hud.legend_chips[0].visible, "result ranking does not duplicate labels in a legend")
+	narrative_hud.free()
+
 	var episode_one: Dictionary = EpisodeLoader.load_path(
 		"res://content/episodes/s01e01-angle-sweep.json"
 	)["episode"]
