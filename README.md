@@ -75,6 +75,8 @@ scripts/render_episode.sh content/episodes/s01e02-stretch-sweep.json
 
 Episode 在渲染前会执行布局审计：每个阶段拥有独立 Plot Area，逐帧检查小鸟与速度箭头是否进入标题、图例、结果或字幕区域；字幕限制为最多 88 个字符和两条显式行。结果阶段使用左侧轨迹、右侧数据的分栏布局。弹弓拉伸、回弹、能量光点与小鸟的蓄力、飞行形变、眨眼和落地反馈都由视频时间确定性驱动，不改变物理记录。
 
+每集以连续的 `beats` 时间线组织约 2 分钟内容。Beat 精确声明镜头、聚焦实验组、Overlay、公式步骤和音效提示；`display_hook` 是短屏幕标题，完整 `question` 与旁白仍保留科学语义。Beat 必须从 0 秒无缝覆盖到 Episode 结束，分片 Worker 从任意绝对帧启动都会得到同一状态。
+
 视觉采用 Editorial Science Lab 规范：中性色负责画面结构，琥珀色只用于系列强调，实验组使用同一条“低值冷色 → 高值暖色”的有序数据色阶。数据色不会再填充面板或正文，胜者通过线宽、星标和光环表达，因此跨集保持相同颜色语义。
 
 只调整配音时可以跳过 Godot 逐帧渲染，直接以 `-16 LUFS` 目标响度重新混入：
@@ -94,6 +96,8 @@ scripts/render_batch.sh --jobs 2 content/episodes/s01e01-angle-sweep.json conten
 ```
 
 可通过 `EPISODE_RENDER_WORKERS` 调整单集期望分片数，通过 `RENDER_MAX_WORKERS` 设置整批任务的并发上限。少于 300 帧的短视频默认不分片；测试时可用 `EPISODE_SHARD_MIN_FRAMES` 调整阈值。
+
+结构审查可用 `EPISODE_RENDER_WIDTH=1920 EPISODE_RENDER_HEIGHT=1080` 输出 1080p；在最终 MMX 旁白尚未生成时，可附加 `EPISODE_SKIP_NARRATION=1` 生成无声预览。正式交付仍使用 Episode 声明的 3840×2160。
 
 生成 Question、Explain、Setup、Launch、Mid-flight、Landing、Compare 七节拍审查表：
 

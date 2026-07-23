@@ -6,6 +6,7 @@
   "episode": 0,
   "title": "Episode Framework Smoke",
   "question": "两个角度，哪一个飞得更远？",
+  "display_hook": "哪个角度\n飞得更远？",
   "base_preset": "res://presets/smoke.json",
   "theme": "res://content/themes/laboratory.json",
   "video": {
@@ -32,6 +33,13 @@
     "goal": "max",
     "conclusion": "框架验证完成"
   },
+  "beats": [
+    {"id":"question","label":"提出问题","phase":"QUESTION","at":0.0,"duration":0.2,"shot":"hero"},
+    {"id":"explain","label":"建立直觉","phase":"EXPLAIN","at":0.2,"duration":0.1,"shot":"explain"},
+    {"id":"setup","label":"控制变量","phase":"SETUP","at":0.3,"duration":0.2,"shot":"setup"},
+    {"id":"flight","label":"同步实验","phase":"FLIGHT","at":0.5,"duration":0.3,"shot":"flight"},
+    {"id":"compare","label":"结果揭晓","phase":"COMPARE","at":0.8,"duration":0.3,"shot":"compare"}
+  ],
   "variants": [
     {
       "id": "angle-30",

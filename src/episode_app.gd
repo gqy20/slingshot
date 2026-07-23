@@ -17,10 +17,13 @@ func _enter_tree() -> void:
 	if not raw is Dictionary or not raw.get("video") is Dictionary:
 		return
 	var video: Dictionary = raw["video"]
-	var requested_size := Vector2i(
-		int(video.get("width", 1920)),
-		int(video.get("height", 1080))
-	)
+	var render_width := int(args.get("render_width", 0))
+	var render_height := int(args.get("render_height", 0))
+	if render_width <= 0:
+		render_width = int(video.get("width", 1920))
+	if render_height <= 0:
+		render_height = int(video.get("height", 1080))
+	var requested_size := Vector2i(render_width, render_height)
 	get_tree().root.size = requested_size
 	get_tree().root.content_scale_size = requested_size
 	DisplayServer.window_set_size(requested_size)
@@ -70,13 +73,20 @@ func _ready() -> void:
 	var player := EpisodePlayer.new()
 	player.name = "EpisodePlayer"
 	add_child(player)
+	var render_width := int(args.get("render_width", 0))
+	var render_height := int(args.get("render_height", 0))
+	if render_width <= 0:
+		render_width = int(episode["video"]["width"])
+	if render_height <= 0:
+		render_height = int(episode["video"]["height"])
 	player.start(
 		episode,
 		bundle,
 		String(args.get("sidecar", "")),
 		String(args.get("subtitles", "")),
 		int(args.get("frame_start", 0)),
-		int(args.get("frame_end", -1))
+		int(args.get("frame_end", -1)),
+		Vector2i(render_width, render_height)
 	)
 
 
@@ -97,6 +107,8 @@ func _parse_user_args(argv: PackedStringArray) -> Dictionary:
 		"subtitles": "",
 		"frame_start": 0,
 		"frame_end": -1,
+		"render_width": 0,
+		"render_height": 0,
 		"boot_only": false,
 	}
 	var index := 0
@@ -129,6 +141,14 @@ func _parse_user_args(argv: PackedStringArray) -> Dictionary:
 			"--frame-end":
 				if index + 1 < argv.size():
 					result["frame_end"] = argv[index + 1].to_int()
+					index += 1
+			"--render-width":
+				if index + 1 < argv.size():
+					result["render_width"] = argv[index + 1].to_int()
+					index += 1
+			"--render-height":
+				if index + 1 < argv.size():
+					result["render_height"] = argv[index + 1].to_int()
 					index += 1
 			"--boot-only":
 				result["boot_only"] = true

@@ -16,6 +16,8 @@ Episode JSON
 
 模拟阶段决定发生了什么；分析阶段决定结果意味着什么；导演阶段决定何时展示；回放阶段只负责画面，不再修改物理状态。
 
+`display_hook` 只负责短屏幕标题；`question` 与 narration 负责完整表述。`beats` 是连续、无重叠的绝对时间线，每项包含 Phase、shot、focus、overlay、formula step 与 sfx cue。Loader 会拒绝时间缺口、重叠、重复 ID 和未覆盖完整时长的配置。
+
 ## 输出目录
 
 - `renders/final/`：正式 Episode 的 MP4、JSON sidecar 与 manifest。

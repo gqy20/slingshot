@@ -7,6 +7,7 @@ const REQUIRED_VIDEO_SIZE := Vector2i(3840, 2160)
 const ALLOWED_VIDEO_FPS := [30, 60]
 const ALLOWED_TEMPLATES := ["overlay_comparison"]
 const ALLOWED_GOALS := ["max", "min"]
+const ALLOWED_BEAT_PHASES := ["QUESTION", "EXPLAIN", "SETUP", "FLIGHT", "COMPARE"]
 const ALLOWED_OVERRIDE_PREFIXES := ["physics.", "scene."]
 
 
@@ -100,6 +101,9 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 		+ story["flight_sec"]
 		+ story["compare_sec"]
 	)
+	var beats_result := _normalize_beats(raw.get("beats"), duration_sec)
+	if not beats_result["ok"]:
+		return beats_result
 	var normalized := {
 		"schema_version": 1,
 		"id": String(raw["id"]).strip_edges(),
@@ -108,6 +112,7 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 		"episode": int(raw.get("episode", 0)),
 		"title": String(raw["title"]).strip_edges(),
 		"question": String(raw["question"]).strip_edges(),
+		"display_hook": String(raw.get("display_hook", raw["title"])).strip_edges(),
 		"base_preset": base_preset_path,
 		"theme_path": theme_path,
 		"theme": theme_result["theme"],
@@ -120,9 +125,54 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 		"story": story,
 		"narration": narration_result["narration"],
 		"duration_sec": duration_sec,
+		"beats": beats_result["beats"],
 		"variants": normalized_variants,
 	}
 	return {"ok": true, "error": "", "episode": normalized}
+
+
+static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
+	if not value is Array or value.is_empty():
+		return _failure("beats must be a non-empty array")
+	var beats: Array = []
+	var cursor := 0.0
+	var seen := {}
+	for index in range(value.size()):
+		if not value[index] is Dictionary:
+			return _failure("beats[%d] must be an object" % index)
+		var raw: Dictionary = value[index]
+		for key in ["id", "label", "phase", "shot"]:
+			if not raw.get(key) is String or String(raw[key]).strip_edges().is_empty():
+				return _failure("beats[%d].%s must be a non-empty string" % [index, key])
+		var id := String(raw["id"]).strip_edges()
+		if seen.has(id):
+			return _failure("duplicate beat id: %s" % id)
+		seen[id] = true
+		var phase := String(raw["phase"]).strip_edges()
+		if phase not in ALLOWED_BEAT_PHASES:
+			return _failure("beats[%d].phase is invalid: %s" % [index, phase])
+		if not _is_number(raw.get("at")) or not _positive_finite(raw.get("duration")):
+			return _failure("beats[%d] timing must be numeric and positive" % index)
+		var at := float(raw["at"])
+		var beat_duration := float(raw["duration"])
+		if absf(at - cursor) > 0.001:
+			return _failure("beats[%d] must start at %.3f" % [index, cursor])
+		beats.append({
+			"id": id,
+			"label": String(raw["label"]).strip_edges(),
+			"phase": phase,
+			"at": at,
+			"duration": beat_duration,
+			"shot": String(raw["shot"]).strip_edges(),
+			"focus": String(raw.get("focus", "")),
+			"overlay": String(raw.get("overlay", "")),
+			"formula_step": int(raw.get("formula_step", -1)),
+			"sfx": String(raw.get("sfx", "")),
+		})
+		cursor += beat_duration
+	if absf(cursor - duration_sec) > 0.001:
+		return _failure("beats must cover the complete %.3f second episode" % duration_sec)
+	return {"ok": true, "error": "", "beats": beats}
 
 
 static func _load_theme(path: String) -> Dictionary:

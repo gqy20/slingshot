@@ -25,8 +25,10 @@ if [[ ! -f "$EPISODE_ABS" ]]; then
 fi
 episode_name="$(basename "${EPISODE_ABS%.json}")"
 FPS="$(jq -er '.video.fps' "$EPISODE_ABS")"
-WIDTH="$(jq -er '.video.width' "$EPISODE_ABS")"
-HEIGHT="$(jq -er '.video.height' "$EPISODE_ABS")"
+SOURCE_WIDTH="$(jq -er '.video.width' "$EPISODE_ABS")"
+SOURCE_HEIGHT="$(jq -er '.video.height' "$EPISODE_ABS")"
+WIDTH="${EPISODE_RENDER_WIDTH:-$SOURCE_WIDTH}"
+HEIGHT="${EPISODE_RENDER_HEIGHT:-$SOURCE_HEIGHT}"
 VIDEO_DURATION="$(jq -r '
   .story.question_sec
   + (.story.explain_sec // 0)
@@ -60,15 +62,23 @@ if [[ "$FPS" != 30 && "$FPS" != 60 ]]; then
   printf 'episode-render: video fps must be 30 or 60, got %s\n' "$FPS" >&2
   exit 2
 fi
-if [[ "$WIDTH,$HEIGHT" != '3840,2160' ]]; then
-  printf 'episode-render: video resolution must be 3840x2160\n' >&2
-  exit 2
+if [[ "$SOURCE_WIDTH,$SOURCE_HEIGHT" != '3840,2160' ]]; then
+	printf 'episode-render: episode master resolution must be 3840x2160\n' >&2
+	exit 2
+fi
+if [[ "$WIDTH,$HEIGHT" != '3840,2160' && "$WIDTH,$HEIGHT" != '1920,1080' ]]; then
+	printf 'episode-render: render resolution must be 3840x2160 or 1920x1080\n' >&2
+	exit 2
 fi
 
 if [[ $# -eq 2 ]]; then
   OUTPUT_INPUT="$2"
 else
-  OUTPUT_INPUT="$RENDER_FINAL_DIR/${episode_name}.mp4"
+	if [[ "$WIDTH,$HEIGHT" == '1920,1080' ]]; then
+		OUTPUT_INPUT="$RENDER_PREVIEWS_DIR/${episode_name}--1080p-preview.mp4"
+	else
+		OUTPUT_INPUT="$RENDER_FINAL_DIR/${episode_name}.mp4"
+	fi
 fi
 if [[ "$OUTPUT_INPUT" != *.mp4 ]]; then
   printf 'episode-render: output must end in .mp4: %s\n' "$OUTPUT_INPUT" >&2
@@ -87,6 +97,9 @@ NARRATION_AUDIO="${NARRATION_AUDIO:-$NARRATION_DIR/narration-normalized.wav}"
 LOUDNESS_REPORT="$NARRATION_DIR/narration-loudness.json"
 SUBTITLE_SRT="${SUBTITLE_SRT:-$NARRATION_DIR/narration.srt}"
 HAS_NARRATION="$(jq -r '(.narration // {}) | length > 0' "$EPISODE_ABS")"
+if [[ "${EPISODE_SKIP_NARRATION:-0}" == 1 ]]; then
+	HAS_NARRATION=false
+fi
 if [[ "$HAS_NARRATION" == true ]]; then
   "$SCRIPT_DIR/verify_narration_sync.sh" "$EPISODE_ABS"
   "$SCRIPT_DIR/normalize_narration.sh" "$EPISODE_ABS"
@@ -140,8 +153,10 @@ fi
 printf 'episode-render: render=%s workers=%s frames=%s\n' \
   "$OUTPUT_MP4" "$RENDER_WORKERS" "$TOTAL_FRAMES"
 PLAYBACK_ARGS=(
-  --episode "$EPISODE_ABS"
-  --play-record "$RECORD_TMP"
+	--episode "$EPISODE_ABS"
+	--play-record "$RECORD_TMP"
+	--render-width "$WIDTH"
+	--render-height "$HEIGHT"
 )
 if [[ "$HAS_NARRATION" == true ]]; then
   PLAYBACK_ARGS+=(--subtitles "$SUBTITLE_SRT")
@@ -295,7 +310,8 @@ godot_version="$("$GODOT_BIN" --version | head -1)"
 		printf 'subtitle_text_exact=true\n'
 	fi
   printf 'engine=%s\n' "$godot_version"
-  printf 'renderer=gl_compatibility\n'
+	printf 'renderer=gl_compatibility\n'
+	printf 'render_resolution=%sx%s\n' "$WIDTH" "$HEIGHT"
 	printf 'render_workers=%s\n' "$RENDER_WORKERS"
 	printf 'render_sharding=absolute_frame_ranges\n'
   printf 'deterministic_seeded=true\n'

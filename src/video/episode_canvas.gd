@@ -17,6 +17,7 @@ var launch_position_px := Vector2(240, 760)
 var target_position_px := Vector2(1320, 760)
 var ground_y_px := 920.0
 var video_time_sec := 0.0
+var current_beat: Dictionary = {}
 
 
 func configure(
@@ -47,12 +48,14 @@ func set_playback(
 	value_phase: String,
 	times: Dictionary,
 	states: Dictionary,
-	elapsed_video_sec: float = 0.0
+	elapsed_video_sec: float = 0.0,
+	beat: Dictionary = {}
 ) -> void:
 	phase = value_phase
 	simulation_times_by_id = times
 	states_by_id = states
 	video_time_sec = elapsed_video_sec
+	current_beat = beat
 	queue_redraw()
 
 

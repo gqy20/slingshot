@@ -11,6 +11,8 @@ func run(t) -> void:
 	var episode: Dictionary = loaded["episode"]
 	t.check(episode["variants"].size() == 2, "episode expands variants")
 	t.check_close(episode["duration_sec"], 1.1, 0.0001, "episode duration derives from story")
+	t.check(not episode["display_hook"].is_empty(), "episode provides a display hook")
+	t.check(not episode["beats"].is_empty(), "episode provides deterministic beats")
 	t.check(
 		episode["variants"][0]["preset"]["physics"]["launch_angle_deg"] == 30.0,
 		"variant override applied"
@@ -54,6 +56,10 @@ func run(t) -> void:
 	duplicate["variants"][1]["id"] = duplicate["variants"][0]["id"]
 	t.check(not EpisodeLoader.validate_dict(duplicate)["ok"], "duplicate variant ids rejected")
 
+	var broken_beats: Dictionary = raw.duplicate(true)
+	broken_beats["beats"][1]["at"] = 0.25
+	t.check(not EpisodeLoader.validate_dict(broken_beats)["ok"], "beat timeline rejects gaps")
+
 	for production_path in [
 		"res://content/episodes/s01e01-angle-sweep.json",
 		"res://content/episodes/s01e02-stretch-sweep.json",
@@ -62,6 +68,14 @@ func run(t) -> void:
 		t.check(production["ok"], "production episode loads: %s" % production_path)
 		if production["ok"]:
 			var story: Dictionary = production["episode"]["story"]
+			t.check_close(
+				production["episode"]["duration_sec"],
+				120.0,
+				0.0001,
+				"production episode targets two minutes"
+			)
+			t.check(production["episode"]["beats"].size() == 12, "production has 12 beats")
+			t.check("\n" in production["episode"]["display_hook"], "display hook has intentional line break")
 			t.check(
 				not story["show_target"],
 				"range episode hides target"

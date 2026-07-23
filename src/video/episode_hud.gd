@@ -9,6 +9,7 @@ var episode: Dictionary = {}
 var analysis: Dictionary = {}
 var subtitle_cues: Array = []
 var phase := "QUESTION"
+var current_beat: Dictionary = {}
 
 var identity_panel: Panel
 var identity_style: StyleBoxFlat
@@ -86,7 +87,7 @@ func configure(
 		tag = "S%02dE%02d" % [episode["season"], episode["episode"]]
 	tag_label.text = "%s  /  %s" % [episode["series"], tag]
 	title_label.text = episode["title"]
-	question_label.text = episode["question"]
+	question_label.text = episode["display_hook"]
 	_build_variant_chips()
 	_build_result_rows()
 	set_phase("QUESTION")
@@ -108,7 +109,7 @@ func set_phase(value: String) -> void:
 		question_label.size = EpisodeLayout.SETUP_COPY_RECT.size
 		question_label.theme_type_variation = VideoTypography.BODY
 	else:
-		question_label.text = episode["question"]
+		question_label.text = episode["display_hook"]
 		question_label.position = EpisodeLayout.QUESTION_RECT.position
 		question_label.size = EpisodeLayout.QUESTION_RECT.size
 		question_label.theme_type_variation = VideoTypography.HERO
@@ -129,6 +130,12 @@ func set_phase(value: String) -> void:
 		result_rows[index].visible = false
 		result_swatches[index].visible = false
 	clock_label.visible = phase == "FLIGHT"
+
+
+func set_beat(beat: Dictionary) -> void:
+	current_beat = beat
+	if not beat.is_empty():
+		phase_label.text = String(beat.get("label", phase_label.text))
 
 
 func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:

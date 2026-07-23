@@ -19,6 +19,7 @@ var hud: SlingshotEpisodeHud
 var frame_index := 0
 var frame_end_exclusive := 0
 var total_frame_count := 0
+var render_output_size := Vector2i(3840, 2160)
 var running := false
 var last_phase := ""
 
@@ -29,9 +30,11 @@ func start(
 	output_sidecar_path: String,
 	subtitle_path: String = "",
 	frame_start: int = 0,
-	frame_end: int = -1
+	frame_end: int = -1,
+	render_size: Vector2i = Vector2i(3840, 2160)
 ) -> void:
 	episode = normalized_episode
+	render_output_size = render_size
 	bundle = run_bundle
 	sidecar_path = output_sidecar_path
 	analysis = ResultAnalyzer.analyze(episode, bundle)
@@ -46,7 +49,7 @@ func start(
 	canvas.name = "EpisodeCanvas"
 	add_child(canvas)
 	canvas.configure(episode, bundle, analysis)
-	var render_scale := float(episode["video"]["width"]) / 1920.0
+	var render_scale := float(render_size.x) / 1920.0
 	canvas.scale = Vector2(render_scale, render_scale)
 
 	hud = EpisodeHud.new()
@@ -98,16 +101,18 @@ func _process(_delta: float) -> void:
 	var fps := float(episode["video"]["fps"])
 	var video_time := float(frame_index) / fps
 	var phase := EpisodeDirector.phase_for_time(episode, video_time)
+	var beat := EpisodeDirector.beat_for_time(episode, video_time)
 	var times := EpisodeDirector.simulation_times(episode, bundle, video_time)
 	var states := {}
 	for record_value in bundle["records"]:
 		var record: Dictionary = record_value
 		var id: String = record["variant_id"]
 		states[id] = ReplayTrack.sample(record, float(times.get(id, 0.0)))
-	canvas.set_playback(phase, times, states, video_time)
+	canvas.set_playback(phase, times, states, video_time, beat)
 	if phase != last_phase:
 		last_phase = phase
 		hud.set_phase(phase)
+	hud.set_beat(beat)
 	hud.set_elapsed(video_time, times)
 
 	frame_index += 1
@@ -135,12 +140,19 @@ func _finish() -> void:
 		"episode": episode["episode"],
 		"title": episode["title"],
 		"question": episode["question"],
+		"display_hook": episode["display_hook"],
 		"duration_sec": episode["duration_sec"],
 		"frame_count": total_frame_count,
 		"video": episode["video"],
+		"render_video": {
+			"width": render_output_size.x,
+			"height": render_output_size.y,
+			"fps": episode["video"]["fps"],
+		},
 		"analysis": analysis,
 		"narration": episode.get("narration", {}),
 		"subtitle_cue_count": subtitle_cues_count(),
+		"beat_count": episode["beats"].size(),
 		"layout": {
 			"plot_safe_by_phase": true,
 			"subject_overlap_audited": true,

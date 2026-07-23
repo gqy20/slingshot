@@ -6,6 +6,7 @@
   "episode": 1,
   "title": "哪个角度飞得最远？",
   "question": "同样的弹簧能量，15° 到 75° 谁会飞得最远？",
+  "display_hook": "哪个角度\n飞得最远？",
   "base_preset": "res://presets/series-base.json",
   "theme": "res://content/themes/laboratory.json",
   "video": {
@@ -26,11 +27,11 @@
   },
   "story": {
     "template": "overlay_comparison",
-    "question_sec": 5.8,
-    "explain_sec": 11.7,
-    "setup_sec": 15.9,
-    "flight_sec": 19.7,
-    "compare_sec": 32.9,
+    "question_sec": 10.0,
+    "explain_sec": 30.0,
+    "setup_sec": 20.0,
+    "flight_sec": 30.0,
+    "compare_sec": 30.0,
     "primary_metric": "flight_range_m",
     "metric_label": "首次落地水平位移",
     "metric_unit": "m",
@@ -46,6 +47,20 @@
     "show_target": false,
     "conclusion": "45° 飞得最远；75° 虽然最高，却不是最远。"
   },
+  "beats": [
+    {"id":"cold-open","label":"反直觉开场","phase":"QUESTION","at":0,"duration":10,"shot":"hero","focus":"angle-75","overlay":"display-hook","sfx":"cold-open"},
+    {"id":"intuition","label":"先猜一猜","phase":"EXPLAIN","at":10,"duration":10,"shot":"relation","overlay":"angle-tradeoff"},
+    {"id":"horizontal-speed","label":"水平速度","phase":"EXPLAIN","at":20,"duration":10,"shot":"formula","overlay":"angle-equation","formula_step":0},
+    {"id":"air-time","label":"滞空时间","phase":"EXPLAIN","at":30,"duration":10,"shot":"formula","overlay":"angle-equation","formula_step":1},
+    {"id":"controls","label":"控制变量","phase":"SETUP","at":40,"duration":10,"shot":"setup","overlay":"controls"},
+    {"id":"predictions","label":"轨迹预测","phase":"SETUP","at":50,"duration":10,"shot":"setup","focus":"angle-45","overlay":"protractor"},
+    {"id":"launch","label":"同步发射","phase":"FLIGHT","at":60,"duration":10,"shot":"launch","sfx":"release"},
+    {"id":"mid-flight","label":"轨迹展开","phase":"FLIGHT","at":70,"duration":10,"shot":"follow","focus":"angle-45"},
+    {"id":"landing","label":"落点出现","phase":"FLIGHT","at":80,"duration":10,"shot":"landing","sfx":"landing"},
+    {"id":"ranking","label":"结果揭晓","phase":"COMPARE","at":90,"duration":10,"shot":"ranking","focus":"angle-45","sfx":"result"},
+    {"id":"counterexample","label":"最高不等于最远","phase":"COMPARE","at":100,"duration":10,"shot":"comparison","focus":"angle-75","overlay":"counterexample"},
+    {"id":"takeaway","label":"结论与边界","phase":"COMPARE","at":110,"duration":10,"shot":"takeaway","focus":"angle-45","overlay":"assumptions"}
+  ],
   "variants": [
     {
       "id": "angle-15",

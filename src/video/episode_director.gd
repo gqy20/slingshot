@@ -21,6 +21,17 @@ static func phase_for_time(episode: Dictionary, video_time_sec: float) -> String
 	return "COMPARE"
 
 
+static func beat_for_time(episode: Dictionary, video_time_sec: float) -> Dictionary:
+	var beats: Array = episode.get("beats", [])
+	if beats.is_empty():
+		return {}
+	for beat_value in beats:
+		var beat: Dictionary = beat_value
+		if video_time_sec < float(beat["at"]) + float(beat["duration"]):
+			return beat
+	return beats[-1]
+
+
 static func simulation_times(
 	episode: Dictionary,
 	bundle: Dictionary,

@@ -64,6 +64,7 @@ func run(t) -> void:
 	t.check(EpisodeDirector.phase_for_time(episode, 0.3) == "SETUP", "setup phase")
 	t.check(EpisodeDirector.phase_for_time(episode, 0.5) == "FLIGHT", "flight phase")
 	t.check(EpisodeDirector.phase_for_time(episode, 0.9) == "COMPARE", "compare phase")
+	t.check(EpisodeDirector.beat_for_time(episode, 0.0)["id"] == "question", "first beat")
 	var times := EpisodeDirector.simulation_times(episode, bundle, 0.5)
 	t.check(times.has("angle-30") and times.has("angle-60"), "director maps every variant")
 
