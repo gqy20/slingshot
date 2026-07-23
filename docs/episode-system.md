@@ -39,6 +39,8 @@ Episode JSON
 
 最终 bundle 使用相同 basename；抽帧采用 `<episode>--<milliseconds>ms--<label>.png`。`renders/.gdignore` 阻止 Godot 把生成媒体当作项目资源导入。
 
+正式审查使用 `scripts/review_dense.sh` 以 2 fps 抽样。120 秒、30 FPS 的 Episode 固定得到 240 张样本，即每 15 个源帧抽取 1 帧（6.67%）；每 24 张组成一页 4×6 联络表。`index.tsv` 为每张图记录时间、源帧、Beat、mode、intent 和 primary subject，避免脱离叙事上下文看图。
+
 ## Episode 配置
 
 每个 Episode 包含：

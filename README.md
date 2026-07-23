@@ -131,6 +131,15 @@ scripts/review_episode.sh renders/final/s01e01-angle-sweep.mp4
 scripts/extract_frame.sh renders/final/s01e01-angle-sweep.mp4 23 long-subtitle
 ```
 
+正式视觉审查固定为每秒 2 帧；120 秒视频生成 240 张原尺寸样本和 10 页联络表：
+
+```bash
+scripts/review_dense.sh renders/previews/s01e01-angle-sweep--1080p-preview.mp4
+scripts/review_dense.sh renders/previews/s01e02-stretch-sweep--1080p-preview.mp4
+```
+
+`index.tsv` 将每个 500 ms 样本关联到原视频帧号、Beat、镜头模式、唯一意图和主视觉对象。30 FPS 成片每 15 帧取 1 帧，采样率为 6.67%，同时保证 100% Beat 覆盖。
+
 联络表默认写入 `renders/contact-sheets/<episode>/`；单帧统一写入
 `renders/frames/<episode>/<episode>--<milliseconds>ms--<label>.png`。完整规则见
 [`renders/README.md`](renders/README.md)。
