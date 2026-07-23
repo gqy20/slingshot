@@ -1,6 +1,8 @@
 class_name SlingshotWorldCanvas
 extends Node2D
 
+const VideoTypography = preload("res://src/video/video_typography.gd")
+
 var trajectory_points := PackedVector2Array()
 var last_snapshot: Dictionary = {}
 var phase := "INTRO"
@@ -11,6 +13,7 @@ var launch_position_px := Vector2(240, 760)
 var target_position_px := Vector2(1320, 760)
 var accent_color := Color("#35C2FF")
 var trail := PackedVector2Array()
+var label_font := VideoTypography.medium()
 
 
 func configure(preset: Dictionary) -> void:
@@ -135,7 +138,7 @@ func _draw_arrow(start: Vector2, finish: Vector2, color: Color, label: String) -
 		]),
 		color
 	)
-	draw_string(ThemeDB.fallback_font, finish + Vector2(10, -10), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, color)
+	draw_string(label_font, finish + Vector2(10, -10), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 28, color)
 
 
 func _draw_impact() -> void:

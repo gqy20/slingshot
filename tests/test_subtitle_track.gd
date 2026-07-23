@@ -27,3 +27,16 @@ func run(t) -> void:
 		not SubtitleTrack.parse_text("bad cue")["ok"],
 		"SRT parser rejects malformed cues"
 	)
+	t.check(SubtitleTrack.validate_layout(cues)["ok"], "short cues fit subtitle layout")
+	t.check(
+		not SubtitleTrack.validate_layout([
+			{"text": "字".repeat(89)},
+		])["ok"],
+		"subtitle layout rejects overlong cues"
+	)
+	t.check(
+		not SubtitleTrack.validate_layout([
+			{"text": "第一行\n第二行\n第三行"},
+		])["ok"],
+		"subtitle layout rejects more than two explicit lines"
+	)

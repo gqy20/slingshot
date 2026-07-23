@@ -1,6 +1,8 @@
 class_name SlingshotHud
 extends CanvasLayer
 
+const VideoTypography = preload("res://src/video/video_typography.gd")
+
 var last_snapshot: Dictionary = {}
 var phase := "INTRO"
 var accent_color := Color("#35C2FF")
@@ -9,7 +11,7 @@ var info_label: Label
 var formula_label: Label
 var summary_panel: ColorRect
 var summary_label: Label
-var system_font: SystemFont
+var system_font: Font
 
 
 func _ready() -> void:
@@ -33,8 +35,7 @@ func set_snapshot(snapshot: Dictionary) -> void:
 
 
 func _build_ui() -> void:
-	system_font = SystemFont.new()
-	system_font.font_names = PackedStringArray(["Noto Sans CJK SC", "Noto Sans", "Droid Sans Fallback"])
+	system_font = VideoTypography.regular()
 
 	var top_band := ColorRect.new()
 	top_band.position = Vector2(44, 38)
@@ -76,6 +77,7 @@ func _label(position_value: Vector2, size_value: Vector2, font_size: int, color:
 	var label := Label.new()
 	label.position = position_value
 	label.size = size_value
+	label.theme = VideoTypography.theme()
 	label.add_theme_font_override("font", system_font)
 	label.add_theme_font_size_override("font_size", font_size)
 	label.add_theme_color_override("font_color", color)

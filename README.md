@@ -63,7 +63,9 @@ scripts/render_episode.sh content/episodes/s01e01-angle-sweep.json
 scripts/render_episode.sh content/episodes/s01e02-stretch-sweep.json
 ```
 
-`generate_narration.sh` 使用 mmx-cli 的 `speech-2.8-hd` 在同一次合成中生成 MP3 和精确 SRT。流水线会忽略排版空白后逐字符验证“讲稿正文 = SRT 正文”，再以两遍响度分析生成 `-16 ±1 LUFS`、不高于 `-1.5 dBTP`、48 kHz 单声道 24-bit PCM 母版。Godot 根据同一份 SRT 绘制字幕，FFmpeg 将标准化母版编码为 AAC 并混入成片。编码完成后还会复测交付音轨，要求 `-16 ±1 LUFS`、不高于 `-1.0 dBTP`、48 kHz 单声道；讲稿、模型、音色、响度、时长和 SHA-256 都可追溯。
+`generate_narration.sh` 使用 mmx-cli 的 `speech-2.8-hd` 在同一次合成中生成 MP3 和精确 SRT。流水线会忽略排版空白后逐字符验证“讲稿正文 = SRT 正文”，再以两遍响度分析生成 `-16 ±1 LUFS`、不高于 `-1.5 dBTP`、48 kHz 单声道 24-bit PCM 母版。实验量统一使用阿拉伯数字，朗读字幕采用中文单位。Godot 根据同一份 SRT 绘制字幕，FFmpeg 将标准化母版编码为 AAC 并混入成片。编码完成后还会复测交付音轨，要求 `-16 ±1 LUFS`、不高于 `-1.0 dBTP`、48 kHz 单声道；讲稿、模型、音色、响度、时长和 SHA-256 都可追溯。
+
+Episode 在渲染前会执行布局审计：每个阶段拥有独立 Plot Area，逐帧检查小鸟与速度箭头是否进入标题、图例、结果或字幕区域；字幕限制为最多 88 个字符和两条显式行。结果阶段使用左侧轨迹、右侧数据的分栏布局。弹弓拉伸、回弹、能量光点与小鸟的蓄力、飞行形变、眨眼和落地反馈都由视频时间确定性驱动，不改变物理记录。
 
 只调整配音时可以跳过 Godot 逐帧渲染，直接以 `-16 LUFS` 目标响度重新混入：
 
@@ -136,7 +138,7 @@ Xvfb 环境中出现“无法创建输入法上下文”或“不支持切换 V-
 - `bird_color`、`target_color`、`accent_color`：HTML 十六进制颜色。
 - `seed`：镜头震动等程序效果的确定性种子。
 
-Episode 原生输出 3840×2160，支持 30 或 60 FPS。逻辑画布保持 1920×1080，再由 Godot 在 4K 根视口中进行 2 倍矢量绘制，因此文字、线条和轨迹不是后期插值放大。当前 1 分钟以上的正片使用 30 FPS；冲突的分辨率或 FPS 会在渲染前被拒绝。
+Episode 原生输出 3840×2160，支持 30 或 60 FPS。逻辑画布保持 1920×1080，再由 Godot 在 4K 根视口中进行 2 倍矢量绘制，因此文字、线条和轨迹不是后期插值放大。项目内置 `Noto Sans SC` 简中可变字体和统一 Typography Theme，使用 `wght` 轴明确区分 Regular、Medium、Bold，离线导出不依赖宿主机字体。当前 1 分钟以上的正片使用 30 FPS；冲突的分辨率或 FPS 会在渲染前被拒绝。
 
 ## 物理口径
 

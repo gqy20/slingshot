@@ -3,6 +3,7 @@ extends Node
 
 const EpisodeCanvas = preload("res://src/video/episode_canvas.gd")
 const EpisodeHud = preload("res://src/video/episode_hud.gd")
+const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 const EpisodeDirector = preload("res://src/video/episode_director.gd")
 const ReplayTrack = preload("res://src/playback/replay_track.gd")
 const ResultAnalyzer = preload("res://src/core/result_analyzer.gd")
@@ -30,6 +31,12 @@ func start(
 	bundle = run_bundle
 	sidecar_path = output_sidecar_path
 	analysis = ResultAnalyzer.analyze(episode, bundle)
+	var layout_errors := EpisodeLayout.validate_static_regions()
+	layout_errors.append_array(EpisodeLayout.audit_bundle(bundle))
+	if not layout_errors.is_empty():
+		push_error("episode layout audit failed: %s" % "; ".join(layout_errors))
+		get_tree().quit(3)
+		return
 
 	canvas = EpisodeCanvas.new()
 	canvas.name = "EpisodeCanvas"
@@ -45,6 +52,11 @@ func start(
 	var subtitle_result := SubtitleTrack.load_path(subtitle_path)
 	if not subtitle_result["ok"]:
 		push_error(subtitle_result["error"])
+		get_tree().quit(3)
+		return
+	var subtitle_layout := SubtitleTrack.validate_layout(subtitle_result["cues"])
+	if not subtitle_layout["ok"]:
+		push_error(subtitle_layout["error"])
 		get_tree().quit(3)
 		return
 	hud.configure(episode, analysis, subtitle_result["cues"])
@@ -106,6 +118,12 @@ func _finish() -> void:
 		"analysis": analysis,
 		"narration": episode.get("narration", {}),
 		"subtitle_cue_count": subtitle_cues_count(),
+		"layout": {
+			"plot_safe_by_phase": true,
+			"subject_overlap_audited": true,
+			"subtitle_max_characters": 88,
+			"subtitle_max_explicit_lines": 2,
+		},
 		"variants": summaries,
 		"provenance": {
 			"engine": Engine.get_version_info().get("string", "unknown"),

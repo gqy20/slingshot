@@ -2,6 +2,7 @@ class_name SlingshotEpisodeCanvas
 extends Node2D
 
 const ReplayTrack = preload("res://src/playback/replay_track.gd")
+const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 
 var episode: Dictionary = {}
 var bundle: Dictionary = {}
@@ -11,7 +12,6 @@ var simulation_times_by_id: Dictionary = {}
 var states_by_id: Dictionary = {}
 var records_by_id: Dictionary = {}
 var colors_by_id: Dictionary = {}
-var labels_by_id: Dictionary = {}
 var trajectories_by_id: Dictionary = {}
 var launch_position_px := Vector2(240, 760)
 var target_position_px := Vector2(1320, 760)
@@ -30,7 +30,6 @@ func configure(
 	for variant_value in episode["variants"]:
 		var variant: Dictionary = variant_value
 		colors_by_id[variant["id"]] = variant["color"]
-		labels_by_id[variant["id"]] = variant["label"]
 	for record_value in bundle["records"]:
 		var record: Dictionary = record_value
 		records_by_id[record["variant_id"]] = record
@@ -72,60 +71,205 @@ func _draw() -> void:
 
 
 func _draw_background() -> void:
-	var theme: Dictionary = episode["theme"]["colors"]
-	draw_rect(Rect2(0, 0, 1920, 1080), theme["background"], true)
-	draw_rect(Rect2(0, 90, 1920, 830), theme["stage"], true)
-	for band in range(6):
-		var alpha := 0.025 - float(band) * 0.003
+	var colors: Dictionary = episode["theme"]["colors"]
+	draw_rect(Rect2(Vector2.ZERO, EpisodeLayout.CANVAS_SIZE), colors["background"], true)
+	draw_rect(Rect2(0, 100, 1920, 820), colors["stage"], true)
+	var plot := EpisodeLayout.plot_rect_for_phase(phase)
+	draw_rect(plot, Color(colors["stage"], 0.56), true)
+	draw_rect(Rect2(plot.position, Vector2(plot.size.x, 2)), Color(colors["accent"], 0.10), true)
+	var glow_center := _map_point(Vector2(1550, 220))
+	var scale_value := _world_scale()
+	for band in range(5):
+		var alpha := 0.022 - float(band) * 0.003
 		draw_circle(
-			Vector2(1550, 220),
-			130.0 + band * 50.0,
+			glow_center,
+			(110.0 + band * 44.0) * scale_value,
 			Color(0.2, 0.75, 1.0, alpha)
 		)
+	var ground_start := _map_point(Vector2(0, ground_y_px))
+	var ground_end := _map_point(Vector2(1920, ground_y_px))
 	draw_rect(
-		Rect2(0, ground_y_px, 1920, maxf(0.0, 1080.0 - ground_y_px)),
-		theme["ground"],
+		Rect2(
+			Vector2(ground_start.x, ground_start.y),
+			Vector2(ground_end.x - ground_start.x, maxf(0.0, plot.end.y - ground_start.y))
+		),
+		colors["ground"],
 		true
 	)
-	draw_line(
-		Vector2(0, ground_y_px),
-		Vector2(1920, ground_y_px),
-		theme["ground_line"],
-		5.0,
-		true
-	)
+	draw_line(ground_start, ground_end, colors["ground_line"], maxf(2.0, 5.0 * scale_value), true)
 
 
 func _draw_grid() -> void:
-	var minor := Color(0.35, 0.72, 0.9, 0.055)
-	var major := Color(0.35, 0.72, 0.9, 0.11)
+	var minor := Color(0.35, 0.72, 0.9, 0.045)
+	var major := Color(0.35, 0.72, 0.9, 0.09)
 	for x in range(0, 1921, 50):
 		var color := major if x % 200 == 0 else minor
-		draw_line(Vector2(x, 90), Vector2(x, ground_y_px), color, 1.0)
+		draw_line(
+			_map_point(Vector2(x, 90)),
+			_map_point(Vector2(x, ground_y_px)),
+			color,
+			1.0
+		)
 	for y in range(120, int(ground_y_px), 50):
 		var color := major if y % 200 == 0 else minor
-		draw_line(Vector2(0, y), Vector2(1920, y), color, 1.0)
+		draw_line(
+			_map_point(Vector2(0, y)),
+			_map_point(Vector2(1920, y)),
+			color,
+			1.0
+		)
 
 
 func _draw_sling() -> void:
+	var scale_value := _world_scale()
 	var base := launch_position_px + Vector2(-46, 104)
-	draw_line(base + Vector2(-34, 70), base + Vector2(-14, -34), Color("#8B5A3A"), 22.0, true)
-	draw_line(base + Vector2(34, 70), base + Vector2(14, -34), Color("#8B5A3A"), 22.0, true)
-	draw_line(base + Vector2(-14, -34), launch_position_px, Color("#3A2230"), 8.0, true)
-	draw_line(base + Vector2(14, -34), launch_position_px, Color("#3A2230"), 8.0, true)
-	draw_rect(Rect2(base.x - 48, base.y + 64, 96, 22), Color("#5B3928"), true)
+	var left_foot := _map_point(base + Vector2(-34, 70))
+	var right_foot := _map_point(base + Vector2(34, 70))
+	var left_tip_source := base + Vector2(-14, -34)
+	var right_tip_source := base + Vector2(14, -34)
+	var left_tip := _map_point(left_tip_source)
+	var right_tip := _map_point(right_tip_source)
+	var frame_shadow := Color("#251A1D")
+	var frame_color := Color("#8B5A3A")
+	var frame_highlight := Color("#C27A47")
+	for points in [[left_foot, left_tip], [right_foot, right_tip]]:
+		draw_line(points[0], points[1], frame_shadow, maxf(9.0, 30.0 * scale_value), true)
+		draw_line(points[0], points[1], frame_color, maxf(7.0, 22.0 * scale_value), true)
+		draw_line(
+			points[0] + Vector2(-2, -1) * scale_value,
+			points[1] + Vector2(-2, -1) * scale_value,
+			frame_highlight,
+			maxf(1.5, 4.0 * scale_value),
+			true
+		)
+	draw_circle(left_tip, maxf(5.0, 10.0 * scale_value), frame_color)
+	draw_circle(right_tip, maxf(5.0, 10.0 * scale_value), frame_color)
+
+	var sling_state := _sling_state()
+	var pouch_source: Vector2 = sling_state["pouch_position"]
+	var pouch := _map_point(pouch_source)
+	var accent: Color = sling_state["color"]
+	var tension: float = sling_state["tension"]
+	_draw_elastic_band(left_tip, pouch, accent, tension, -1.0)
+	_draw_elastic_band(right_tip, pouch, accent, tension, 1.0)
+	var pouch_direction := (pouch - (left_tip + right_tip) * 0.5).normalized()
+	if pouch_direction.is_zero_approx():
+		pouch_direction = Vector2.RIGHT
+	var pouch_perpendicular := Vector2(-pouch_direction.y, pouch_direction.x)
+	draw_line(
+		pouch - pouch_perpendicular * maxf(5.0, 12.0 * scale_value),
+		pouch + pouch_perpendicular * maxf(5.0, 12.0 * scale_value),
+		Color("#5A3440"),
+		maxf(5.0, 11.0 * scale_value),
+		true
+	)
+
+	var base_left := _map_point(base + Vector2(-48, 64))
+	var base_right := _map_point(base + Vector2(48, 86))
+	draw_rect(Rect2(base_left, base_right - base_left), Color("#5B3928"), true)
+	for wrap_index in range(3):
+		var wrap_y := lerpf(base_left.y + 4, base_right.y - 4, float(wrap_index + 1) / 4.0)
+		draw_line(
+			Vector2(base_left.x + 8, wrap_y),
+			Vector2(base_right.x - 8, wrap_y),
+			Color(0.86, 0.62, 0.36, 0.35),
+			1.5,
+			true
+		)
+
+	if phase == "SETUP" and tension > 0.18:
+		_draw_tension_sparks(left_tip, pouch, accent, -1)
+		_draw_tension_sparks(right_tip, pouch, accent, 1)
+		_draw_bird(
+			pouch_source,
+			float(sling_state["rotation"]),
+			accent,
+			1.0,
+			false,
+			Vector2.ZERO,
+			int(sling_state["variant_index"]),
+			true
+		)
+
+
+func _sling_state() -> Dictionary:
+	var result := {
+		"pouch_position": launch_position_px,
+		"color": Color("#8A4054"),
+		"tension": 0.12,
+		"rotation": 0.0,
+		"variant_index": 0,
+	}
+	var variants: Array = episode.get("variants", [])
+	if phase == "SETUP" and not variants.is_empty():
+		var duration := maxf(0.001, float(episode["story"]["setup_sec"]))
+		var progress := clampf(
+			EpisodeLayout.phase_elapsed(episode, phase, video_time_sec) / duration,
+			0.0,
+			0.9999
+		)
+		var slot: float = progress * float(variants.size())
+		var index := mini(int(floor(slot)), variants.size() - 1)
+		var slot_progress: float = slot - floor(slot)
+		var pull := 1.0
+		if slot_progress < 0.30:
+			pull = smoothstep(0.0, 0.30, slot_progress)
+		elif slot_progress > 0.86:
+			pull = 1.0 - smoothstep(0.86, 1.0, slot_progress)
+		var variant: Dictionary = variants[index]
+		var physics: Dictionary = variant["preset"]["physics"]
+		var angle := deg_to_rad(float(physics["launch_angle_deg"]))
+		var launch_direction := Vector2(cos(angle), -sin(angle))
+		var pull_distance := 24.0 + float(physics["stretch_m"]) * 68.0
+		result["pouch_position"] = launch_position_px - launch_direction * pull_distance * pull
+		result["color"] = variant["color"]
+		result["tension"] = pull
+		result["rotation"] = -angle
+		result["variant_index"] = index
+	elif phase == "FLIGHT":
+		var elapsed := EpisodeLayout.phase_elapsed(episode, phase, video_time_sec)
+		var recoil := exp(-elapsed * 5.2) * sin(elapsed * 23.0) * 38.0
+		result["pouch_position"] = launch_position_px + Vector2(recoil, recoil * 0.16)
+		result["tension"] = clampf(absf(recoil) / 38.0, 0.12, 1.0)
+	return result
+
+
+func _draw_elastic_band(
+	start: Vector2,
+	finish: Vector2,
+	accent: Color,
+	tension: float,
+	side: float
+) -> void:
+	var vector := finish - start
+	var perpendicular := Vector2(-vector.y, vector.x).normalized()
+	var sag := (1.0 - tension) * 10.0 * side
+	var middle := start.lerp(finish, 0.53) + perpendicular * sag
+	var points := PackedVector2Array([start, middle, finish])
+	draw_polyline(points, Color("#241824"), 9.0, true)
+	draw_polyline(points, Color(accent, 0.72 + tension * 0.20), 4.5, true)
+	draw_polyline(points, Color(1.0, 0.78, 0.55, 0.18 + tension * 0.20), 1.2, true)
+
+
+func _draw_tension_sparks(start: Vector2, finish: Vector2, color: Color, seed: int) -> void:
+	for spark_index in range(5):
+		var offset := float(spark_index) / 5.0
+		var travel := fposmod(video_time_sec * 0.72 + offset + seed * 0.11, 1.0)
+		var position := start.lerp(finish, travel)
+		var pulse := 0.55 + 0.45 * sin((video_time_sec + spark_index) * 7.0)
+		draw_circle(position, 2.0 + pulse * 2.0, Color(color, 0.35 + pulse * 0.35))
 
 
 func _draw_target_platform() -> void:
 	var top := target_position_px.y + 75.0
 	if top >= ground_y_px:
 		return
-	draw_rect(
-		Rect2(target_position_px.x - 90, top, 180, ground_y_px - top),
-		Color("#264B43"),
-		true
-	)
-	draw_rect(Rect2(target_position_px.x - 105, top - 10, 210, 18), Color("#5A8E6D"), true)
+	var top_left := _map_point(Vector2(target_position_px.x - 90, top))
+	var bottom_right := _map_point(Vector2(target_position_px.x + 90, ground_y_px))
+	draw_rect(Rect2(top_left, bottom_right - top_left), Color("#264B43"), true)
+	var cap_left := _map_point(Vector2(target_position_px.x - 105, top - 10))
+	var cap_right := _map_point(Vector2(target_position_px.x + 105, top + 8))
+	draw_rect(Rect2(cap_left, cap_right - cap_left), Color("#5A8E6D"), true)
 
 
 func _draw_reference_target() -> void:
@@ -144,16 +288,10 @@ func _draw_trajectories() -> void:
 		if phase in ["QUESTION", "EXPLAIN"]:
 			continue
 		elif phase == "SETUP":
-			var full_points: PackedVector2Array = trajectories_by_id.get(
-				id, PackedVector2Array()
-			)
-			var story: Dictionary = episode["story"]
-			var setup_start := (
-				float(story["question_sec"])
-				+ float(story.get("explain_sec", 0.0))
-			)
+			var full_points: PackedVector2Array = trajectories_by_id.get(id, PackedVector2Array())
 			var setup_progress := clampf(
-				(video_time_sec - setup_start) / float(story["setup_sec"]),
+				EpisodeLayout.phase_elapsed(episode, phase, video_time_sec)
+				/ float(episode["story"]["setup_sec"]),
 				0.0,
 				1.0
 			)
@@ -168,7 +306,7 @@ func _draw_trajectories() -> void:
 				0,
 				maxi(2, int(full_points.size() * 0.16 * reveal_progress))
 			)
-			alpha = 0.52
+			alpha = 0.48
 		elif phase == "FLIGHT":
 			points = ReplayTrack.partial_trajectory(
 				records_by_id[id],
@@ -178,36 +316,39 @@ func _draw_trajectories() -> void:
 			width = 4.0
 		else:
 			points = trajectories_by_id.get(id, PackedVector2Array())
-			alpha = 0.95 if id == analysis.get("winner_id") else 0.42
-			width = 7.0 if id == analysis.get("winner_id") else 3.0
-		if points.size() >= 2:
-			draw_polyline(points, Color(color, alpha), width, true)
+			alpha = 0.98 if id == analysis.get("winner_id") else 0.34
+			width = 8.0 if id == analysis.get("winner_id") else 3.0
+		var mapped_points := _map_points(points)
+		if mapped_points.size() >= 2:
+			draw_polyline(mapped_points, Color(color, alpha), maxf(2.0, width * _world_scale()), true)
 		if phase == "SETUP":
-			for point_index in range(0, points.size(), 7):
-				draw_circle(points[point_index], 4.0, Color(color, 0.72))
+			for point_index in range(0, mapped_points.size(), 7):
+				draw_circle(mapped_points[point_index], 3.5, Color(color, 0.68))
 
 
 func _draw_variant_birds() -> void:
-	for variant_value in episode.get("variants", []):
-		var variant: Dictionary = variant_value
+	var variants: Array = episode.get("variants", [])
+	for index in range(variants.size()):
+		var variant: Dictionary = variants[index]
 		var id: String = variant["id"]
 		var state: Dictionary = states_by_id.get(id, {})
 		if state.is_empty():
 			continue
-		var color: Color = colors_by_id[id]
 		var winner: bool = phase == "COMPARE" and id == analysis.get("winner_id")
 		_draw_bird(
 			state["bird_position_px"],
 			float(state["bird_rotation"]),
-			color,
-			1.0 if winner else 0.86,
-			winner
+			colors_by_id[id],
+			1.0 if winner else 0.88,
+			winner,
+			state["bird_velocity_px_s"],
+			index
 		)
 		if phase == "FLIGHT":
 			_draw_velocity_vector(
 				state["bird_position_px"],
 				state["bird_velocity_px_s"],
-				color
+				colors_by_id[id]
 			)
 
 
@@ -221,47 +362,135 @@ func _draw_variant_targets() -> void:
 		var position: Vector2 = state["target_position_px"]
 		if position.distance_to(target_position_px) < 2.0:
 			continue
-		_draw_target(
-			position,
-			float(state["target_rotation"]),
-			colors_by_id[id],
-			0.28
-		)
+		_draw_target(position, float(state["target_rotation"]), colors_by_id[id], 0.28)
 
 
 func _draw_bird(
-	position: Vector2,
+	source_position: Vector2,
 	rotation_value: float,
 	color: Color,
 	alpha: float,
-	winner: bool
+	winner: bool,
+	velocity: Vector2,
+	variant_index: int,
+	preview: bool = false
 ) -> void:
+	var position := _map_point(source_position)
+	var visual_scale := maxf(0.72, _world_scale())
+	var direction := velocity.normalized() if velocity.length() > 1.0 else Vector2.RIGHT.rotated(rotation_value)
+	if phase == "FLIGHT" and velocity.length() > 120.0:
+		for streak_index in range(3):
+			var distance := 35.0 + streak_index * 17.0
+			var tail := position - direction * distance * visual_scale
+			draw_line(
+				tail,
+				tail + direction * (18.0 + streak_index * 4.0) * visual_scale,
+				Color(color, 0.18 - streak_index * 0.035),
+				maxf(1.0, (4.0 - streak_index) * visual_scale),
+				true
+			)
 	if winner:
-		draw_circle(position, 44.0, Color(color, 0.12))
-		draw_arc(position, 39.0, 0.0, TAU, 48, Color(color, 0.75), 3.0, true)
-	var direction := Vector2.RIGHT.rotated(rotation_value)
-	var perpendicular := Vector2(-direction.y, direction.x)
-	draw_circle(position, 24.0, Color("#07111F"))
-	draw_circle(position - direction * 2.0, 21.0, Color(color, alpha))
+		var halo_pulse := 1.0 + sin(video_time_sec * 4.0) * 0.08
+		draw_circle(position, 48.0 * visual_scale * halo_pulse, Color(color, 0.10))
+		draw_arc(
+			position,
+			42.0 * visual_scale * halo_pulse,
+			0.0,
+			TAU,
+			48,
+			Color(color, 0.76),
+			maxf(2.0, 3.0 * visual_scale),
+			true
+		)
+
+	var stretch_x := 1.0
+	var stretch_y := 1.0
+	if phase == "FLIGHT":
+		var launch_elapsed := EpisodeLayout.phase_elapsed(episode, phase, video_time_sec)
+		var launch_pulse := exp(-launch_elapsed * 4.8)
+		stretch_x += 0.24 * launch_pulse
+		stretch_y -= 0.14 * launch_pulse
+	elif phase == "COMPARE":
+		var landing_elapsed := EpisodeLayout.phase_elapsed(episode, phase, video_time_sec)
+		var bounce := exp(-landing_elapsed * 3.6) * absf(cos(landing_elapsed * 13.0))
+		stretch_x += 0.18 * bounce
+		stretch_y -= 0.22 * bounce
+	elif preview:
+		stretch_x = 0.94
+		stretch_y = 1.08
+
+	draw_set_transform(
+		position,
+		rotation_value,
+		Vector2(visual_scale * stretch_x, visual_scale * stretch_y)
+	)
+	var wing_lift := sin(video_time_sec * 9.0 + variant_index * 0.9) * 3.5
 	draw_colored_polygon(
 		PackedVector2Array([
-			position + direction * 22.0,
-			position + direction * 42.0 + perpendicular * 7.0,
-			position + direction * 22.0 + perpendicular * 12.0,
+			Vector2(-20, 4), Vector2(-45, -10), Vector2(-31, 9),
+		]),
+		Color(color.darkened(0.24), alpha)
+	)
+	draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(-19, -5), Vector2(-40, -28), Vector2(-28, 1),
+		]),
+		Color(color.lightened(0.04), alpha)
+	)
+	draw_circle(Vector2.ZERO, 25.0, Color("#07111F"))
+	draw_circle(Vector2(-2, -1), 22.0, Color(color, alpha))
+	draw_circle(Vector2(-7, 8), 13.0, Color(color.darkened(0.16), alpha))
+	draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(-13, 4 + wing_lift),
+			Vector2(1, 14 + wing_lift * 0.35),
+			Vector2(9, 2 + wing_lift * 0.10),
+			Vector2(-6, -4 + wing_lift * 0.25),
+		]),
+		Color(color.darkened(0.28), alpha)
+	)
+	draw_arc(Vector2(-4, 4 + wing_lift * 0.25), 10.0, 0.15, 2.65, 16, Color(1, 1, 1, 0.18), 2.0)
+	draw_colored_polygon(
+		PackedVector2Array([
+			Vector2(20, -4), Vector2(43, 4), Vector2(20, 13),
 		]),
 		Color("#FFD166", alpha)
 	)
-	draw_circle(position + direction * 7.0 - perpendicular * 8.0, 6.5, Color(1, 1, 1, alpha))
-	draw_circle(position + direction * 9.0 - perpendicular * 8.0, 2.5, Color("#07111F"))
+	var blink_phase := fposmod(video_time_sec + variant_index * 0.71, 3.6)
+	if blink_phase > 3.42:
+		draw_line(Vector2(5, -10), Vector2(16, -9), Color("#F4F8FF"), 3.0, true)
+	else:
+		draw_circle(Vector2(10, -10), 7.0, Color(1, 1, 1, alpha))
+		draw_circle(Vector2(13, -10), 3.0, Color("#07111F"))
+	draw_line(
+		Vector2(4, -19),
+		Vector2(18, -16 if winner else -15),
+		Color("#3B1B2A"),
+		3.5,
+		true
+	)
+	draw_circle(Vector2(8, 5), 3.5, Color(1.0, 0.52, 0.48, 0.35))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+	if phase == "COMPARE":
+		var landing_elapsed := EpisodeLayout.phase_elapsed(episode, phase, video_time_sec)
+		if landing_elapsed < 1.1 and source_position.y > ground_y_px - 70.0:
+			var dust_alpha := 1.0 - landing_elapsed / 1.1
+			for dust_index in range(4):
+				var side := -1.0 if dust_index % 2 == 0 else 1.0
+				var dust_position := position + Vector2(
+					side * (18.0 + dust_index * 8.0) * landing_elapsed,
+					8.0 - landing_elapsed * (14.0 + dust_index * 2.0)
+				)
+				draw_circle(dust_position, 3.0 + dust_index, Color(0.72, 0.82, 0.84, dust_alpha * 0.28))
 
 
 func _draw_target(position: Vector2, rotation_value: float, color: Color, alpha: float) -> void:
-	var transform := Transform2D(rotation_value, position)
+	var mapped := _map_point(position)
+	var visual_scale := maxf(0.65, _world_scale())
+	draw_set_transform(mapped, rotation_value, Vector2.ONE * visual_scale)
 	var corners := PackedVector2Array([
-		transform * Vector2(-55, -75),
-		transform * Vector2(55, -75),
-		transform * Vector2(55, 75),
-		transform * Vector2(-55, 75),
+		Vector2(-55, -75), Vector2(55, -75), Vector2(55, 75), Vector2(-55, 75),
 	])
 	draw_colored_polygon(corners, Color(color, alpha))
 	draw_polyline(
@@ -270,21 +499,38 @@ func _draw_target(position: Vector2, rotation_value: float, color: Color, alpha:
 		3.0,
 		true
 	)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 func _draw_velocity_vector(position: Vector2, velocity: Vector2, color: Color) -> void:
-	var finish := position + velocity * 0.075
-	var vector := finish - position
+	var start := _map_point(position)
+	var finish := _map_point(position + velocity * 0.075)
+	var vector := finish - start
 	if vector.length() < 15.0:
 		return
 	var direction := vector.normalized()
 	var perpendicular := Vector2(-direction.y, direction.x)
-	draw_line(position, finish, Color(color, 0.52), 3.0, true)
+	draw_line(start, finish, Color(color, 0.38), 2.5, true)
 	draw_colored_polygon(
 		PackedVector2Array([
 			finish,
-			finish - direction * 14.0 + perpendicular * 6.0,
-			finish - direction * 14.0 - perpendicular * 6.0,
+			finish - direction * 12.0 + perpendicular * 5.0,
+			finish - direction * 12.0 - perpendicular * 5.0,
 		]),
-		Color(color, 0.52)
+		Color(color, 0.42)
 	)
+
+
+func _map_point(point: Vector2) -> Vector2:
+	return EpisodeLayout.map_world(point, phase)
+
+
+func _map_points(points: PackedVector2Array) -> PackedVector2Array:
+	var mapped := PackedVector2Array()
+	for point in points:
+		mapped.append(_map_point(point))
+	return mapped
+
+
+func _world_scale() -> float:
+	return EpisodeLayout.world_scale(phase)

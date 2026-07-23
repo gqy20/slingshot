@@ -40,9 +40,10 @@ scripts/render_episode.sh 创建独立临时目录：
 4. 忽略排版空白后，逐字符验证讲稿正文与 mmx SRT 正文完全一致。
 5. 对配音做两遍响度分析，生成 `-16 ±1 LUFS`、`≤ -1.5 dBTP`、48 kHz 单声道 PCM24 母版。
 6. 读取同一份 SRT，在 Godot 4K 根视口中绘制字幕安全带和 2 倍矢量画面。
-7. 使用 FFmpeg 编码 H.264，并将标准化母版编码为 AAC 后混入。
-8. 复测 AAC 交付音轨，要求 `-16 ±1 LUFS`、`≤ -1.0 dBTP`、48 kHz 单声道。
-9. 原子发布 MP4、分析 sidecar 与 provenance manifest。
+7. 将物理轨迹映射到分阶段 Plot Area，并逐帧审计小鸟、速度箭头与文字保留区的相交情况。
+8. 使用 FFmpeg 编码 H.264，并将标准化母版编码为 AAC 后混入。
+9. 复测 AAC 交付音轨，要求 `-16 ±1 LUFS`、`≤ -1.0 dBTP`、48 kHz 单声道。
+10. 原子发布 MP4、分析 sidecar 与 provenance manifest。
 
 视频 Manifest 记录 Episode、RunRecord、MP4、原始配音、标准化母版和字幕的 SHA-256，以及 Godot、渲染器、音视频流、实测 LUFS/真峰值和正文一致性结论。解说 Manifest 另外记录讲稿、mmx 模型、音色和真实音频时长。修改音频时可仅重新混音，不必重渲染 4K 画面。
 
@@ -58,3 +59,5 @@ scripts/render_episode.sh 创建独立临时目录：
 - content/themes/：跨集共享的视觉规范。
 
 新增视频模板时，应优先扩展 Director、Layout 或 Overlay，而不是让模拟层感知镜头。
+
+EpisodeLayout 为 Question、Explain、Setup、Flight、Compare 分别定义 Plot Area 和文字保留区。动画坐标使用等比映射，避免改变抛物线角度；Compare 阶段将轨迹压缩到左侧，右侧独占结果面板。渲染入口会对 RunRecord 的所有飞行帧执行主体包围盒审计。趣味动效只读取视频时间、速度和事件，作为物理位置之上的视觉变换层。

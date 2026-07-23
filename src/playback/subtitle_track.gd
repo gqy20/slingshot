@@ -52,6 +52,31 @@ static func text_at(cues: Array, video_time_sec: float) -> String:
 	return ""
 
 
+static func validate_layout(
+	cues: Array,
+	max_characters: int = 88,
+	max_explicit_lines: int = 2
+) -> Dictionary:
+	for index in range(cues.size()):
+		if not cues[index] is Dictionary:
+			return {"ok": false, "error": "subtitle cue %d is not an object" % (index + 1)}
+		var text := String(cues[index].get("text", ""))
+		if text.length() > max_characters:
+			return {
+				"ok": false,
+				"error": "subtitle cue %d exceeds %d characters" % [index + 1, max_characters],
+			}
+		if text.split("\n").size() > max_explicit_lines:
+			return {
+				"ok": false,
+				"error": "subtitle cue %d exceeds %d explicit lines" % [
+					index + 1,
+					max_explicit_lines,
+				],
+			}
+	return {"ok": true, "error": ""}
+
+
 static func _parse_timestamp(value: String) -> float:
 	var parts := value.split(":", false)
 	if parts.size() != 3:
