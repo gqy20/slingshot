@@ -41,6 +41,16 @@
     "control_label": "仅改变拉伸距离  ·  θ = 45°  ·  k = 160 N/m  ·  m = 1 kg",
     "explain_title": "E = ½kx²",
     "explain_detail": "弹簧储能与拉伸距离的平方成正比。\nx × 2  →  E × 4",
+		"explanation": {
+			"kind": "derivation",
+			"eyebrow": "弹性势能  ·  跟着 x 做 3 步推导",
+			"steps": [
+				{"equation":"E(x) = ½kx²","caption":"能量取决于拉伸距离的平方"},
+				{"equation":"x → 2x","caption":"现在只把拉伸距离变为 2 倍"},
+				{"equation":"E(2x) = 4E(x)","caption":"所以储能变为 4 倍，不是 2 倍"}
+			],
+			"assumptions": ["理想弹簧", "同一劲度系数 k", "无能量损耗"]
+		},
 		"result_reveal_interval_sec": 2.0,
 		"conclusion_delay_sec": 14.2,
     "goal": "max",
@@ -49,9 +59,9 @@
   },
   "beats": [
     {"id":"cold-open","label":"差距有多大","phase":"QUESTION","at":0,"duration":10,"shot":"hero","focus":"stretch-12","overlay":"display-hook","sfx":"cold-open"},
-    {"id":"intuition","label":"不是一比一","phase":"EXPLAIN","at":10,"duration":10,"shot":"relation","overlay":"stretch-tradeoff"},
-    {"id":"energy-formula","label":"弹簧储能","phase":"EXPLAIN","at":20,"duration":10,"shot":"formula","overlay":"spring-energy","formula_step":0},
-    {"id":"square-law","label":"平方关系","phase":"EXPLAIN","at":30,"duration":10,"shot":"formula","overlay":"spring-energy","formula_step":1},
+    {"id":"intuition","label":"写出储能","phase":"EXPLAIN","at":10,"duration":10,"shot":"relation","overlay":"stretch-tradeoff","formula_step":0},
+    {"id":"energy-formula","label":"拉伸翻倍","phase":"EXPLAIN","at":20,"duration":10,"shot":"formula","overlay":"spring-energy","formula_step":1},
+    {"id":"square-law","label":"平方关系","phase":"EXPLAIN","at":30,"duration":10,"shot":"formula","overlay":"spring-energy","formula_step":2},
     {"id":"controls","label":"控制变量","phase":"SETUP","at":40,"duration":10,"shot":"setup","overlay":"controls"},
     {"id":"energy-levels","label":"四档能量","phase":"SETUP","at":50,"duration":10,"shot":"setup","focus":"stretch-12","overlay":"energy-scale"},
     {"id":"launch","label":"同步释放","phase":"FLIGHT","at":60,"duration":10,"shot":"launch","sfx":"release"},

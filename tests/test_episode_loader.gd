@@ -75,6 +75,10 @@ func run(t) -> void:
 				"production episode targets two minutes"
 			)
 			t.check(production["episode"]["beats"].size() == 12, "production has 12 beats")
+			t.check(
+				production["episode"]["story"]["explanation"]["steps"].size() == 3,
+				"production episode has a three-step explanation"
+			)
 			t.check("\n" in production["episode"]["display_hook"], "display hook has intentional line break")
 			t.check(
 				not story["show_target"],

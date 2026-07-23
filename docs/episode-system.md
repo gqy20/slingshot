@@ -18,6 +18,8 @@ Episode JSON
 
 `display_hook` 只负责短屏幕标题；`question` 与 narration 负责完整表述。`beats` 是连续、无重叠的绝对时间线，每项包含 Phase、shot、focus、overlay、formula step 与 sfx cue。Loader 会拒绝时间缺口、重叠、重复 ID 和未覆盖完整时长的配置。
 
+科学解释使用 `story.explanation` 描述 `relation`（变量关系）或 `derivation`（逐步推导）。每一步只保留一条公式和一句白话结论，条件固定显示在步骤轨道下方。公式主行、推导行、条件说明分别使用 `VideoFormulaMain`、`VideoFormulaStep`、`VideoFormulaMeta`，避免公式与普通正文争夺层级。
+
 ## 输出目录
 
 - `renders/final/`：正式 Episode 的 MP4、JSON sidecar 与 manifest。
@@ -77,4 +79,4 @@ EpisodeLayout 为 Question、Explain、Setup、Flight、Compare 分别定义 Plo
 
 视觉系统采用 Editorial Science Lab token。背景、表面、分割线、正文、次级文字和品牌强调色由 `content/themes/laboratory.json` 集中定义；界面只使用中性色与单一琥珀强调色。每集的实验组颜色来自共享的低值冷色到高值暖色数据色阶，只允许出现在轨迹、小鸟、图例色条和结果色条中，胜者通过线宽、星标和光环表达。
 
-排版使用项目内置的 Sarasa Gothic SC、Sarasa Mono SC 与 Smiley Sans。`assets/video_typography.tres` 定义 Hero、Accent、Display、Title、Section、Body、Subtitle、Data、DataMeta、Meta 角色；HUD 只能选择角色，不得自行创建临时字号。Hero 与 Accent 使用得意黑表现片头问题和结果短强调，并以 Sarasa Gothic SC Bold 作为缺字回退；连续字幕、正文与解释标题使用 Gothic，公式、计时和实验数据使用 Mono。得意黑不得用于长段文字、字幕、图例或数据列。
+排版使用项目内置的 Sarasa Gothic SC、Sarasa Mono SC 与 Smiley Sans。`assets/video_typography.tres` 定义 Hero、Accent、Display、Title、Section、Body、Subtitle、Data、DataMeta、Meta 以及三种 Formula 角色；HUD 只能选择角色，不得自行创建临时字号。Hero 与 Accent 使用得意黑表现片头问题和结果短强调，并以 Sarasa Gothic SC Bold 作为缺字回退；连续字幕、正文与解释标题使用 Gothic，公式、计时和实验数据使用 Mono。得意黑不得用于长段文字、字幕、图例或数据列。

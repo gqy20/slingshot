@@ -4,6 +4,7 @@ extends CanvasLayer
 const SubtitleTrack = preload("res://src/playback/subtitle_track.gd")
 const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 const VideoTypography = preload("res://src/video/video_typography.gd")
+const FormulaRenderer = preload("res://src/video/formula_renderer.gd")
 
 var episode: Dictionary = {}
 var analysis: Dictionary = {}
@@ -37,6 +38,7 @@ var phase_label: Label
 var question_label: Label
 var explain_title_label: Label
 var explain_detail_label: Label
+var formula_renderer: Control
 var clock_label: Label
 var result_title: Label
 var result_callout_label: Label
@@ -90,6 +92,7 @@ func configure(
 	question_label.text = episode["display_hook"]
 	_build_variant_chips()
 	_build_result_rows()
+	formula_renderer.configure(episode["story"].get("explanation", {}), colors)
 	set_phase("QUESTION")
 
 
@@ -118,6 +121,7 @@ func set_phase(value: String) -> void:
 	explain_panel.visible = phase == "EXPLAIN"
 	explain_title_label.visible = explain_panel.visible
 	explain_detail_label.visible = explain_panel.visible
+	formula_renderer.visible = false
 	var show_legend := phase in ["SETUP", "FLIGHT", "COMPARE"]
 	for chip in legend_chips:
 		chip.visible = show_legend
@@ -136,6 +140,13 @@ func set_beat(beat: Dictionary) -> void:
 	current_beat = beat
 	if not beat.is_empty():
 		phase_label.text = String(beat.get("label", phase_label.text))
+	var formula_step := int(beat.get("formula_step", -1))
+	var show_formula := phase == "EXPLAIN" and formula_step >= 0
+	formula_renderer.visible = show_formula
+	explain_title_label.visible = phase == "EXPLAIN" and not show_formula
+	explain_detail_label.visible = phase == "EXPLAIN" and not show_formula
+	if show_formula:
+		formula_renderer.set_step(formula_step)
 
 
 func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
@@ -230,6 +241,11 @@ func _build_ui() -> void:
 	explain_detail_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	explain_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	explain_panel.add_child(explain_detail_label)
+	formula_renderer = FormulaRenderer.new()
+	formula_renderer.position = Vector2(40, 18)
+	formula_renderer.size = Vector2(980, 384)
+	formula_renderer.visible = false
+	explain_panel.add_child(formula_renderer)
 
 	clock_label = _label(
 		EpisodeLayout.CLOCK_RECT.position,

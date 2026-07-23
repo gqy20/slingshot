@@ -41,6 +41,16 @@
     "control_label": "仅改变发射角  ·  k = 160 N/m  ·  x = 0.9 m  ·  m = 1 kg",
     "explain_title": "水平速度  ↔  滞空时间",
     "explain_detail": "角度越低，水平分量越大；角度越高，滞空越久。\n最远距离来自两者的平衡。",
+		"explanation": {
+			"kind": "relation",
+			"eyebrow": "抛体关系  ·  先拆成 2 个方向",
+			"steps": [
+				{"equation":"vₓ = v cos θ","caption":"角度升高，水平速度会下降"},
+				{"equation":"t = 2v sin θ / g","caption":"角度升高，滞空时间会增加"},
+				{"equation":"R = v² sin(2θ) / g","caption":"2 个因素平衡时，理想最远角是 45°"}
+			],
+			"assumptions": ["同一初速度", "同一高度", "忽略空气阻力"]
+		},
 		"result_reveal_interval_sec": 1.8,
 		"conclusion_delay_sec": 13.3,
     "goal": "max",
@@ -49,9 +59,9 @@
   },
   "beats": [
     {"id":"cold-open","label":"反直觉开场","phase":"QUESTION","at":0,"duration":10,"shot":"hero","focus":"angle-75","overlay":"display-hook","sfx":"cold-open"},
-    {"id":"intuition","label":"先猜一猜","phase":"EXPLAIN","at":10,"duration":10,"shot":"relation","overlay":"angle-tradeoff"},
-    {"id":"horizontal-speed","label":"水平速度","phase":"EXPLAIN","at":20,"duration":10,"shot":"formula","overlay":"angle-equation","formula_step":0},
-    {"id":"air-time","label":"滞空时间","phase":"EXPLAIN","at":30,"duration":10,"shot":"formula","overlay":"angle-equation","formula_step":1},
+    {"id":"intuition","label":"拆成两个方向","phase":"EXPLAIN","at":10,"duration":10,"shot":"relation","overlay":"angle-tradeoff","formula_step":0},
+    {"id":"horizontal-speed","label":"滞空时间","phase":"EXPLAIN","at":20,"duration":10,"shot":"formula","overlay":"angle-equation","formula_step":1},
+    {"id":"air-time","label":"合成射程","phase":"EXPLAIN","at":30,"duration":10,"shot":"formula","overlay":"angle-equation","formula_step":2},
     {"id":"controls","label":"控制变量","phase":"SETUP","at":40,"duration":10,"shot":"setup","overlay":"controls"},
     {"id":"predictions","label":"轨迹预测","phase":"SETUP","at":50,"duration":10,"shot":"setup","focus":"angle-45","overlay":"protractor"},
     {"id":"launch","label":"同步发射","phase":"FLIGHT","at":60,"duration":10,"shot":"launch","sfx":"release"},

@@ -28,6 +28,9 @@ const SUBTITLE: StringName = &"VideoSubtitle"
 const DATA: StringName = &"VideoData"
 const DATA_META: StringName = &"VideoDataMeta"
 const META: StringName = &"VideoMeta"
+const FORMULA_MAIN: StringName = &"VideoFormulaMain"
+const FORMULA_STEP: StringName = &"VideoFormulaStep"
+const FORMULA_META: StringName = &"VideoFormulaMeta"
 
 const ROLE_SIZES := {
 	HERO: 56,
@@ -40,6 +43,9 @@ const ROLE_SIZES := {
 	DATA: 22,
 	DATA_META: 16,
 	META: 16,
+	FORMULA_MAIN: 56,
+	FORMULA_STEP: 36,
+	FORMULA_META: 20,
 }
 
 

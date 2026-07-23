@@ -240,6 +240,10 @@ static func _normalize_story(value: Variant) -> Dictionary:
 	story["control_label"] = String(story.get("control_label", ""))
 	story["explain_title"] = String(story.get("explain_title", ""))
 	story["explain_detail"] = String(story.get("explain_detail", ""))
+	var explanation_result := _normalize_explanation(story.get("explanation", {}))
+	if not explanation_result["ok"]:
+		return explanation_result
+	story["explanation"] = explanation_result["explanation"]
 	story["conclusion"] = String(story.get("conclusion", ""))
 	story["result_reveal_interval_sec"] = maxf(
 		0.15,
@@ -253,6 +257,49 @@ static func _normalize_story(value: Variant) -> Dictionary:
 	story["sync_event"] = String(story.get("sync_event", ""))
 	story["sync_at"] = clampf(float(story.get("sync_at", 0.68)), 0.15, 0.85)
 	return {"ok": true, "error": "", "story": story}
+
+
+static func _normalize_explanation(value: Variant) -> Dictionary:
+	if value == null or value == {}:
+		return {"ok": true, "error": "", "explanation": {}}
+	if not value is Dictionary:
+		return _failure("story.explanation must be an object")
+	var kind := String(value.get("kind", ""))
+	if kind not in ["relation", "derivation"]:
+		return _failure("story.explanation.kind must be relation or derivation")
+	var steps_value: Variant = value.get("steps")
+	if not steps_value is Array or steps_value.size() < 2 or steps_value.size() > 5:
+		return _failure("story.explanation.steps must contain between 2 and 5 entries")
+	var steps: Array = []
+	for index in range(steps_value.size()):
+		if not steps_value[index] is Dictionary:
+			return _failure("story.explanation.steps[%d] must be an object" % index)
+		var raw_step: Dictionary = steps_value[index]
+		for key in ["equation", "caption"]:
+			if not raw_step.get(key) is String or String(raw_step[key]).strip_edges().is_empty():
+				return _failure("story.explanation.steps[%d].%s must be a non-empty string" % [index, key])
+		steps.append({
+			"equation": String(raw_step["equation"]).strip_edges(),
+			"caption": String(raw_step["caption"]).strip_edges(),
+		})
+	var assumptions_value: Variant = value.get("assumptions", [])
+	if not assumptions_value is Array:
+		return _failure("story.explanation.assumptions must be an array")
+	var assumptions: Array[String] = []
+	for assumption in assumptions_value:
+		if not assumption is String or String(assumption).strip_edges().is_empty():
+			return _failure("story.explanation assumptions must be non-empty strings")
+		assumptions.append(String(assumption).strip_edges())
+	return {
+		"ok": true,
+		"error": "",
+		"explanation": {
+			"kind": kind,
+			"eyebrow": String(value.get("eyebrow", "")),
+			"steps": steps,
+			"assumptions": assumptions,
+		},
+	}
 
 
 static func _normalize_narration(value: Variant, source_path: String) -> Dictionary:

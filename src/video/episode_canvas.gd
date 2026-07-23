@@ -3,6 +3,7 @@ extends Node2D
 
 const ReplayTrack = preload("res://src/playback/replay_track.gd")
 const EpisodeLayout = preload("res://src/video/episode_layout.gd")
+const VideoTypography = preload("res://src/video/video_typography.gd")
 
 var episode: Dictionary = {}
 var bundle: Dictionary = {}
@@ -63,6 +64,8 @@ func _draw() -> void:
 	_draw_background()
 	_draw_grid()
 	_draw_sling()
+	if phase == "EXPLAIN":
+		_draw_explanation_module()
 	if episode["story"].get("show_target", true):
 		_draw_target_platform()
 		_draw_reference_target()
@@ -71,6 +74,104 @@ func _draw() -> void:
 		if episode["story"].get("show_target", true):
 			_draw_variant_targets()
 		_draw_variant_birds()
+
+
+func _draw_explanation_module() -> void:
+	if current_beat.get("overlay", "").begins_with("angle-"):
+		_draw_angle_module()
+	elif current_beat.get("overlay", "").begins_with("stretch-") or current_beat.get("overlay", "") == "spring-energy":
+		_draw_energy_module()
+
+
+func _draw_angle_module() -> void:
+	var theme_colors: Dictionary = episode["theme"]["colors"]
+	var plot := EpisodeLayout.plot_rect_for_phase("EXPLAIN")
+	var origin := plot.position + Vector2(130, 475)
+	var angle_deg: float = [28.0, 52.0, 45.0][clampi(int(current_beat.get("formula_step", 0)), 0, 2)]
+	var angle := deg_to_rad(angle_deg)
+	var vector_length := 310.0
+	var tip := origin + Vector2(cos(angle), -sin(angle)) * vector_length
+	var horizontal_tip := Vector2(tip.x, origin.y)
+	var progress := _beat_progress()
+	draw_arc(origin, 105.0, -angle, 0.0, 36, Color(theme_colors["accent"], 0.72), 4.0, true)
+	draw_string(
+		VideoTypography.data(),
+		origin + Vector2(82, -24),
+		"θ",
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		28,
+		theme_colors["accent"]
+	)
+	_draw_arrow(origin, tip, theme_colors["highlight"], 6.0)
+	_draw_arrow(origin, horizontal_tip, episode["variants"][0]["color"], 4.0)
+	_draw_arrow(horizontal_tip, tip, episode["variants"][-1]["color"], 4.0)
+	draw_dashed_line(horizontal_tip, tip, Color(theme_colors["muted"], 0.32), 2.0, 8.0, true)
+	var pulse := 0.7 + 0.3 * sin(progress * TAU)
+	draw_circle(tip, 13.0 + pulse * 4.0, Color(theme_colors["highlight"], 0.30))
+	_draw_module_label(origin + Vector2(122, 42), "vₓ  水平分量", episode["variants"][0]["color"])
+	_draw_module_label(origin + Vector2(315, -126), "vᵧ  垂直分量", episode["variants"][-1]["color"])
+	_draw_module_label(origin + Vector2(214, -250), "v  初速度", theme_colors["highlight"])
+
+
+func _draw_energy_module() -> void:
+	var theme_colors: Dictionary = episode["theme"]["colors"]
+	var plot := EpisodeLayout.plot_rect_for_phase("EXPLAIN")
+	var baseline := plot.position + Vector2(92, 560)
+	var variants: Array = episode["variants"]
+	var step := clampi(int(current_beat.get("formula_step", 0)), 0, 2)
+	var max_energy := 0.0
+	var energies: Array[float] = []
+	for variant_value in variants:
+		var variant: Dictionary = variant_value
+		var physics: Dictionary = variant["preset"]["physics"]
+		var energy := 0.5 * float(physics["spring_k_npm"]) * pow(float(physics["stretch_m"]), 2.0)
+		energies.append(energy)
+		max_energy = maxf(max_energy, energy)
+	draw_line(baseline, baseline + Vector2(550, 0), theme_colors["divider"], 3.0, true)
+	for index in range(variants.size()):
+		var x := baseline.x + 45.0 + index * 135.0
+		var bar_height := 250.0 * energies[index] / maxf(max_energy, 0.001)
+		var reveal := clampf(_beat_progress() * 1.4 - index * 0.12, 0.0, 1.0)
+		var color: Color = variants[index]["color"]
+		draw_rect(Rect2(x, baseline.y - bar_height * reveal, 68, bar_height * reveal), Color(color, 0.82), true)
+		draw_line(Vector2(x, baseline.y + 12), Vector2(x + 68, baseline.y + 12), color, 4.0, true)
+		_draw_module_label(Vector2(x - 10, baseline.y + 34), String(variants[index]["label"]), color)
+		if step >= 2:
+			_draw_module_label(Vector2(x - 4, baseline.y - bar_height - 38), "%.1f J" % energies[index], theme_colors["text"])
+	var spring_start := plot.position + Vector2(90, 130)
+	var spring_finish := spring_start + Vector2(460.0 * (0.55 + step * 0.20), 0)
+	var coils := PackedVector2Array([spring_start])
+	for coil in range(17):
+		var ratio := float(coil + 1) / 18.0
+		coils.append(spring_start.lerp(spring_finish, ratio) + Vector2(0, -18 if coil % 2 == 0 else 18))
+	coils.append(spring_finish)
+	draw_polyline(coils, theme_colors["accent"], 5.0, true)
+	draw_line(spring_start + Vector2(0, -48), spring_start + Vector2(0, 48), theme_colors["muted"], 5.0, true)
+	_draw_module_label(spring_finish + Vector2(-34, -64), "x", theme_colors["accent"])
+
+
+func _draw_arrow(start: Vector2, finish: Vector2, color: Color, width: float) -> void:
+	draw_line(start, finish, color, width, true)
+	var direction := (finish - start).normalized()
+	var normal := Vector2(-direction.y, direction.x)
+	var head := finish - direction * 22.0
+	draw_colored_polygon(PackedVector2Array([finish, head + normal * 10.0, head - normal * 10.0]), color)
+
+
+func _draw_module_label(position: Vector2, value: String, color: Color) -> void:
+	draw_string(VideoTypography.data(), position, value, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, color)
+
+
+func _beat_progress() -> float:
+	if current_beat.is_empty():
+		return 0.0
+	return clampf(
+		(video_time_sec - float(current_beat.get("at", video_time_sec)))
+		/ maxf(0.001, float(current_beat.get("duration", 1.0))),
+		0.0,
+		1.0
+	)
 
 
 func _draw_background() -> void:

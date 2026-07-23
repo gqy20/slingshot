@@ -4,6 +4,7 @@ const EpisodeLoader = preload("res://src/core/episode_loader.gd")
 const EpisodeHud = preload("res://src/video/episode_hud.gd")
 const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 const VideoTypography = preload("res://src/video/video_typography.gd")
+const FormulaRenderer = preload("res://src/video/formula_renderer.gd")
 
 const EXPECTED_ROLE_SIZES := {
 	VideoTypography.HERO: 56,
@@ -16,6 +17,9 @@ const EXPECTED_ROLE_SIZES := {
 	VideoTypography.DATA: 22,
 	VideoTypography.DATA_META: 16,
 	VideoTypography.META: 16,
+	VideoTypography.FORMULA_MAIN: 56,
+	VideoTypography.FORMULA_STEP: 36,
+	VideoTypography.FORMULA_META: 20,
 }
 
 
@@ -62,6 +66,11 @@ func run(t) -> void:
 			VideoTypography.size_for(role) == EXPECTED_ROLE_SIZES[role],
 			"typography role has canonical size: %s" % role
 		)
+	for role in [VideoTypography.FORMULA_MAIN, VideoTypography.FORMULA_STEP]:
+		t.check(
+			VideoTypography.theme().get_font("font", role) == VideoTypography.data(),
+			"formula role uses Sarasa Mono SC: %s" % role
+		)
 
 	var hud := EpisodeHud.new()
 	hud._build_ui()
@@ -89,6 +98,24 @@ func run(t) -> void:
 	var episode_two: Dictionary = EpisodeLoader.load_path(
 		"res://content/episodes/s01e02-stretch-sweep.json"
 	)["episode"]
+	var formula := FormulaRenderer.new()
+	formula._build_ui()
+	formula.configure(episode_two["story"]["explanation"], episode_two["theme"]["colors"])
+	formula.set_step(2)
+	t.check(formula.step_index == 2, "formula renderer selects an explicit derivation step")
+	t.check(formula.formula_label.text == "E(2x) = 4E(x)", "formula renderer displays canonical equation text")
+	t.check(
+		formula.formula_label.theme_type_variation == VideoTypography.FORMULA_MAIN,
+		"main equation uses the dedicated formula role"
+	)
+	var formula_size := VideoTypography.data().get_string_size(
+		formula.formula_label.text,
+		HORIZONTAL_ALIGNMENT_CENTER,
+		-1,
+		VideoTypography.size_for(VideoTypography.FORMULA_MAIN)
+	)
+	t.check(formula_size.x <= formula.formula_label.size.x, "longest production equation fits formula panel")
+	formula.free()
 	for episode in [episode_one, episode_two]:
 		var question_size := hero_font.get_multiline_string_size(
 			episode["question"],
