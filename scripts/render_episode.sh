@@ -23,7 +23,13 @@ if [[ ! -f "$EPISODE_ABS" ]]; then
   printf 'episode-render: episode not found: %s\n' "$EPISODE_ABS" >&2
   exit 2
 fi
+"$SCRIPT_DIR/build_formula_assets.sh" "$EPISODE_ABS"
 episode_name="$(basename "${EPISODE_ABS%.json}")"
+FORMULA_ASSET_DIR="$(jq -r '.story.explanation.asset_dir // ""' "$EPISODE_ABS")"
+FORMULA_ASSET_MANIFEST=""
+if [[ -n "$FORMULA_ASSET_DIR" ]]; then
+  FORMULA_ASSET_MANIFEST="$PROJECT_ROOT/${FORMULA_ASSET_DIR#res://}/formulas.manifest.txt"
+fi
 FPS="$(jq -er '.video.fps' "$EPISODE_ABS")"
 SOURCE_WIDTH="$(jq -er '.video.width' "$EPISODE_ABS")"
 SOURCE_HEIGHT="$(jq -er '.video.height' "$EPISODE_ABS")"
@@ -125,12 +131,29 @@ fi
 RENDER_TMP="$(mktemp -d /tmp/slingshot-episode.XXXXXX)"
 FRAME_DIR="$RENDER_TMP/frames"
 SHARD_DIR="$RENDER_TMP/shards"
+PROJECT_VIEW="$RENDER_TMP/project"
 SIMULATION_LOG="$RENDER_TMP/simulation.log"
 RECORD_TMP="$RENDER_TMP/run-record.json"
 MP4_TMP="$RENDER_TMP/output.mp4"
 JSON_TMP="$RENDER_TMP/output.json"
 MANIFEST_TMP="$RENDER_TMP/manifest.txt"
-mkdir -p "$FRAME_DIR" "$SHARD_DIR"
+mkdir -p "$FRAME_DIR" "$SHARD_DIR" "$PROJECT_VIEW"
+
+# Movie Maker allocates its recording viewport before EpisodeApp can resize the
+# root window. A per-render project view lets override.cfg select the real frame
+# buffer size without mutating project.godot or racing parallel renders.
+for project_entry in project.godot episode.tscn main.tscn assets content presets src; do
+  ln -s "$PROJECT_ROOT/$project_entry" "$PROJECT_VIEW/$project_entry"
+done
+if [[ -d "$PROJECT_ROOT/.godot" ]]; then
+  ln -s "$PROJECT_ROOT/.godot" "$PROJECT_VIEW/.godot"
+fi
+{
+  printf '[display]\n'
+  printf 'window/size/viewport_width=%s\n' "$WIDTH"
+  printf 'window/size/viewport_height=%s\n' "$HEIGHT"
+  printf 'window/stretch/mode="disabled"\n'
+} >"$PROJECT_VIEW/override.cfg"
 
 render_succeeded=0
 cleanup() {
@@ -184,7 +207,7 @@ for ((shard_index = 0; shard_index < RENDER_WORKERS; shard_index += 1)); do
   (
     if ! xvfb-run -a -s "$XVFB_SCREEN" \
       timeout "${RENDER_TIMEOUT_SEC:-3600}" \
-      "$GODOT_BIN" --path "$PROJECT_ROOT" \
+      "$GODOT_BIN" --path "$PROJECT_VIEW" \
       --rendering-method gl_compatibility \
       --resolution "${WIDTH}x${HEIGHT}" \
       --write-movie "$shard_frames/frame.png" \
@@ -250,7 +273,7 @@ if [[ "$HAS_NARRATION" == true ]]; then
     -framerate "$FPS" -i "$FRAME_DIR/frame%08d.png" \
     -i "$NARRATION_AUDIO" -i "$SOUND_DESIGN_AUDIO" \
     -t "$VIDEO_DURATION" \
-    -filter_complex '[2:a]volume=0.70[sfx];[sfx][1:a]sidechaincompress=threshold=0.02:ratio=6:attack=20:release=250[sfxduck];[1:a][sfxduck]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.89[aout]' \
+    -filter_complex '[2:a]volume=0.40[sfx];[sfx][1:a]sidechaincompress=threshold=0.015:ratio=8:attack=15:release=300[sfxduck];[1:a][sfxduck]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.78:level=false[aout]' \
     -map 0:v:0 -map '[aout]' \
     -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p \
     -c:a aac -b:a 192k \
@@ -300,6 +323,10 @@ godot_version="$("$GODOT_BIN" --version | head -1)"
   printf 'video_sha256=%s\n' "$mp4_sha"
   printf 'video_stream=%s\n' "$probe"
   printf 'video_duration_sec=%s\n' "$output_duration"
+	if [[ -n "$FORMULA_ASSET_MANIFEST" ]]; then
+		printf 'formula_renderer=typst_svg\n'
+		printf 'formula_assets_sha256=%s\n' "$(sha256sum "$FORMULA_ASSET_MANIFEST" | awk '{print $1}')"
+	fi
 	if [[ "$HAS_NARRATION" == true ]]; then
 		printf 'audio_source_sha256=%s\n' "$(sha256sum "$NARRATION_SOURCE" | awk '{print $1}')"
 		printf 'audio_normalized_sha256=%s\n' "$(sha256sum "$NARRATION_AUDIO" | awk '{print $1}')"

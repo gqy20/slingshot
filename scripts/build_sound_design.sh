@@ -30,8 +30,27 @@ cleanup() {
 }
 trap cleanup EXIT
 
+case "$stem" in
+  s01e01-angle-sweep)
+    bgm_frequencies="523 659 784 659"
+    ;;
+  s01e02-stretch-sweep)
+    bgm_frequencies="440 554 659 880"
+    ;;
+  *)
+    bgm_frequencies="440 554 659 554"
+    ;;
+esac
+read -r bgm_f1 bgm_f2 bgm_f3 bgm_f4 <<<"$bgm_frequencies"
+
 filter_graph="anullsrc=r=48000:cl=mono:d=${duration}[base]"
-mix_inputs="[base]"
+filter_graph+=";anullsrc=r=48000:cl=mono:d=12[bgbase]"
+filter_graph+=";sine=f=${bgm_f1}:r=48000:d=0.28,volume=0.045,afade=t=out:st=0.12:d=0.16,adelay=350:all=1[bg1]"
+filter_graph+=";sine=f=${bgm_f2}:r=48000:d=0.28,volume=0.040,afade=t=out:st=0.12:d=0.16,adelay=1100:all=1[bg2]"
+filter_graph+=";sine=f=${bgm_f3}:r=48000:d=0.28,volume=0.036,afade=t=out:st=0.12:d=0.16,adelay=2050:all=1[bg3]"
+filter_graph+=";sine=f=${bgm_f4}:r=48000:d=0.32,volume=0.040,afade=t=out:st=0.14:d=0.18,adelay=3300:all=1[bg4]"
+filter_graph+=";[bgbase][bg1][bg2][bg3][bg4]amix=inputs=5:duration=first:normalize=0,lowpass=f=2600,aloop=loop=-1:size=576000,atrim=0:${duration}[bgm]"
+mix_inputs="[base][bgm]"
 cue_index=0
 while IFS=$'\t' read -r cue_at cue_name; do
   [[ -n "$cue_name" ]] || continue
@@ -59,7 +78,7 @@ while IFS=$'\t' read -r cue_at cue_name; do
   cue_index=$((cue_index + 1))
 done < <(jq -r '.beats[] | select((.sfx // "") != "") | [.at, .sfx] | @tsv' "$episode_abs")
 
-filter_graph+=";${mix_inputs}amix=inputs=$((cue_index + 1)):duration=longest:normalize=0,alimiter=limit=0.35[out]"
+filter_graph+=";${mix_inputs}amix=inputs=$((cue_index + 2)):duration=longest:normalize=0,alimiter=limit=0.35[out]"
 ffmpeg -y -loglevel error -filter_complex "$filter_graph" -map '[out]' \
   -t "$duration" -ar 48000 -ac 1 -c:a pcm_s24le "$sound_tmp/sound-design.wav"
 
@@ -74,6 +93,9 @@ fi
   printf 'episode_sha256=%s\n' "$(sha256sum "$episode_abs" | awk '{print $1}')"
   printf 'sound_design_sha256=%s\n' "$(sha256sum "$sound_tmp/sound-design.wav" | awk '{print $1}')"
   printf 'cue_count=%s\n' "$cue_index"
+	printf 'bgm=bird_four_note_motif_v1\n'
+	printf 'bgm_cycle_sec=12\n'
+	printf 'bgm_note_frequencies_hz=%s\n' "$bgm_frequencies"
   printf 'duration_sec=%s\n' "$actual_duration"
   printf 'sample_rate_hz=48000\nchannels=1\ncodec=pcm_s24le\n'
 } >"$sound_tmp/sound-design.manifest.txt"

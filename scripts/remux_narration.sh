@@ -55,7 +55,7 @@ trap cleanup EXIT
 
 ffmpeg -y -loglevel error \
   -i "$video_abs" -i "$audio" -i "$sound_design" \
-  -filter_complex '[2:a]volume=0.70[sfx];[sfx][1:a]sidechaincompress=threshold=0.02:ratio=6:attack=20:release=250[sfxduck];[1:a][sfxduck]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.89[aout]' \
+  -filter_complex '[2:a]volume=0.40[sfx];[sfx][1:a]sidechaincompress=threshold=0.015:ratio=8:attack=15:release=300[sfxduck];[1:a][sfxduck]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.78:level=false[aout]' \
   -map 0:v:0 -map '[aout]' \
   -t "$video_duration" \
   -c:v copy \

@@ -107,7 +107,7 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 	var normalized := {
 		"schema_version": 1,
 		"id": String(raw["id"]).strip_edges(),
-		"series": String(raw.get("series", "平行物理实验室")),
+		"series": String(raw.get("series", "物理实验室")),
 		"season": int(raw.get("season", 0)),
 		"episode": int(raw.get("episode", 0)),
 		"title": String(raw["title"]).strip_edges(),
@@ -165,9 +165,14 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 			"duration": beat_duration,
 			"shot": String(raw["shot"]).strip_edges(),
 			"focus": String(raw.get("focus", "")),
+			"focus_secondary": String(raw.get("focus_secondary", "")),
+			"focus_label": String(raw.get("focus_label", "")),
+			"focus_secondary_label": String(raw.get("focus_secondary_label", "")),
+			"headline": String(raw.get("headline", "")),
 			"overlay": String(raw.get("overlay", "")),
 			"formula_step": int(raw.get("formula_step", -1)),
 			"sfx": String(raw.get("sfx", "")),
+			"chapter": bool(raw.get("chapter", false)),
 		})
 		cursor += beat_duration
 	if absf(cursor - duration_sec) > 0.001:
@@ -237,6 +242,7 @@ static func _normalize_story(value: Variant) -> Dictionary:
 	story["secondary_metric"] = String(story.get("secondary_metric", ""))
 	story["secondary_label"] = String(story.get("secondary_label", ""))
 	story["secondary_unit"] = String(story.get("secondary_unit", ""))
+	story["identity_label"] = String(story.get("identity_label", "实验"))
 	story["control_label"] = String(story.get("control_label", ""))
 	story["explain_title"] = String(story.get("explain_title", ""))
 	story["explain_detail"] = String(story.get("explain_detail", ""))
@@ -267,6 +273,15 @@ static func _normalize_explanation(value: Variant) -> Dictionary:
 	var kind := String(value.get("kind", ""))
 	if kind not in ["relation", "derivation"]:
 		return _failure("story.explanation.kind must be relation or derivation")
+	var asset_dir := String(value.get("asset_dir", "")).strip_edges()
+	var uses_typst := not asset_dir.is_empty()
+	if uses_typst and (
+		not asset_dir.begins_with("res://assets/generated/formulas/")
+		or ".." in asset_dir
+	):
+		return _failure(
+			"story.explanation.asset_dir must stay under res://assets/generated/formulas"
+		)
 	var steps_value: Variant = value.get("steps")
 	if not steps_value is Array or steps_value.size() < 2 or steps_value.size() > 5:
 		return _failure("story.explanation.steps must contain between 2 and 5 entries")
@@ -275,11 +290,24 @@ static func _normalize_explanation(value: Variant) -> Dictionary:
 		if not steps_value[index] is Dictionary:
 			return _failure("story.explanation.steps[%d] must be an object" % index)
 		var raw_step: Dictionary = steps_value[index]
-		for key in ["equation", "caption"]:
+		for key in ["concept", "equation", "caption"]:
 			if not raw_step.get(key) is String or String(raw_step[key]).strip_edges().is_empty():
 				return _failure("story.explanation.steps[%d].%s must be a non-empty string" % [index, key])
+		var typst_source := String(raw_step.get("typst", "")).strip_edges()
+		if uses_typst and typst_source.is_empty():
+			return _failure(
+				"story.explanation.steps[%d].typst must be a non-empty string" % index
+			)
+		if not uses_typst and not typst_source.is_empty():
+			return _failure("story.explanation.asset_dir is required when typst is used")
+		var formula_asset := ""
+		if uses_typst:
+			formula_asset = asset_dir.path_join("step-%02d.svg" % (index + 1))
 		steps.append({
+			"concept": String(raw_step["concept"]).strip_edges(),
 			"equation": String(raw_step["equation"]).strip_edges(),
+			"typst": typst_source,
+			"formula_asset": formula_asset,
 			"caption": String(raw_step["caption"]).strip_edges(),
 		})
 	var assumptions_value: Variant = value.get("assumptions", [])
@@ -296,6 +324,7 @@ static func _normalize_explanation(value: Variant) -> Dictionary:
 		"explanation": {
 			"kind": kind,
 			"eyebrow": String(value.get("eyebrow", "")),
+			"asset_dir": asset_dir,
 			"steps": steps,
 			"assumptions": assumptions,
 		},

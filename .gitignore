@@ -1,6 +1,7 @@
 .godot/
 .render-tmp/
 .experiment-cache/
+/assets/generated/
 renders/*
 !renders/.gdignore
 !renders/README.md

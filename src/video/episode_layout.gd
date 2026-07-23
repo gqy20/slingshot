@@ -3,8 +3,8 @@ extends RefCounted
 
 const CANVAS_SIZE := Vector2(1920.0, 1080.0)
 const SOURCE_WORLD_RECT := Rect2(0.0, 90.0, 1920.0, 830.0)
-const IDENTITY_RECT := Rect2(32.0, 24.0, 700.0, 72.0)
-const PHASE_RECT := Rect2(1630.0, 28.0, 240.0, 48.0)
+const IDENTITY_RECT := Rect2(40.0, 24.0, 1000.0, 44.0)
+const PHASE_RECT := Rect2(1590.0, 27.0, 280.0, 38.0)
 const LEGEND_RECT := Rect2(220.0, 108.0, 1240.0, 52.0)
 const CLOCK_RECT := Rect2(1480.0, 112.0, 380.0, 40.0)
 const QUESTION_RECT := Rect2(180.0, 145.0, 1560.0, 160.0)

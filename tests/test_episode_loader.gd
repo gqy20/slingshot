@@ -68,17 +68,40 @@ func run(t) -> void:
 		t.check(production["ok"], "production episode loads: %s" % production_path)
 		if production["ok"]:
 			var story: Dictionary = production["episode"]["story"]
+			var explanation: Dictionary = story["explanation"]
 			t.check_close(
 				production["episode"]["duration_sec"],
 				120.0,
 				0.0001,
 				"production episode targets two minutes"
 			)
-			t.check(production["episode"]["beats"].size() == 12, "production has 12 beats")
+			t.check(production["episode"]["beats"].size() == 14, "production has 14 beats")
 			t.check(
-				production["episode"]["story"]["explanation"]["steps"].size() == 3,
+				production["episode"]["series"] == "物理实验室",
+				"production uses the concise series name"
+			)
+			t.check(
+				production["episode"]["beats"][0]["focus_secondary"] != "",
+				"cold open compares 2 visible outcomes"
+			)
+			t.check(
+				production["episode"]["beats"][2]["headline"] != "",
+				"question appears after the visual conflict and controls"
+			)
+			t.check(
+				explanation["steps"].size() == 3,
 				"production episode has a three-step explanation"
 			)
+			t.check(
+				String(explanation["asset_dir"]).begins_with("res://assets/generated/formulas/"),
+				"production formula assets stay in the generated formula namespace"
+			)
+			for step in explanation["steps"]:
+				t.check(not String(step["typst"]).is_empty(), "formula step declares Typst source")
+				t.check(
+					String(step["formula_asset"]).ends_with(".svg"),
+					"formula step derives a build output path"
+				)
 			t.check("\n" in production["episode"]["display_hook"], "display hook has intentional line break")
 			t.check(
 				not story["show_target"],
@@ -102,7 +125,7 @@ func run(t) -> void:
 			)
 			t.check_close(
 				production["episode"]["narration"]["speed"],
-				1.18,
+				1.22,
 				0.0001,
 				"production narration declares an intentional speech speed"
 			)

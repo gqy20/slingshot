@@ -5,10 +5,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 . "$SCRIPT_DIR/render_paths.sh"
 JOBS="${RENDER_JOBS:-1}"
-MAX_TOTAL_WORKERS="${RENDER_MAX_WORKERS:-2}"
+MAX_TOTAL_WORKERS="${RENDER_MAX_WORKERS:-4}"
 REQUESTED_EPISODE_WORKERS="${EPISODE_RENDER_WORKERS:-2}"
 DRY_RUN="${RENDER_DRY_RUN:-0}"
-OUTPUT_DIR="$RENDER_FINAL_DIR"
+OUTPUT_DIR=""
 EPISODES=()
 
 usage() {
@@ -82,6 +82,16 @@ if [[ "${#EPISODES[@]}" -eq 0 ]]; then
   exit 2
 fi
 
+OUTPUT_SUFFIX=""
+if [[ "${EPISODE_RENDER_WIDTH:-}" == 1920 && "${EPISODE_RENDER_HEIGHT:-}" == 1080 ]]; then
+  OUTPUT_SUFFIX="--1080p-preview"
+  if [[ -z "$OUTPUT_DIR" ]]; then
+    OUTPUT_DIR="$RENDER_PREVIEWS_DIR"
+  fi
+elif [[ -z "$OUTPUT_DIR" ]]; then
+  OUTPUT_DIR="$RENDER_FINAL_DIR"
+fi
+
 mkdir -p "$OUTPUT_DIR"
 OUTPUT_DIR_ABS="$(cd "$OUTPUT_DIR" && pwd)"
 
@@ -92,9 +102,9 @@ for episode in "${EPISODES[@]}"; do
   fi
 done
 
-printf 'batch-render: jobs=%s episode-workers=%s total-worker-limit=%s episodes=%s output=%s\n' \
+printf 'batch-render: jobs=%s episode-workers=%s total-worker-limit=%s episodes=%s output=%s suffix=%s\n' \
   "$JOBS" "$workers_per_episode" "$MAX_TOTAL_WORKERS" \
-  "${#EPISODES[@]}" "$OUTPUT_DIR_ABS"
+  "${#EPISODES[@]}" "$OUTPUT_DIR_ABS" "${OUTPUT_SUFFIX:-<none>}"
 if [[ "$DRY_RUN" == 1 ]]; then
   printf 'batch-render: dry-run; no render processes started\n'
   exit 0
@@ -102,13 +112,15 @@ fi
 
 export SLINGSHOT_RENDER_SCRIPT="$SCRIPT_DIR/render_episode.sh"
 export SLINGSHOT_OUTPUT_DIR="$OUTPUT_DIR_ABS"
+export SLINGSHOT_OUTPUT_SUFFIX="$OUTPUT_SUFFIX"
 export EPISODE_RENDER_WORKERS="$workers_per_episode"
 printf '%s\0' "${EPISODES[@]}" |
   xargs -0 -P "$JOBS" -n 1 bash -c '
     set -euo pipefail
     episode="$1"
     stem="$(basename "${episode%.json}")"
-    "$SLINGSHOT_RENDER_SCRIPT" "$episode" "$SLINGSHOT_OUTPUT_DIR/$stem.mp4"
+    "$SLINGSHOT_RENDER_SCRIPT" "$episode" \
+      "$SLINGSHOT_OUTPUT_DIR/$stem$SLINGSHOT_OUTPUT_SUFFIX.mp4"
   ' _
 
 printf 'batch-render: completed %s episode(s) with jobs=%s\n' \

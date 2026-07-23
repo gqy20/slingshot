@@ -67,7 +67,7 @@ offset="$(jq -r '.target_offset' <<<"$first_pass_json")"
 filter="loudnorm=I=-16:TP=-1.5:LRA=7:measured_I=$measured_i:measured_TP=$measured_tp:measured_LRA=$measured_lra:measured_thresh=$measured_thresh:offset=$offset:linear=true:print_format=json"
 
 ffmpeg -y -loglevel error -i "$source_audio" \
-  -af "$filter,aresample=48000" \
+	-af "$filter,volume=1dB,alimiter=limit=0.82:level=false,aresample=48000" \
   -ar 48000 -ac 1 -c:a pcm_s24le "$normalize_tmp/narration-normalized.wav"
 
 verify_log="$normalize_tmp/verify.log"

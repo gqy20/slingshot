@@ -38,6 +38,8 @@ Episode 系统的完整边界和数据流见 [Episode 视频系统](docs/episode
 - Godot 4.7.1 标准版（无需 Mono/.NET）
 - Xvfb
 - FFmpeg 与 ffprobe
+- mmx-cli 1.0.18 或更新版本（1.0.16 的重复发音表序列化与当前 T2A API 不兼容）
+- Typst 0.15.1（仅在修改公式后重建 SVG 时需要）
 - Linux 下可用的 OpenGL 3 兼容驱动
 
 检查环境：
@@ -46,6 +48,7 @@ Episode 系统的完整边界和数据流见 [Episode 视频系统](docs/episode
 godot --version
 ffmpeg -version | head -1
 command -v xvfb-run ffprobe
+typst --version
 ```
 
 ## 一条命令生成 Episode
@@ -73,6 +76,7 @@ scripts/install_git_hooks.sh
 当前正片：
 
 ```bash
+scripts/build_formula_assets.sh
 scripts/generate_narration.sh \
   content/episodes/s01e01-angle-sweep.json \
   content/episodes/s01e02-stretch-sweep.json
@@ -82,7 +86,11 @@ scripts/render_episode.sh content/episodes/s01e02-stretch-sweep.json
 
 `generate_narration.sh` 使用 mmx-cli 的 `speech-2.8-hd` 在同一次合成中生成 MP3 和句级 SRT。Episode 固定音色、0.5–2.0 范围内的语速、音量、-12–12 级的音高与难词发音表；讲稿使用 MiniMax `<#x#>` 标记精确控制 0.01–99.99 秒停顿。校验时会从讲稿和字幕中移除非朗读控制标记，再逐字符确认“实际朗读正文 = SRT 正文”。实验量统一使用阿拉伯数字，朗读字幕采用中文单位。
 
-语音经过两遍响度分析，生成 `-16 ±1 LUFS`、不高于 `-1.5 dBTP`、48 kHz 单声道 24-bit PCM 母版。发射、落地、揭晓等 Beat 会生成独立音效轨，混音时以解说作为 sidechain 自动压低音效；Godot 使用同一份 SRT 绘制字幕。AAC 编码后再复测交付音轨，要求 `-16 ±1 LUFS`、不高于 `-1.0 dBTP`、48 kHz 单声道。讲稿、MMX CLI 版本、模型、音色、控制参数、音效、响度、时长和 SHA-256 均写入 manifest。
+公式在 Episode JSON 中同时保存 Typst 源码与无障碍文本兜底。`build_formula_assets.sh` 使用固定的 Typst 0.15.1 和 New Computer Modern Math 生成双倍逻辑尺寸的透明 SVG；Godot 将 SVG 作为主公式层，只有资产缺失或无法加载时才显示更纱等宽文本。`assets/generated/` 是被 Git 忽略的构建目录，渲染入口会按源码哈希自动生成或复用公式，不把 SVG、哈希、manifest 和 `.import` 文件提交到仓库。
+
+控制标记与模型兼容范围以 [MiniMax 同步语音合成 HTTP 文档](https://platform.minimaxi.com/docs/api-reference/speech-t2a-http) 为准。当前流水线固定句级字幕；`word_streaming` 只适合流式请求，不用于可复现的离线 Episode。
+
+语音经过两遍响度分析，生成 `-16 ±1 LUFS`、不高于 `-1.5 dBTP`、48 kHz 单声道 24-bit PCM 母版。每集包含 12 秒循环的四音符小鸟主题 BGM，以及发射、落地、揭晓等 Beat 音效；混音时以解说作为 sidechain 自动压低音乐与音效，Godot 使用同一份 SRT 绘制字幕。AAC 编码后再复测交付音轨，要求 `-16 ±1 LUFS`、不高于 `-1.0 dBTP`、48 kHz 单声道。讲稿、MMX CLI 版本、模型、音色、控制参数、音乐、音效、响度、时长和 SHA-256 均写入 manifest。
 
 Episode 在渲染前会执行布局审计：每个阶段拥有独立 Plot Area，逐帧检查小鸟与速度箭头是否进入标题、图例、结果或字幕区域；字幕限制为最多 88 个字符和两条显式行。结果阶段使用左侧轨迹、右侧数据的分栏布局。弹弓拉伸、回弹、能量光点与小鸟的蓄力、飞行形变、眨眼和落地反馈都由视频时间确定性驱动，不改变物理记录。
 
@@ -99,14 +107,16 @@ scripts/remux_narration.sh content/episodes/s01e01-angle-sweep.json
 - S01E01：相同弹簧能量下比较 15°、30°、45°、60°、75° 的首次落地距离；
 - S01E02：保持 45°，比较 0.3 m、0.6 m、0.9 m、1.2 m 拉伸距离。
 
-单集 4K 渲染默认使用两个内部分片。批量入口默认串行处理 Episode，并把总 Godot Worker 数限制为 2；显式并行两集时，会自动将每集调整为一个 Worker，避免产生四个 4K 进程：
+单集默认使用两个内部分片。批量入口把总 Godot Worker 数限制为 4；显式并行两集时，每集使用两个绝对帧区间 Worker，正好覆盖当前 6 核 CPU 的有效并行区间：
 
 ```bash
 scripts/render_batch.sh
 scripts/render_batch.sh --jobs 2 content/episodes/s01e01-angle-sweep.json content/episodes/s01e02-stretch-sweep.json
 ```
 
-可通过 `EPISODE_RENDER_WORKERS` 调整单集期望分片数，通过 `RENDER_MAX_WORKERS` 设置整批任务的并发上限。少于 300 帧的短视频默认不分片；测试时可用 `EPISODE_SHARD_MIN_FRAMES` 调整阈值。
+可通过 `EPISODE_RENDER_WORKERS` 调整单集期望分片数，通过 `RENDER_MAX_WORKERS` 设置整批任务的并发上限。少于 300 帧的短视频默认不分片；测试时可用 `EPISODE_SHARD_MIN_FRAMES` 调整阈值。每个渲染任务会创建隔离的临时项目视图，用 `override.cfg` 在 Movie Maker 初始化前设置真实帧缓冲尺寸，因此 1080p 不再暗中生成 4K PNG，4K 也不经过低分辨率放大。
+
+批量脚本会按实际分辨率路由输出：4K 写入 `renders/final/<episode>.mp4`，1080p 自动写入 `renders/previews/<episode>--1080p-preview.mp4`，避免审查片覆盖正式成片。
 
 结构审查可用 `EPISODE_RENDER_WIDTH=1920 EPISODE_RENDER_HEIGHT=1080` 输出 1080p；在最终 MMX 旁白尚未生成时，可附加 `EPISODE_SKIP_NARRATION=1` 生成无声预览。正式交付仍使用 Episode 声明的 3840×2160。
 
@@ -153,6 +163,7 @@ godot --headless --path . --script res://tests/run_tests.gd
 
 ```bash
 bash tests/test_boot.sh
+bash tests/test_formula_assets.sh
 bash tests/test_render_paths.sh
 ```
 

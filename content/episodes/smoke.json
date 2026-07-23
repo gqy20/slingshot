@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "framework-smoke",
-  "series": "平行物理实验室",
+  "series": "物理实验室",
   "season": 0,
   "episode": 0,
   "title": "Episode Framework Smoke",
@@ -38,7 +38,7 @@
     {"id":"explain","label":"建立直觉","phase":"EXPLAIN","at":0.2,"duration":0.1,"shot":"explain"},
     {"id":"setup","label":"控制变量","phase":"SETUP","at":0.3,"duration":0.2,"shot":"setup"},
     {"id":"flight","label":"同步实验","phase":"FLIGHT","at":0.5,"duration":0.3,"shot":"flight"},
-    {"id":"compare","label":"结果揭晓","phase":"COMPARE","at":0.8,"duration":0.3,"shot":"compare"}
+    {"id":"compare","label":"落点数据","phase":"COMPARE","at":0.8,"duration":0.3,"shot":"compare"}
   ],
   "variants": [
     {

@@ -180,7 +180,7 @@ func _beat_progress() -> float:
 func _draw_background() -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
 	draw_rect(Rect2(Vector2.ZERO, EpisodeLayout.CANVAS_SIZE), colors["background"], true)
-	draw_rect(Rect2(0, 100, 1920, 820), colors["stage"], true)
+	draw_rect(Rect2(0, 0, 1920, 920), colors["stage"], true)
 	var plot := EpisodeLayout.plot_rect_for_phase(phase)
 	draw_rect(plot, Color(colors["surface"], 0.34), true)
 	draw_rect(Rect2(plot.position, Vector2(plot.size.x, 1)), colors["divider"], true)
@@ -471,35 +471,53 @@ func _draw_cold_open_teaser() -> void:
 	var focus_id := String(current_beat.get("focus", ""))
 	if focus_id.is_empty() or not records_by_id.has(focus_id):
 		return
-	var record: Dictionary = records_by_id[focus_id]
+	_draw_teaser_subject(
+		focus_id,
+		String(current_beat.get("focus_label", "")),
+		0,
+		1.0
+	)
+	var secondary_id := String(current_beat.get("focus_secondary", ""))
+	if not secondary_id.is_empty() and records_by_id.has(secondary_id):
+		_draw_teaser_subject(
+			secondary_id,
+			String(current_beat.get("focus_secondary_label", "")),
+			1,
+			0.88
+		)
+
+
+func _draw_teaser_subject(id: String, label: String, variant_index: int, alpha: float) -> void:
+	var record: Dictionary = records_by_id[id]
 	var duration := float(record.get("duration_sec", 0.0))
-	var teaser_time := duration * lerpf(0.18, 0.84, smoothstep(0.0, 1.0, _beat_progress()))
+	var teaser_time := duration * lerpf(0.42, 0.88, smoothstep(0.0, 1.0, _beat_progress()))
 	var state := ReplayTrack.sample(record, teaser_time)
-	var full_points: PackedVector2Array = trajectories_by_id.get(focus_id, PackedVector2Array())
+	var full_points: PackedVector2Array = trajectories_by_id.get(id, PackedVector2Array())
 	var reveal_count := mini(full_points.size(), maxi(2, int(full_points.size() * 0.82)))
 	var teaser_points := _map_points(full_points.slice(0, reveal_count))
 	if teaser_points.size() >= 2:
-		draw_polyline(teaser_points, Color(colors_by_id[focus_id], 0.28), 4.0, true)
+		draw_polyline(teaser_points, Color(colors_by_id[id], 0.34 * alpha), 4.0, true)
 	_draw_bird(
 		state["bird_position_px"],
 		float(state["bird_rotation"]),
-		colors_by_id[focus_id],
-		1.0,
+		colors_by_id[id],
+		alpha,
 		false,
 		state["bird_velocity_px_s"],
-		0
+		variant_index
 	)
 	var bird_position := _map_point(state["bird_position_px"])
-	var bob := sin(video_time_sec * 3.5) * 7.0
-	draw_string(
-		VideoTypography.personality(),
-		bird_position + Vector2(48, -58 + bob),
-		"?",
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		58,
-		episode["theme"]["colors"]["accent"]
-	)
+	if not label.is_empty():
+		var label_offset := Vector2(48, -42) if variant_index == 0 else Vector2(42, 52)
+		draw_string(
+			VideoTypography.medium(),
+			bird_position + label_offset,
+			label,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			24,
+			Color(colors_by_id[id], alpha)
+		)
 
 
 func _draw_event_effects() -> void:

@@ -66,11 +66,14 @@ func run(t) -> void:
 			VideoTypography.size_for(role) == EXPECTED_ROLE_SIZES[role],
 			"typography role has canonical size: %s" % role
 		)
-	for role in [VideoTypography.FORMULA_MAIN, VideoTypography.FORMULA_STEP]:
-		t.check(
-			VideoTypography.theme().get_font("font", role) == VideoTypography.data(),
-			"formula role uses Sarasa Mono SC: %s" % role
-		)
+	t.check(
+		VideoTypography.theme().get_font("font", VideoTypography.FORMULA_MAIN) == VideoTypography.data(),
+		"main equation uses Sarasa Mono SC"
+	)
+	t.check(
+		VideoTypography.theme().get_font("font", VideoTypography.FORMULA_STEP) == VideoTypography.medium(),
+		"formula concept uses Sarasa Gothic SC"
+	)
 
 	var hud := EpisodeHud.new()
 	hud._build_ui()
@@ -103,7 +106,14 @@ func run(t) -> void:
 	formula.configure(episode_two["story"]["explanation"], episode_two["theme"]["colors"])
 	formula.set_step(2)
 	t.check(formula.step_index == 2, "formula renderer selects an explicit derivation step")
-	t.check(formula.formula_label.text == "E(2x) = 4E(x)", "formula renderer displays canonical equation text")
+	t.check(formula.concept_label.text == "同高理想模型：储能 ×4，射程 ×4", "formula renderer leads with a specific model claim")
+	t.check(formula.formula_label.text == "E × 4 → v² × 4 → R × 4", "formula renderer keeps an accessible text fallback")
+	if FileAccess.file_exists(episode_two["story"]["explanation"]["steps"][2]["formula_asset"]):
+		t.check(formula.formula_texture.texture != null, "formula renderer loads the generated Typst SVG")
+		t.check(formula.formula_texture.visible, "Typst formula is the visible production layer")
+		t.check(not formula.formula_label.visible, "text fallback stays hidden when SVG is available")
+	else:
+		t.check(formula.formula_label.visible, "text fallback works before formula assets are built")
 	t.check(
 		formula.formula_label.theme_type_variation == VideoTypography.FORMULA_MAIN,
 		"main equation uses the dedicated formula role"
@@ -117,6 +127,19 @@ func run(t) -> void:
 	t.check(formula_size.x <= formula.formula_label.size.x, "longest production equation fits formula panel")
 	formula.free()
 	for episode in [episode_one, episode_two]:
+		var identity_text := "%s  ·  S%02dE%02d  /  %s" % [
+			episode["series"],
+			episode["season"],
+			episode["episode"],
+			episode["story"]["identity_label"],
+		]
+		var identity_size := VideoTypography.medium().get_string_size(
+			identity_text,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			VideoTypography.size_for(VideoTypography.TITLE)
+		)
+		t.check(identity_size.x <= 970.0, "single-line identity fits: %s" % episode["id"])
 		var question_size := hero_font.get_multiline_string_size(
 			episode["question"],
 			HORIZONTAL_ALIGNMENT_CENTER,
@@ -127,6 +150,36 @@ func run(t) -> void:
 			question_size.y <= EpisodeLayout.QUESTION_RECT.size.y,
 			"hero question fits its reserved region: %s" % episode["id"]
 		)
+		for beat in episode["beats"]:
+			if beat["phase"] != "QUESTION" or String(beat["headline"]).is_empty():
+				continue
+			var headline_size := hero_font.get_multiline_string_size(
+				beat["headline"],
+				HORIZONTAL_ALIGNMENT_CENTER,
+				EpisodeLayout.QUESTION_RECT.size.x,
+				VideoTypography.size_for(VideoTypography.HERO)
+			)
+			t.check(
+				headline_size.x <= EpisodeLayout.QUESTION_RECT.size.x
+				and headline_size.y <= EpisodeLayout.QUESTION_RECT.size.y,
+				"opening headline fits: %s/%s" % [episode["id"], beat["id"]]
+			)
+		for step in episode["story"]["explanation"]["steps"]:
+			t.check(not String(step["typst"]).is_empty(), "Typst source exists: %s" % episode["id"])
+			t.check(
+				String(step["formula_asset"]).ends_with(".svg"),
+				"formula build path exists in schema: %s" % step["formula_asset"]
+			)
+			var equation_size := VideoTypography.data().get_string_size(
+				step["equation"],
+				HORIZONTAL_ALIGNMENT_CENTER,
+				-1,
+				VideoTypography.size_for(VideoTypography.FORMULA_MAIN)
+			)
+			t.check(
+				equation_size.x <= 900.0,
+				"production equation fits: %s/%s" % [episode["id"], step["equation"]]
+			)
 	var colors: Dictionary = episode_one["theme"]["colors"]
 	t.check(episode_one["theme_path"] == episode_two["theme_path"], "episodes share one theme")
 	t.check(
