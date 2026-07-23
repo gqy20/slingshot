@@ -5,6 +5,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 . "$SCRIPT_DIR/render_paths.sh"
 JOBS="${RENDER_JOBS:-1}"
+MAX_TOTAL_WORKERS="${RENDER_MAX_WORKERS:-2}"
+REQUESTED_EPISODE_WORKERS="${EPISODE_RENDER_WORKERS:-2}"
+DRY_RUN="${RENDER_DRY_RUN:-0}"
 OUTPUT_DIR="$RENDER_FINAL_DIR"
 EPISODES=()
 
@@ -44,6 +47,27 @@ if [[ ! "$JOBS" =~ ^[1-9][0-9]*$ ]]; then
   printf 'batch-render: jobs must be a positive integer\n' >&2
   exit 2
 fi
+if [[ ! "$MAX_TOTAL_WORKERS" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'batch-render: RENDER_MAX_WORKERS must be a positive integer\n' >&2
+  exit 2
+fi
+if [[ ! "$REQUESTED_EPISODE_WORKERS" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'batch-render: EPISODE_RENDER_WORKERS must be a positive integer\n' >&2
+  exit 2
+fi
+if [[ "$DRY_RUN" != 0 && "$DRY_RUN" != 1 ]]; then
+  printf 'batch-render: RENDER_DRY_RUN must be 0 or 1\n' >&2
+  exit 2
+fi
+if [[ "$JOBS" -gt "$MAX_TOTAL_WORKERS" ]]; then
+  printf 'batch-render: jobs=%s exceeds total worker limit=%s\n' \
+    "$JOBS" "$MAX_TOTAL_WORKERS" >&2
+  exit 2
+fi
+workers_per_episode=$((MAX_TOTAL_WORKERS / JOBS))
+if [[ "$workers_per_episode" -gt "$REQUESTED_EPISODE_WORKERS" ]]; then
+  workers_per_episode="$REQUESTED_EPISODE_WORKERS"
+fi
 
 if [[ "${#EPISODES[@]}" -eq 0 ]]; then
   while IFS= read -r -d '' path; do
@@ -68,11 +92,17 @@ for episode in "${EPISODES[@]}"; do
   fi
 done
 
-printf 'batch-render: jobs=%s episodes=%s output=%s\n' \
-  "$JOBS" "${#EPISODES[@]}" "$OUTPUT_DIR_ABS"
+printf 'batch-render: jobs=%s episode-workers=%s total-worker-limit=%s episodes=%s output=%s\n' \
+  "$JOBS" "$workers_per_episode" "$MAX_TOTAL_WORKERS" \
+  "${#EPISODES[@]}" "$OUTPUT_DIR_ABS"
+if [[ "$DRY_RUN" == 1 ]]; then
+  printf 'batch-render: dry-run; no render processes started\n'
+  exit 0
+fi
 
 export SLINGSHOT_RENDER_SCRIPT="$SCRIPT_DIR/render_episode.sh"
 export SLINGSHOT_OUTPUT_DIR="$OUTPUT_DIR_ABS"
+export EPISODE_RENDER_WORKERS="$workers_per_episode"
 printf '%s\0' "${EPISODES[@]}" |
   xargs -0 -P "$JOBS" -n 1 bash -c '
     set -euo pipefail

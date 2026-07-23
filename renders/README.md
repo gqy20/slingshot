@@ -9,7 +9,11 @@ renders/
 ├── contact-sheets/<episode>/      seven-beat and other tiled reviews
 ├── previews/                      non-final visual experiments
 ├── smoke/                         framework and smoke-test artifacts
-└── narration/<episode>/           speech, subtitles, loudness, provenance
+├── narration/<episode>/           speech, subtitles, loudness, provenance
+└── archive/
+    ├── releases/<version>/         recoverable superseded episode bundles
+    ├── validation/                 equivalence and pipeline evidence
+    └── legacy/                     historical outputs without full provenance
 ```
 
 Naming rules:

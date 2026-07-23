@@ -17,6 +17,8 @@ var sidecar_path := ""
 var canvas: SlingshotEpisodeCanvas
 var hud: SlingshotEpisodeHud
 var frame_index := 0
+var frame_end_exclusive := 0
+var total_frame_count := 0
 var running := false
 var last_phase := ""
 
@@ -25,7 +27,9 @@ func start(
 	normalized_episode: Dictionary,
 	run_bundle: Dictionary,
 	output_sidecar_path: String,
-	subtitle_path: String = ""
+	subtitle_path: String = "",
+	frame_start: int = 0,
+	frame_end: int = -1
 ) -> void:
 	episode = normalized_episode
 	bundle = run_bundle
@@ -61,11 +65,30 @@ func start(
 		return
 	hud.configure(episode, analysis, subtitle_result["cues"])
 
-	frame_index = 0
+	var fps := float(episode["video"]["fps"])
+	total_frame_count = roundi(float(episode["duration_sec"]) * fps)
+	var frame_range := resolve_frame_range(total_frame_count, frame_start, frame_end)
+	frame_index = frame_range.x
+	frame_end_exclusive = frame_range.y
+	if frame_index >= frame_end_exclusive:
+		push_error(
+			"invalid playback frame range [%d, %d) for %d frames"
+			% [frame_index, frame_end_exclusive, total_frame_count]
+		)
+		get_tree().quit(3)
+		return
+	last_phase = ""
 	running = true
 	print(
-		"[episode:playback] episode=%s duration=%.3f variants=%d"
-		% [episode["id"], episode["duration_sec"], bundle["records"].size()]
+		"[episode:playback] episode=%s duration=%.3f variants=%d frames=[%d,%d)/%d"
+		% [
+			episode["id"],
+			episode["duration_sec"],
+			bundle["records"].size(),
+			frame_index,
+			frame_end_exclusive,
+			total_frame_count,
+		]
 	)
 
 
@@ -88,7 +111,7 @@ func _process(_delta: float) -> void:
 	hud.set_elapsed(video_time, times)
 
 	frame_index += 1
-	if video_time + 1.0 / fps >= float(episode["duration_sec"]):
+	if frame_index >= frame_end_exclusive:
 		_finish()
 
 
@@ -113,7 +136,7 @@ func _finish() -> void:
 		"title": episode["title"],
 		"question": episode["question"],
 		"duration_sec": episode["duration_sec"],
-		"frame_count": frame_index,
+		"frame_count": total_frame_count,
 		"video": episode["video"],
 		"analysis": analysis,
 		"narration": episode.get("narration", {}),
@@ -132,14 +155,26 @@ func _finish() -> void:
 			"deterministic_seeded": true,
 		},
 	}
-	var result := RunRecord.write_json(sidecar_path, sidecar)
-	if result != OK:
-		push_error("failed to write episode sidecar: %s" % error_string(result))
-		get_tree().quit(3)
-		return
-	print("[episode:playback] sidecar=%s" % sidecar_path)
+	if not sidecar_path.is_empty():
+		var result := RunRecord.write_json(sidecar_path, sidecar)
+		if result != OK:
+			push_error("failed to write episode sidecar: %s" % error_string(result))
+			get_tree().quit(3)
+			return
+		print("[episode:playback] sidecar=%s" % sidecar_path)
 	get_tree().quit(0)
 
 
 func subtitle_cues_count() -> int:
 	return hud.subtitle_cues.size() if is_instance_valid(hud) else 0
+
+
+static func resolve_frame_range(total_frames: int, start_frame: int, end_frame: int) -> Vector2i:
+	var bounded_total := maxi(0, total_frames)
+	var bounded_start := clampi(start_frame, 0, bounded_total)
+	var bounded_end := (
+		bounded_total
+		if end_frame < 0
+		else clampi(end_frame, 0, bounded_total)
+	)
+	return Vector2i(bounded_start, bounded_end)

@@ -47,16 +47,16 @@ scripts/render_episode.sh 创建独立临时目录：
 
 1. 使用无界面 Godot 顺序运行所有 Variant。
 2. 写入带引擎版本的 RunRecord。
-3. 重新启动 Godot，以 Movie Maker 模式回放记录。
+3. 默认将完整帧区间拆成两个绝对时间分片，启动两个 Godot Movie Maker Worker 并行回放同一份记录。
 4. 忽略排版空白后，逐字符验证讲稿正文与 mmx SRT 正文完全一致。
 5. 对配音做两遍响度分析，生成 `-16 ±1 LUFS`、`≤ -1.5 dBTP`、48 kHz 单声道 PCM24 母版。
 6. 读取同一份 SRT，在 3840×2160 根视口中，将 1920×1080 设计坐标按 2 倍直接绘制；不存在 1080p 视频放大步骤。
 7. 将物理轨迹映射到分阶段 Plot Area，并逐帧审计小鸟、速度箭头与文字保留区的相交情况。
-8. 使用 FFmpeg 编码 H.264，并将标准化母版编码为 AAC 后混入。
+8. 校验分片帧数及相邻边界，按全局帧号合并 PNG，再使用一次 FFmpeg 编码 H.264，并将标准化母版编码为 AAC 后混入。
 9. 复测 AAC 交付音轨，要求 `-16 ±1 LUFS`、`≤ -1.0 dBTP`、48 kHz 单声道。
 10. 原子发布 MP4、分析 sidecar 与 provenance manifest。
 
-视频 Manifest 记录 Episode、RunRecord、MP4、原始配音、标准化母版和字幕的 SHA-256，以及 Godot、渲染器、音视频流、实测 LUFS/真峰值和正文一致性结论。解说 Manifest 另外记录讲稿、mmx 模型、音色和真实音频时长。修改音频时可仅重新混音，不必重渲染 4K 画面。
+视频 Manifest 记录 Episode、RunRecord、MP4、原始配音、标准化母版和字幕的 SHA-256，以及 Godot、渲染器、分片 Worker 数、音视频流、实测 LUFS/真峰值和正文一致性结论。解说 Manifest 另外记录讲稿、mmx 模型、音色和真实音频时长。修改音频时可仅重新混音，不必重渲染 4K 画面。
 
 ## 扩展边界
 

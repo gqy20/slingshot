@@ -3,6 +3,7 @@ extends RefCounted
 const EpisodeLoader = preload("res://src/core/episode_loader.gd")
 const ReplayTrack = preload("res://src/playback/replay_track.gd")
 const EpisodeDirector = preload("res://src/video/episode_director.gd")
+const EpisodePlayer = preload("res://src/video/episode_player.gd")
 const ResultAnalyzer = preload("res://src/core/result_analyzer.gd")
 
 
@@ -65,6 +66,18 @@ func run(t) -> void:
 	t.check(EpisodeDirector.phase_for_time(episode, 0.9) == "COMPARE", "compare phase")
 	var times := EpisodeDirector.simulation_times(episode, bundle, 0.5)
 	t.check(times.has("angle-30") and times.has("angle-60"), "director maps every variant")
+
+	var full_range := EpisodePlayer.resolve_frame_range(2580, 0, -1)
+	t.check(full_range == Vector2i(0, 2580), "playback resolves the complete frame range")
+	var first_shard := EpisodePlayer.resolve_frame_range(2580, 0, 1290)
+	var second_shard := EpisodePlayer.resolve_frame_range(2580, 1290, 2580)
+	t.check(first_shard == Vector2i(0, 1290), "first render shard keeps its boundary")
+	t.check(second_shard == Vector2i(1290, 2580), "second render shard keeps its boundary")
+	t.check(first_shard.y == second_shard.x, "render shards meet without gaps or overlap")
+	t.check(
+		EpisodePlayer.resolve_frame_range(100, -5, 120) == Vector2i(0, 100),
+		"playback clamps shard boundaries to the episode"
+	)
 
 	episode["story"]["secondary_metric"] = "range_m"
 	episode["story"]["secondary_label"] = "secondary"

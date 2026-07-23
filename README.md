@@ -59,7 +59,7 @@ scripts/render_episode.sh content/episodes/smoke.json renders/smoke/episode-smok
 - JSON：比较指标、事件和各 Variant 的实验结果；
 - manifest：配置、物理记录和视频的 SHA-256 及渲染环境。
 
-脚本先顺序模拟所有 Variant，再启动独立回放进程录制视频。导演节奏不会改变已经产生的物理结果。
+脚本先顺序模拟所有 Variant，再把完整帧区间默认拆成两个独立回放 Worker。两个 Worker 读取同一份 RunRecord，按绝对视频时间绘制各自区间；PNG 合并后只进行一次编码。导演节奏和分片数量都不会改变已经产生的物理结果。
 
 当前正片：
 
@@ -86,12 +86,14 @@ scripts/remux_narration.sh content/episodes/s01e01-angle-sweep.json
 - S01E01：相同弹簧能量下比较 15°、30°、45°、60°、75° 的首次落地距离；
 - S01E02：保持 45°，比较 0.3 m、0.6 m、0.9 m、1.2 m 拉伸距离。
 
-原生 4K 批量渲染默认使用 1 路。Ryzen 5 4600U 实测每路峰值约 2.5 GB；内存至少有 8 GB 可用且设备空闲时可显式使用 2 路：
+单集 4K 渲染默认使用两个内部分片。批量入口默认串行处理 Episode，并把总 Godot Worker 数限制为 2；显式并行两集时，会自动将每集调整为一个 Worker，避免产生四个 4K 进程：
 
 ```bash
 scripts/render_batch.sh
 scripts/render_batch.sh --jobs 2 content/episodes/s01e01-angle-sweep.json content/episodes/s01e02-stretch-sweep.json
 ```
+
+可通过 `EPISODE_RENDER_WORKERS` 调整单集期望分片数，通过 `RENDER_MAX_WORKERS` 设置整批任务的并发上限。少于 300 帧的短视频默认不分片；测试时可用 `EPISODE_SHARD_MIN_FRAMES` 调整阈值。
 
 生成 Question、Explain、Setup、Launch、Mid-flight、Landing、Compare 七节拍审查表：
 

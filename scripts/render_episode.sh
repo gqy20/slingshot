@@ -34,6 +34,28 @@ VIDEO_DURATION="$(jq -r '
   + .story.flight_sec
   + .story.compare_sec
 ' "$EPISODE_ABS")"
+TOTAL_FRAMES="$(awk -v duration="$VIDEO_DURATION" -v fps="$FPS" \
+  'BEGIN { printf "%d", duration * fps + 0.5 }')"
+RENDER_WORKERS="${EPISODE_RENDER_WORKERS:-2}"
+MIN_FRAMES_PER_SHARD="${EPISODE_SHARD_MIN_FRAMES:-300}"
+if [[ ! "$RENDER_WORKERS" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'episode-render: EPISODE_RENDER_WORKERS must be a positive integer\n' >&2
+  exit 2
+fi
+if [[ ! "$MIN_FRAMES_PER_SHARD" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'episode-render: EPISODE_SHARD_MIN_FRAMES must be a positive integer\n' >&2
+  exit 2
+fi
+max_workers_by_length=$((TOTAL_FRAMES / MIN_FRAMES_PER_SHARD))
+if [[ "$max_workers_by_length" -lt 1 ]]; then
+  max_workers_by_length=1
+fi
+if [[ "$RENDER_WORKERS" -gt "$max_workers_by_length" ]]; then
+  RENDER_WORKERS="$max_workers_by_length"
+fi
+if [[ "$RENDER_WORKERS" -gt "$TOTAL_FRAMES" ]]; then
+  RENDER_WORKERS="$TOTAL_FRAMES"
+fi
 if [[ "$FPS" != 30 && "$FPS" != 60 ]]; then
   printf 'episode-render: video fps must be 30 or 60, got %s\n' "$FPS" >&2
   exit 2
@@ -87,13 +109,13 @@ fi
 
 RENDER_TMP="$(mktemp -d /tmp/slingshot-episode.XXXXXX)"
 FRAME_DIR="$RENDER_TMP/frames"
+SHARD_DIR="$RENDER_TMP/shards"
 SIMULATION_LOG="$RENDER_TMP/simulation.log"
-RENDER_LOG="$RENDER_TMP/render.log"
 RECORD_TMP="$RENDER_TMP/run-record.json"
 MP4_TMP="$RENDER_TMP/output.mp4"
 JSON_TMP="$RENDER_TMP/output.json"
 MANIFEST_TMP="$RENDER_TMP/manifest.txt"
-mkdir -p "$FRAME_DIR"
+mkdir -p "$FRAME_DIR" "$SHARD_DIR"
 
 render_succeeded=0
 cleanup() {
@@ -115,30 +137,86 @@ if grep -Eq 'SCRIPT ERROR|^ERROR:' "$SIMULATION_LOG" || [[ ! -s "$RECORD_TMP" ]]
   exit 1
 fi
 
-printf 'episode-render: render=%s\n' "$OUTPUT_MP4"
+printf 'episode-render: render=%s workers=%s frames=%s\n' \
+  "$OUTPUT_MP4" "$RENDER_WORKERS" "$TOTAL_FRAMES"
 PLAYBACK_ARGS=(
   --episode "$EPISODE_ABS"
   --play-record "$RECORD_TMP"
-  --sidecar "$JSON_TMP"
 )
 if [[ "$HAS_NARRATION" == true ]]; then
   PLAYBACK_ARGS+=(--subtitles "$SUBTITLE_SRT")
 fi
 XVFB_SCREEN="-screen 0 ${WIDTH}x${HEIGHT}x24"
-if ! xvfb-run -a -s "$XVFB_SCREEN" \
-  timeout "${RENDER_TIMEOUT_SEC:-3600}" \
-  "$GODOT_BIN" --path "$PROJECT_ROOT" \
-  --rendering-method gl_compatibility \
-  --resolution "${WIDTH}x${HEIGHT}" \
-  --write-movie "$FRAME_DIR/frame.png" \
-  --fixed-fps "$FPS" --disable-vsync \
-  res://episode.tscn -- "${PLAYBACK_ARGS[@]}" \
-  >"$RENDER_LOG" 2>&1; then
-  sed -n '1,260p' "$RENDER_LOG" >&2
+render_pids=()
+for ((shard_index = 0; shard_index < RENDER_WORKERS; shard_index += 1)); do
+  frame_start=$((TOTAL_FRAMES * shard_index / RENDER_WORKERS))
+  frame_end=$((TOTAL_FRAMES * (shard_index + 1) / RENDER_WORKERS))
+  shard_frames="$SHARD_DIR/shard-$(printf '%02d' "$shard_index")"
+  shard_log="$SHARD_DIR/shard-$(printf '%02d' "$shard_index").log"
+  mkdir -p "$shard_frames"
+  shard_args=(
+    "${PLAYBACK_ARGS[@]}"
+    --frame-start "$frame_start"
+    --frame-end "$frame_end"
+  )
+  if [[ "$shard_index" -eq 0 ]]; then
+    shard_args+=(--sidecar "$JSON_TMP")
+  fi
+  printf 'episode-render: shard=%s frames=[%s,%s)\n' \
+    "$shard_index" "$frame_start" "$frame_end"
+  (
+    if ! xvfb-run -a -s "$XVFB_SCREEN" \
+      timeout "${RENDER_TIMEOUT_SEC:-3600}" \
+      "$GODOT_BIN" --path "$PROJECT_ROOT" \
+      --rendering-method gl_compatibility \
+      --resolution "${WIDTH}x${HEIGHT}" \
+      --write-movie "$shard_frames/frame.png" \
+      --fixed-fps "$FPS" --disable-vsync \
+      res://episode.tscn -- "${shard_args[@]}" \
+      >"$shard_log" 2>&1; then
+      sed -n '1,260p' "$shard_log" >&2
+      exit 1
+    fi
+    if grep -Eq 'SCRIPT ERROR|^ERROR:' "$shard_log"; then
+      sed -n '1,260p' "$shard_log" >&2
+      exit 1
+    fi
+  ) &
+  render_pids+=("$!")
+done
+
+render_failed=0
+for render_pid in "${render_pids[@]}"; do
+  if ! wait "$render_pid"; then
+    render_failed=1
+  fi
+done
+if [[ "$render_failed" -ne 0 ]]; then
+  printf 'episode-render: one or more render shards failed\n' >&2
   exit 1
 fi
-if grep -Eq 'SCRIPT ERROR|^ERROR:' "$RENDER_LOG"; then
-  sed -n '1,260p' "$RENDER_LOG" >&2
+
+merged_frames=0
+for ((shard_index = 0; shard_index < RENDER_WORKERS; shard_index += 1)); do
+  frame_start=$((TOTAL_FRAMES * shard_index / RENDER_WORKERS))
+  frame_end=$((TOTAL_FRAMES * (shard_index + 1) / RENDER_WORKERS))
+  expected_frames=$((frame_end - frame_start))
+  shard_frames="$SHARD_DIR/shard-$(printf '%02d' "$shard_index")"
+  actual_frames="$(find "$shard_frames" -maxdepth 1 -name 'frame*.png' -printf '.' | wc -c)"
+  if [[ "$actual_frames" -ne "$expected_frames" ]]; then
+    printf 'episode-render: shard %s produced %s frames, expected %s\n' \
+      "$shard_index" "$actual_frames" "$expected_frames" >&2
+    exit 1
+  fi
+  while IFS= read -r local_frame; do
+    printf -v merged_name 'frame%08d.png' "$merged_frames"
+    mv "$local_frame" "$FRAME_DIR/$merged_name"
+    merged_frames=$((merged_frames + 1))
+  done < <(find "$shard_frames" -maxdepth 1 -name 'frame*.png' -print | sort)
+done
+if [[ "$merged_frames" -ne "$TOTAL_FRAMES" ]]; then
+  printf 'episode-render: merged %s frames, expected %s\n' \
+    "$merged_frames" "$TOTAL_FRAMES" >&2
   exit 1
 fi
 if ! compgen -G "$FRAME_DIR/frame*.png" >/dev/null; then
@@ -218,6 +296,8 @@ godot_version="$("$GODOT_BIN" --version | head -1)"
 	fi
   printf 'engine=%s\n' "$godot_version"
   printf 'renderer=gl_compatibility\n'
+	printf 'render_workers=%s\n' "$RENDER_WORKERS"
+	printf 'render_sharding=absolute_frame_ranges\n'
   printf 'deterministic_seeded=true\n'
 } >"$MANIFEST_TMP"
 
