@@ -46,7 +46,7 @@ preview_plan="$(
     "$PROJECT_ROOT/content/episodes/s01e02-stretch-sweep.json"
 )"
 case "$preview_plan" in
-  *"output=$RENDER_PREVIEWS_DIR suffix=--1080p-preview"*) ;;
+  *"output=$RENDER_PREVIEWS_DIR suffix=<none>"*) ;;
   *) printf 'unexpected preview output plan: %s\n' "$preview_plan" >&2; exit 1 ;;
 esac
 

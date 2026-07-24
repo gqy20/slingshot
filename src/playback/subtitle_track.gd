@@ -52,6 +52,57 @@ static func text_at(cues: Array, video_time_sec: float) -> String:
 	return ""
 
 
+static func display_text_at(
+	cues: Array,
+	video_time_sec: float,
+	max_characters: int = 36
+) -> String:
+	for cue_value in cues:
+		if not cue_value is Dictionary:
+			continue
+		var cue: Dictionary = cue_value
+		var start := float(cue["start_sec"])
+		var finish := float(cue["end_sec"])
+		if video_time_sec < start or video_time_sec >= finish:
+			continue
+		var phrases := _display_phrases(String(cue["text"]), max_characters)
+		if phrases.size() <= 1:
+			return String(cue["text"])
+		var total_characters := 0
+		for phrase in phrases:
+			total_characters += String(phrase).length()
+		var cue_progress := clampf(
+			(video_time_sec - start) / maxf(0.001, finish - start),
+			0.0,
+			0.9999
+		)
+		var target_character := cue_progress * total_characters
+		var cursor := 0
+		for phrase in phrases:
+			cursor += String(phrase).length()
+			if target_character < cursor:
+				return String(phrase)
+		return String(phrases[-1])
+	return ""
+
+
+static func _display_phrases(text: String, max_characters: int) -> PackedStringArray:
+	var result := PackedStringArray()
+	var current := ""
+	var normalized := text.replace("\n", "").strip_edges()
+	var limit := maxi(8, max_characters)
+	var hard_limit := limit + 10
+	for character in normalized:
+		current += character
+		var punctuation_break := character in "，。；！？："
+		if (punctuation_break and current.length() >= 6) or current.length() >= hard_limit:
+			result.append(current.strip_edges())
+			current = ""
+	if not current.strip_edges().is_empty():
+		result.append(current.strip_edges())
+	return result
+
+
 static func validate_layout(
 	cues: Array,
 	max_characters: int = 88,

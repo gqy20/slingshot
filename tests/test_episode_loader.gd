@@ -22,9 +22,9 @@ func run(t) -> void:
 		"variant color applied to preset"
 	)
 	var colors: Dictionary = episode["theme"]["colors"]
-	t.check(colors["background"] == Color("#0E1116"), "editorial background token loads")
-	t.check(colors["surface_elevated"] == Color("#1D2430"), "elevated surface token loads")
-	t.check(colors["accent"] == Color("#F0B35A"), "brand accent token loads")
+	t.check(colors["background"] == Color("#050608"), "minimal background token loads")
+	t.check(colors["surface_elevated"] == Color("#0B0D11"), "restrained surface token loads")
+	t.check(colors["accent"] == Color("#FF8A3D"), "single accent token loads")
 
 	var raw: Variant = JSON.parse_string(
 		FileAccess.get_file_as_string("res://content/episodes/smoke.json")
@@ -64,6 +64,13 @@ func run(t) -> void:
 	missing_intent["beats"][0].erase("intent")
 	t.check(not EpisodeLoader.validate_dict(missing_intent)["ok"], "beat requires one explicit intent")
 
+	var missing_camera_reason: Dictionary = raw.duplicate(true)
+	missing_camera_reason["beats"][1].erase("camera_reason")
+	t.check(
+		not EpisodeLoader.validate_dict(missing_camera_reason)["ok"],
+		"every framing decision requires an explicit reason"
+	)
+
 	var immersive_results: Dictionary = raw.duplicate(true)
 	immersive_results["beats"][0]["layers"].append("results")
 	t.check(
@@ -89,6 +96,17 @@ func run(t) -> void:
 		if production["ok"]:
 			var story: Dictionary = production["episode"]["story"]
 			var explanation: Dictionary = story["explanation"]
+			var counterexample: Dictionary = production["episode"]["beats"][12]
+			for beat_value in production["episode"]["beats"]:
+				var beat: Dictionary = beat_value
+				t.check(
+					not String(beat["camera_reason"]).is_empty(),
+					"production beat explains its camera action: %s" % beat["id"]
+				)
+			t.check(
+				float(counterexample["subtitle_delay"]) > 0.0,
+				"counterexample waits until its narration matches the visual focus"
+			)
 			t.check_close(
 				production["episode"]["duration_sec"],
 				120.0,

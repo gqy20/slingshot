@@ -5,25 +5,38 @@ const EpisodeHud = preload("res://src/video/episode_hud.gd")
 const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 const VideoTypography = preload("res://src/video/video_typography.gd")
 const FormulaRenderer = preload("res://src/video/formula_renderer.gd")
+const VisualLanguage = preload("res://src/video/visual_language.gd")
 
 const EXPECTED_ROLE_SIZES := {
 	VideoTypography.HERO: 56,
 	VideoTypography.ACCENT: 40,
 	VideoTypography.DISPLAY: 48,
-	VideoTypography.TITLE: 28,
-	VideoTypography.SECTION: 26,
-	VideoTypography.BODY: 30,
-	VideoTypography.SUBTITLE: 30,
+	VideoTypography.TITLE: 18,
+	VideoTypography.SECTION: 24,
+	VideoTypography.BODY: 26,
+	VideoTypography.SUBTITLE: 26,
 	VideoTypography.DATA: 22,
 	VideoTypography.DATA_META: 16,
 	VideoTypography.META: 16,
-	VideoTypography.FORMULA_MAIN: 56,
-	VideoTypography.FORMULA_STEP: 36,
-	VideoTypography.FORMULA_META: 20,
+	VideoTypography.FORMULA_MAIN: 64,
+	VideoTypography.FORMULA_STEP: 30,
+	VideoTypography.FORMULA_META: 16,
 }
 
 
 func run(t) -> void:
+	t.check(
+		VisualLanguage.STROKE_PRIMARY > VisualLanguage.STROKE_SECONDARY
+		and VisualLanguage.STROKE_SECONDARY > VisualLanguage.STROKE_MEASURE
+		and VisualLanguage.STROKE_MEASURE > VisualLanguage.STROKE_CONTEXT,
+		"visual system has one ordered stroke hierarchy"
+	)
+	t.check(
+		VisualLanguage.ALPHA_PRIMARY > VisualLanguage.ALPHA_SECONDARY
+		and VisualLanguage.ALPHA_SECONDARY > VisualLanguage.ALPHA_MEASURE
+		and VisualLanguage.ALPHA_MEASURE > VisualLanguage.ALPHA_CONTEXT,
+		"visual system has one ordered emphasis hierarchy"
+	)
 	t.check(VideoTypography.theme() != null, "video typography theme loads")
 	t.check(
 		VideoTypography.regular().resource_path.ends_with("SarasaGothicSC-Regular.ttf"),

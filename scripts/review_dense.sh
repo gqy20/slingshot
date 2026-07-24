@@ -24,7 +24,7 @@ if [[ ! -f "$VIDEO_ABS" || "$VIDEO_ABS" != *.mp4 ]]; then
 fi
 
 stem="$(basename "${VIDEO_ABS%.mp4}")"
-subject="${stem%--1080p-preview}"
+subject="$stem"
 frames_root="${DENSE_REVIEW_FRAMES_DIR:-$RENDER_FRAMES_DIR}"
 sheets_root="${DENSE_REVIEW_SHEETS_DIR:-$RENDER_CONTACT_SHEETS_DIR}"
 output_dir="$frames_root/$subject/dense-2fps"
@@ -81,14 +81,15 @@ if [[ -z "$episode_json" && -f "$PROJECT_ROOT/content/episodes/$subject.json" ]]
 fi
 
 index_tsv="$review_tmp/index.tsv"
-printf 'filename\ttime_sec\tsource_frame\tbeat_id\tmode\tintent\tprimary_subject\n' >"$index_tsv"
+printf 'filename\ttime_sec\tsource_frame\tbeat_id\tmode\tcamera_action\tcamera_reason\tintent\tprimary_subject\n' >"$index_tsv"
 if [[ -n "$episode_json" ]]; then
-  jq -r '.beats[] | [.at, (.at + .duration), .id, .mode, .intent, .primary_subject] | @tsv' \
+  jq -r '.beats[] | [.at, (.at + .duration), .id, .mode, .camera_action, .camera_reason, .intent, .primary_subject] | @tsv' \
     "$episode_json" >"$review_tmp/beats.tsv"
 	awk -F '\t' 'BEGIN { OFS="\t"; beat_count = 0 }
 		NR == FNR {
 			start[beat_count] = $1; finish[beat_count] = $2; beat[beat_count] = $3;
-			mode[beat_count] = $4; intent[beat_count] = $5; subject[beat_count] = $6;
+			mode[beat_count] = $4; camera_action[beat_count] = $5;
+			camera_reason[beat_count] = $6; intent[beat_count] = $7; subject[beat_count] = $8;
 			beat_count += 1; next
 		}
 		{
@@ -96,7 +97,7 @@ if [[ -n "$episode_json" ]]; then
 			for (i = 0; i < beat_count; i += 1) {
         if ($2 >= start[i] && $2 < finish[i]) { selected = i; break }
       }
-      print $1, $2, $3, beat[selected], mode[selected], intent[selected], subject[selected]
+      print $1, $2, $3, beat[selected], mode[selected], camera_action[selected], camera_reason[selected], intent[selected], subject[selected]
 		}' "$review_tmp/beats.tsv" "$samples_tsv" >>"$index_tsv"
 	expected_beats="$(jq '.beats | length' "$episode_json")"
 	indexed_beats="$(awk -F '\t' 'NR > 1 { print $4 }' "$index_tsv" | sort -u | wc -l)"
@@ -106,7 +107,7 @@ if [[ -n "$episode_json" ]]; then
 		exit 1
 	fi
 else
-  awk -F '\t' 'BEGIN { OFS="\t" } { print $1, $2, $3, "", "", "", "" }' \
+  awk -F '\t' 'BEGIN { OFS="\t" } { print $1, $2, $3, "", "", "", "", "", "" }' \
     "$samples_tsv" >>"$index_tsv"
 fi
 

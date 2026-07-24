@@ -84,7 +84,6 @@ fi
 
 OUTPUT_SUFFIX=""
 if [[ "${EPISODE_RENDER_WIDTH:-}" == 1920 && "${EPISODE_RENDER_HEIGHT:-}" == 1080 ]]; then
-  OUTPUT_SUFFIX="--1080p-preview"
   if [[ -z "$OUTPUT_DIR" ]]; then
     OUTPUT_DIR="$RENDER_PREVIEWS_DIR"
   fi

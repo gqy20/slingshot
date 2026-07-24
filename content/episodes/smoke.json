@@ -34,11 +34,11 @@
     "conclusion": "框架验证完成"
   },
   "beats": [
-    {"id":"question","label":"提出问题","phase":"QUESTION","at":0.0,"duration":0.2,"shot":"hero","mode":"immersive","intent":"ask-question","primary_subject":"question","layers":["world","headline"]},
-    {"id":"explain","label":"建立直觉","phase":"EXPLAIN","at":0.2,"duration":0.1,"shot":"explain","mode":"measurement","intent":"explain-relation","primary_subject":"world","layers":["world","identity"]},
-    {"id":"setup","label":"控制变量","phase":"SETUP","at":0.3,"duration":0.2,"shot":"setup","mode":"measurement","intent":"show-controls","primary_subject":"variants","layers":["world","legend","grid","headline"]},
-    {"id":"flight","label":"同步实验","phase":"FLIGHT","at":0.5,"duration":0.3,"shot":"flight","mode":"immersive","intent":"observe-flight","primary_subject":"birds","layers":["world","subjects","trajectories"]},
-    {"id":"compare","label":"落点数据","phase":"COMPARE","at":0.8,"duration":0.3,"shot":"compare","mode":"measurement","intent":"compare-results","primary_subject":"ranking","layers":["world","results"]}
+    {"id":"question","label":"提出问题","phase":"QUESTION","at":0.0,"duration":0.2,"shot":"hero","mode":"immersive","camera_action":"establish","camera_reason":"establish the smoke-test stage","intent":"ask-question","primary_subject":"question","layers":["world","headline"]},
+    {"id":"explain","label":"建立直觉","phase":"EXPLAIN","at":0.2,"duration":0.1,"shot":"explain","mode":"measurement","camera_action":"reframe","camera_reason":"verify a deterministic explanatory reframe","intent":"explain-relation","primary_subject":"world","layers":["world","identity"]},
+    {"id":"setup","label":"控制变量","phase":"SETUP","at":0.3,"duration":0.2,"shot":"setup","mode":"measurement","camera_action":"reframe","camera_reason":"verify a deterministic setup reframe","intent":"show-controls","primary_subject":"variants","layers":["world","legend","grid","headline"]},
+    {"id":"flight","label":"同步实验","phase":"FLIGHT","at":0.5,"duration":0.3,"shot":"flight","mode":"immersive","camera_action":"reframe","camera_reason":"verify a deterministic flight reframe","intent":"observe-flight","primary_subject":"birds","layers":["world","subjects","trajectories"]},
+    {"id":"compare","label":"落点数据","phase":"COMPARE","at":0.8,"duration":0.3,"shot":"compare","mode":"measurement","camera_action":"reframe","camera_reason":"verify a deterministic comparison reframe","intent":"compare-results","primary_subject":"ranking","layers":["world","results"]}
   ],
   "variants": [
     {

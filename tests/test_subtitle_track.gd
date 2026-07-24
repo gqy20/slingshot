@@ -23,6 +23,28 @@ func run(t) -> void:
 		"subtitle track preserves multiline text"
 	)
 	t.check(SubtitleTrack.text_at(cues, 2.75).is_empty(), "subtitle gap stays empty")
+	var phrase_cues := [{
+		"start_sec": 0.0,
+		"end_sec": 4.0,
+		"text": "水平速度决定向前有多快，滞空时间决定在空中停留多久。",
+	}]
+	t.check(
+		SubtitleTrack.display_text_at(phrase_cues, 0.5).length() <= 28,
+		"display subtitles reveal one short phrase at a time"
+	)
+	var condition_cues := [{
+		"start_sec": 0.0,
+		"end_sec": 4.0,
+		"text": "结论成立的条件是：初速度相同、起点与落点等高、忽略空气阻力。",
+	}]
+	t.check(
+		SubtitleTrack.display_text_at(condition_cues, 0.2) == "结论成立的条件是：",
+		"display subtitles prefer semantic punctuation boundaries"
+	)
+	t.check(
+		SubtitleTrack.display_text_at(phrase_cues, 3.5) != SubtitleTrack.display_text_at(phrase_cues, 0.5),
+		"display subtitle phrase advances inside one exact source cue"
+	)
 	t.check(
 		not SubtitleTrack.parse_text("bad cue")["ok"],
 		"SRT parser rejects malformed cues"

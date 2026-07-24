@@ -5,6 +5,7 @@ const EpisodeCanvas = preload("res://src/video/episode_canvas.gd")
 const EpisodeHud = preload("res://src/video/episode_hud.gd")
 const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 const EpisodeDirector = preload("res://src/video/episode_director.gd")
+const ShotCamera = preload("res://src/video/shot_camera.gd")
 const ReplayTrack = preload("res://src/playback/replay_track.gd")
 const ResultAnalyzer = preload("res://src/core/result_analyzer.gd")
 const RunRecord = preload("res://src/core/run_record.gd")
@@ -157,6 +158,10 @@ func _finish() -> void:
 			"plot_safe_by_phase": true,
 			"subject_overlap_audited": true,
 			"shot_modes": ["immersive", "measurement"],
+			"camera_transitions": true,
+			"camera_transition_sec": ShotCamera.TRANSITION_DURATION_SEC,
+			"active_shots": ["launch", "follow", "landing", "ranking", "comparison", "takeaway"],
+			"trajectory_annotations_data_bound": true,
 			"one_intent_per_beat": true,
 			"layer_profiles_validated": true,
 			"subtitle_max_characters": 88,

@@ -24,7 +24,8 @@ Naming rules:
 - final bundle: `<episode>.mp4`, `<episode>.json`, `<episode>.manifest.txt`
 - frame: `<episode>--<milliseconds>ms--<label>.png`
 - contact sheet: `<episode>--<review-kind>.png` with a matching `.txt`
-- preview: `<subject>--<purpose>.mp4` with matching sidecars when present
+- preview bundle: `<episode>.mp4`, `<episode>.json`, `<episode>.manifest.txt`;
+  every review render replaces the same three files
 - dense sample: `<episode>--<milliseconds>ms--sample.png`
 
 Use `scripts/extract_frame.sh` instead of writing one-off frame names. The

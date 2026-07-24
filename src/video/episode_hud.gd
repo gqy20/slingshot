@@ -65,14 +65,14 @@ func configure(
 	identity_accent.color = colors["accent"]
 	phase_style.bg_color = Color(colors["surface_elevated"], 0.0)
 	phase_style.border_color = Color(colors["divider"], 0.0)
-	explain_style.bg_color = Color(colors["surface_elevated"], 0.97)
-	explain_style.border_color = colors["divider"]
-	result_style.bg_color = Color(colors["surface_elevated"], 0.98)
-	result_style.border_color = colors["divider"]
-	subtitle_style.bg_color = Color(colors["background"], 0.94)
-	subtitle_style.border_color = colors["divider"]
-	result_divider.color = colors["divider"]
-	tag_label.add_theme_color_override("font_color", colors["text"])
+	explain_style.bg_color = Color(colors["background"], 0.0)
+	explain_style.border_color = Color(colors["divider"], 0.0)
+	result_style.bg_color = Color(colors["background"], 0.0)
+	result_style.border_color = Color(colors["divider"], 0.0)
+	subtitle_style.bg_color = Color(colors["background"], 0.0)
+	subtitle_style.border_color = Color(colors["divider"], 0.0)
+	result_divider.color = Color(colors["divider"], 0.0)
+	tag_label.add_theme_color_override("font_color", colors["muted"])
 	title_label.add_theme_color_override("font_color", colors["text"])
 	phase_dot_label.add_theme_color_override("font_color", colors["accent"])
 	phase_label.add_theme_color_override("font_color", colors["muted"])
@@ -85,7 +85,7 @@ func configure(
 	conclusion_label.add_theme_color_override("font_color", colors["text"])
 	subtitle_label.add_theme_color_override("font_color", colors["text"])
 	subtitle_label.add_theme_color_override("font_outline_color", colors["background"])
-	subtitle_label.add_theme_constant_override("outline_size", 9)
+	subtitle_label.add_theme_constant_override("outline_size", 6)
 
 	var tag := "FRAMEWORK"
 	if int(episode["season"]) > 0:
@@ -166,8 +166,8 @@ func set_beat(beat: Dictionary) -> void:
 		chip.visible = "legend" in layers
 	var show_results := "results" in layers
 	result_panel.visible = show_results
-	result_title.visible = show_results
-	result_divider.visible = show_results
+	result_title.visible = false
+	result_divider.visible = false
 	clock_label.visible = "clock" in layers
 	if not show_results:
 		result_callout_label.visible = false
@@ -175,19 +175,17 @@ func set_beat(beat: Dictionary) -> void:
 		for index in range(result_rows.size()):
 			result_rows[index].visible = false
 			result_swatches[index].visible = false
-	var immersive := String(beat.get("mode", "measurement")) == "immersive"
 	var colors: Dictionary = episode["theme"]["colors"]
-	subtitle_style.bg_color = Color(colors["background"], 0.0 if immersive else 0.94)
-	subtitle_style.border_color = Color(colors["divider"], 0.0 if immersive else 1.0)
+	subtitle_style.bg_color = Color(colors["background"], 0.0)
+	subtitle_style.border_color = Color(colors["divider"], 0.0)
 
 
 func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
-	phase_panel.visible = (
-		identity_panel.visible
-		and
-		bool(current_beat.get("chapter", false))
-		and video_time_sec - float(current_beat.get("at", video_time_sec)) < 1.8
+	identity_panel.visible = (
+		"identity" in current_beat.get("layers", [])
+		and video_time_sec < 1.6
 	)
+	phase_panel.visible = false
 	if phase == "QUESTION":
 		_apply_label_intro(
 			question_label,
@@ -195,15 +193,27 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 		)
 	else:
 		_reset_label_motion(question_label)
-	var subtitle_text := SubtitleTrack.text_at(subtitle_cues, video_time_sec)
+	var subtitle_text := SubtitleTrack.display_text_at(subtitle_cues, video_time_sec)
 	subtitle_label.text = subtitle_text
 	var layers: Array = current_beat.get("layers", [])
-	subtitle_panel.visible = "subtitle" in layers and not subtitle_text.is_empty()
+	var subtitle_delay := float(current_beat.get("subtitle_delay", 0.0))
+	var subtitle_ready := video_time_sec >= float(current_beat.get("at", 0.0)) + subtitle_delay
+	subtitle_panel.visible = "subtitle" in layers and subtitle_ready and not subtitle_text.is_empty()
 	subtitle_label.visible = subtitle_panel.visible
 	if "formula" in layers:
 		var progress := EpisodeDirector.beat_progress(current_beat, video_time_sec)
 		var reveal_at := float(current_beat.get("formula_reveal", 0.42))
-		var formula_progress := smoothstep(reveal_at, minf(0.98, reveal_at + 0.16), progress)
+		var hold_formula_visible := (
+			String(current_beat.get("camera_action", "reframe")) == "hold"
+			and (
+				String(current_beat.get("overlay", "")).begins_with("stretch-")
+				or String(current_beat.get("overlay", "")) == "spring-energy"
+			)
+		)
+		var formula_progress := (
+			1.0 if hold_formula_visible
+			else smoothstep(reveal_at, minf(0.98, reveal_at + 0.16), progress)
+		)
 		formula_renderer.visible = formula_progress > 0.001
 		formula_renderer.modulate.a = formula_progress
 		explain_panel.visible = formula_progress > 0.001
@@ -217,18 +227,14 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 		clock_label.text = "飞行时间  %05.2f s" % simulation_time
 	elif phase == "COMPARE" and "results" in layers:
 		var compare_time := EpisodeLayout.phase_elapsed(episode, phase, video_time_sec)
-		var reveal_interval := float(
-			episode["story"].get("result_reveal_interval_sec", 0.3)
-		)
 		for index in range(result_rows.size()):
-			var revealed := compare_time >= 0.5 + index * reveal_interval
-			result_rows[index].visible = revealed
-			result_swatches[index].visible = revealed
+			result_rows[index].visible = false
+			result_swatches[index].visible = false
 		var conclusion_delay := float(
 			episode["story"].get("conclusion_delay_sec", 0.0)
 		)
 		if conclusion_delay <= 0.0:
-			conclusion_delay = 0.8 + result_rows.size() * reveal_interval
+			conclusion_delay = 0.8
 		var show_conclusion := compare_time >= conclusion_delay
 		result_callout_label.visible = show_conclusion
 		conclusion_label.visible = show_conclusion
@@ -240,16 +246,16 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 
 
 func _build_ui() -> void:
-	var identity_result := _panel(EpisodeLayout.IDENTITY_RECT, Color("#161B22", 0.0), 0, 0)
+	var identity_result := _panel(EpisodeLayout.IDENTITY_RECT, Color("#050608", 0.0), 0, 0)
 	identity_panel = identity_result["panel"]
 	identity_style = identity_result["style"]
 	add_child(identity_panel)
 	identity_accent = ColorRect.new()
-	identity_accent.position = Vector2(0, 10)
-	identity_accent.size = Vector2(3, 24)
+	identity_accent.position = Vector2(0, 8)
+	identity_accent.size = Vector2(2, 20)
 	identity_accent.color = Color("#F0B35A")
 	identity_panel.add_child(identity_accent)
-	tag_label = _label(Vector2(18, 0), Vector2(970, 44), VideoTypography.TITLE, Color("#F2F0E9"))
+	tag_label = _label(Vector2(16, 0), Vector2(790, 36), VideoTypography.TITLE, Color("#A9ADB4"))
 	tag_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	identity_panel.add_child(tag_label)
 	title_label = _label(Vector2.ZERO, Vector2.ZERO, VideoTypography.TITLE, Color("#F2F0E9"))
@@ -280,7 +286,7 @@ func _build_ui() -> void:
 	question_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(question_label)
 
-	var explain_result := _panel(EpisodeLayout.EXPLAIN_RECT, Color("#1D2430"), 22, 1)
+	var explain_result := _panel(EpisodeLayout.EXPLAIN_RECT, Color("#050608", 0.0), 0, 0)
 	explain_panel = explain_result["panel"]
 	explain_style = explain_result["style"]
 	add_child(explain_panel)
@@ -294,8 +300,8 @@ func _build_ui() -> void:
 	explain_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	explain_panel.add_child(explain_detail_label)
 	formula_renderer = FormulaRenderer.new()
-	formula_renderer.position = Vector2(40, 18)
-	formula_renderer.size = Vector2(980, 384)
+	formula_renderer.position = Vector2(60, 18)
+	formula_renderer.size = Vector2(980, 400)
 	formula_renderer.visible = false
 	explain_panel.add_child(formula_renderer)
 
@@ -309,20 +315,20 @@ func _build_ui() -> void:
 	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(clock_label)
 
-	var result_result := _panel(EpisodeLayout.RESULT_RECT, Color("#1D2430"), 22, 1)
+	var result_result := _panel(EpisodeLayout.RESULT_RECT, Color("#050608", 0.0), 0, 0)
 	result_panel = result_result["panel"]
 	result_style = result_result["style"]
 	add_child(result_panel)
-	result_title = _label(Vector2(38, 32), Vector2(664, 50), VideoTypography.SECTION, Color("#F2F0E9"))
+	result_title = _label(Vector2(350, 36), Vector2(900, 48), VideoTypography.SECTION, Color("#F2F0E9"))
 	result_panel.add_child(result_title)
 	result_divider = ColorRect.new()
-	result_divider.position = Vector2(38, 475)
-	result_divider.size = Vector2(664, 1)
+	result_divider.position = Vector2(350, 500)
+	result_divider.size = Vector2(900, 1)
 	result_divider.color = Color("#2D3642")
 	result_panel.add_child(result_divider)
 	result_callout_label = _label(
-		Vector2(46, 490),
-		Vector2(648, 58),
+		Vector2(350, 78),
+		Vector2(900, 70),
 		VideoTypography.ACCENT,
 		Color("#F2F0E9")
 	)
@@ -330,17 +336,17 @@ func _build_ui() -> void:
 	result_callout_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	result_callout_label.visible = false
 	result_panel.add_child(result_callout_label)
-	conclusion_label = _label(Vector2(46, 554), Vector2(648, 108), VideoTypography.BODY, Color("#F2F0E9"))
+	conclusion_label = _label(Vector2(250, 158), Vector2(1100, 82), VideoTypography.BODY, Color("#F2F0E9"))
 	conclusion_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	conclusion_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	conclusion_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	result_panel.add_child(conclusion_label)
 
-	var subtitle_result := _panel(EpisodeLayout.SUBTITLE_RECT, Color("#0E1116"), 18, 1)
+	var subtitle_result := _panel(EpisodeLayout.SUBTITLE_RECT, Color("#050608", 0.0), 0, 0)
 	subtitle_panel = subtitle_result["panel"]
 	subtitle_style = subtitle_result["style"]
 	add_child(subtitle_panel)
-	subtitle_label = _label(Vector2(34, 6), Vector2(1532, 88), VideoTypography.SUBTITLE, Color("#F2F0E9"))
+	subtitle_label = _label(Vector2(20, 2), Vector2(1500, 64), VideoTypography.SUBTITLE, Color("#F2F0E9"))
 	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -364,7 +370,7 @@ func _build_variant_chips() -> void:
 			EpisodeLayout.LEGEND_RECT.position + Vector2(index * cell_width + 5, 0),
 			Vector2(cell_width - 10, EpisodeLayout.LEGEND_RECT.size.y)
 		)
-		var chip_result := _panel(rect, Color(colors["surface"], 0.82), 12, 0)
+		var chip_result := _panel(rect, Color(colors["background"], 0.0), 0, 0)
 		var chip: Panel = chip_result["panel"]
 		var style: StyleBoxFlat = chip_result["style"]
 		add_child(chip)
@@ -461,7 +467,7 @@ func _apply_label_intro(label: Label, raw_progress: float) -> void:
 	var progress := clampf(raw_progress, 0.0, 1.0)
 	var eased := 1.0 - pow(1.0 - progress, 3.0)
 	label.pivot_offset = label.size * 0.5
-	label.scale = Vector2.ONE * lerpf(0.94, 1.0, eased)
+	label.scale = Vector2.ONE
 	label.modulate.a = eased
 
 

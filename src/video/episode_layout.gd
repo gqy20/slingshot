@@ -3,29 +3,30 @@ extends RefCounted
 
 const CANVAS_SIZE := Vector2(1920.0, 1080.0)
 const SOURCE_WORLD_RECT := Rect2(0.0, 90.0, 1920.0, 830.0)
-const IDENTITY_RECT := Rect2(40.0, 24.0, 1000.0, 44.0)
+const IDENTITY_RECT := Rect2(56.0, 38.0, 820.0, 36.0)
 const PHASE_RECT := Rect2(1590.0, 27.0, 280.0, 38.0)
-const LEGEND_RECT := Rect2(220.0, 108.0, 1240.0, 52.0)
+const LEGEND_RECT := Rect2(220.0, 112.0, 1240.0, 44.0)
 const CLOCK_RECT := Rect2(1480.0, 112.0, 380.0, 40.0)
-const QUESTION_RECT := Rect2(180.0, 145.0, 1560.0, 160.0)
-const SETUP_COPY_RECT := Rect2(220.0, 172.0, 1480.0, 64.0)
-const EXPLAIN_RECT := Rect2(800.0, 225.0, 1060.0, 420.0)
-const RESULT_RECT := Rect2(1120.0, 180.0, 740.0, 710.0)
-const SUBTITLE_RECT := Rect2(160.0, 944.0, 1600.0, 100.0)
+const QUESTION_RECT := Rect2(180.0, 112.0, 1560.0, 150.0)
+const SETUP_COPY_RECT := Rect2(260.0, 126.0, 1400.0, 54.0)
+const EXPLAIN_RECT := Rect2(760.0, 230.0, 1100.0, 440.0)
+const RESULT_RECT := Rect2(160.0, 120.0, 1600.0, 760.0)
+const RESULT_RAIL_RECT := Rect2(300.0, 92.0, 1320.0, 104.0)
+const SUBTITLE_RECT := Rect2(190.0, 970.0, 1540.0, 70.0)
 
 
 static func plot_rect_for_phase(phase: String, mode: String = "measurement") -> Rect2:
 	if mode == "immersive":
-		return Rect2(40.0, 100.0, 1840.0, 790.0)
+		return Rect2(32.0, 74.0, 1856.0, 826.0)
 	match phase:
 		"QUESTION":
-			return Rect2(80.0, 340.0, 1760.0, 550.0)
+			return Rect2(70.0, 285.0, 1780.0, 615.0)
 		"EXPLAIN":
-			return Rect2(40.0, 225.0, 720.0, 665.0)
+			return Rect2(42.0, 205.0, 670.0, 695.0)
 		"SETUP":
-			return Rect2(70.0, 255.0, 1780.0, 635.0)
+			return Rect2(54.0, 205.0, 1812.0, 695.0)
 		"COMPARE":
-			return Rect2(56.0, 180.0, 1020.0, 710.0)
+			return Rect2(54.0, 165.0, 1812.0, 735.0)
 		_:
 			return Rect2(70.0, 180.0, 1780.0, 710.0)
 
@@ -49,6 +50,15 @@ static func map_world(point: Vector2, phase: String, mode: String = "measurement
 	return (
 		world_offset(phase, mode)
 		+ (point - SOURCE_WORLD_RECT.position) * world_scale(phase, mode)
+	)
+
+
+static func result_rail_cell(index: int, count: int) -> Rect2:
+	var safe_count := maxi(1, count)
+	var cell_width := RESULT_RAIL_RECT.size.x / float(safe_count)
+	return Rect2(
+		RESULT_RAIL_RECT.position + Vector2(cell_width * index, 0.0),
+		Vector2(cell_width, RESULT_RAIL_RECT.size.y)
 	)
 
 
@@ -90,8 +100,7 @@ static func reserved_rects_for_phase(phase: String, include_subtitles: bool = tr
 			regions.append(LEGEND_RECT)
 			regions.append(CLOCK_RECT)
 		"COMPARE":
-			regions.append(LEGEND_RECT)
-			regions.append(RESULT_RECT)
+			pass
 	if include_subtitles:
 		regions.append(SUBTITLE_RECT)
 	return regions

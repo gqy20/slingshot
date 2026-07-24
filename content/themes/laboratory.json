@@ -1,18 +1,18 @@
 {
-  "id": "editorial-science-lab",
+  "id": "minimal-physics-stage",
   "colors": {
-    "background": "#0E1116",
-    "stage": "#131820",
-    "surface": "#161B22",
-    "surface_elevated": "#1D2430",
-    "divider": "#2D3642",
-    "ground": "#23322E",
-    "ground_line": "#6E8A80",
-    "panel": "#161B22",
-    "accent": "#F0B35A",
-    "accent_soft": "#2A2418",
-    "text": "#F2F0E9",
-    "muted": "#9AA4B2",
-    "highlight": "#F0B35A"
+    "background": "#050608",
+    "stage": "#050608",
+    "surface": "#090B0E",
+    "surface_elevated": "#0B0D11",
+    "divider": "#30343B",
+    "ground": "#07090B",
+    "ground_line": "#D7D3CA",
+    "panel": "#090B0E",
+    "accent": "#FF8A3D",
+    "accent_soft": "#2B150B",
+    "text": "#F4F1EA",
+    "muted": "#A9ADB4",
+    "highlight": "#FFB15C"
   }
 }

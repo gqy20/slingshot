@@ -8,6 +8,7 @@ const TEST_CASES := [
 	preload("res://tests/test_episode_loader.gd"),
 	preload("res://tests/test_episode_pipeline.gd"),
 	preload("res://tests/test_episode_layout.gd"),
+	preload("res://tests/test_shot_camera.gd"),
 	preload("res://tests/test_subtitle_track.gd"),
 	preload("res://tests/test_video_style.gd"),
 ]

@@ -9,6 +9,7 @@ const ALLOWED_TEMPLATES := ["overlay_comparison"]
 const ALLOWED_GOALS := ["max", "min"]
 const ALLOWED_BEAT_PHASES := ["QUESTION", "EXPLAIN", "SETUP", "FLIGHT", "COMPARE"]
 const ALLOWED_SHOT_MODES := ["immersive", "measurement"]
+const ALLOWED_CAMERA_ACTIONS := ["establish", "hold", "reframe", "track"]
 const ALLOWED_BEAT_LAYERS := [
 	"world", "subjects", "trajectories", "annotations",
 	"identity", "headline", "legend", "grid", "formula", "clock", "results", "subtitle",
@@ -166,6 +167,14 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 		var mode := String(raw["mode"]).strip_edges()
 		if mode not in ALLOWED_SHOT_MODES:
 			return _failure("beats[%d].mode must be immersive or measurement" % index)
+		var camera_action := String(raw.get("camera_action", "")).strip_edges()
+		if camera_action not in ALLOWED_CAMERA_ACTIONS:
+			return _failure(
+				"beats[%d].camera_action must be one of %s" % [index, ALLOWED_CAMERA_ACTIONS]
+			)
+		var camera_reason := String(raw.get("camera_reason", "")).strip_edges()
+		if camera_reason.is_empty():
+			return _failure("beats[%d].camera_reason must explain the framing decision" % index)
 		var layers_value: Variant = raw.get("layers")
 		if not layers_value is Array or layers_value.is_empty():
 			return _failure("beats[%d].layers must be a non-empty array" % index)
@@ -191,6 +200,8 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 			"duration": beat_duration,
 			"shot": String(raw["shot"]).strip_edges(),
 			"mode": mode,
+			"camera_action": camera_action,
+			"camera_reason": camera_reason,
 			"intent": String(raw["intent"]).strip_edges(),
 			"primary_subject": String(raw["primary_subject"]).strip_edges(),
 			"layers": layers,
@@ -202,6 +213,7 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 			"overlay": String(raw.get("overlay", "")),
 			"formula_step": int(raw.get("formula_step", -1)),
 			"formula_reveal": clampf(float(raw.get("formula_reveal", 0.42)), 0.0, 0.85),
+			"subtitle_delay": clampf(float(raw.get("subtitle_delay", 0.0)), 0.0, beat_duration),
 			"sfx": String(raw.get("sfx", "")),
 			"chapter": bool(raw.get("chapter", false)),
 		})

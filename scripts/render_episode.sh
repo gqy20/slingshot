@@ -81,7 +81,7 @@ if [[ $# -eq 2 ]]; then
   OUTPUT_INPUT="$2"
 else
 	if [[ "$WIDTH,$HEIGHT" == '1920,1080' ]]; then
-		OUTPUT_INPUT="$RENDER_PREVIEWS_DIR/${episode_name}--1080p-preview.mp4"
+		OUTPUT_INPUT="$RENDER_PREVIEWS_DIR/${episode_name}.mp4"
 	else
 		OUTPUT_INPUT="$RENDER_FINAL_DIR/${episode_name}.mp4"
 	fi
@@ -95,6 +95,13 @@ OUTPUT_DIR="$(dirname "$OUTPUT_INPUT")"
 mkdir -p "$OUTPUT_DIR"
 OUTPUT_DIR_ABS="$(cd "$OUTPUT_DIR" && pwd)"
 OUTPUT_MP4="$OUTPUT_DIR_ABS/$(basename "$OUTPUT_INPUT")"
+if [[ "$WIDTH,$HEIGHT" == '1920,1080' \
+	&& "$OUTPUT_DIR_ABS" == "$RENDER_PREVIEWS_DIR" \
+	&& "$(basename "$OUTPUT_MP4")" != "${episode_name}.mp4" ]]; then
+	printf 'episode-render: preview filename is fixed: %s/%s.mp4\n' \
+		"$RENDER_PREVIEWS_DIR" "$episode_name" >&2
+	exit 2
+fi
 OUTPUT_JSON="${OUTPUT_MP4%.mp4}.json"
 OUTPUT_MANIFEST="${OUTPUT_MP4%.mp4}.manifest.txt"
 NARRATION_DIR="$RENDER_NARRATION_DIR/$episode_name"
