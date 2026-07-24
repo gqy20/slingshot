@@ -3,6 +3,7 @@ extends RefCounted
 const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 const EpisodeCanvas = preload("res://src/video/episode_canvas.gd")
 const EpisodeHud = preload("res://src/video/episode_hud.gd")
+const SpringEnergy = preload("res://src/video/explanations/spring_energy.gd")
 
 
 func run(t) -> void:
@@ -12,6 +13,8 @@ func run(t) -> void:
 	)
 	t.check(EpisodeCanvas != null and EpisodeHud != null, "episode render components compile")
 	var canvas := EpisodeCanvas.new()
+	var spring := SpringEnergy.new()
+	canvas.explanation_module = spring
 	canvas.phase = "COMPARE"
 	canvas.current_beat = {"layers": ["world", "subjects", "trajectories"]}
 	t.check(not canvas._winner_emphasis_enabled(), "immersive counterexample removes winner celebration")
@@ -28,17 +31,17 @@ func run(t) -> void:
 	canvas.phase = "EXPLAIN"
 	canvas.video_time_sec = 25.0
 	t.check(not canvas._show_physical_stage(), "energy diagram removes the unrelated sling and ground")
-	t.check_close(canvas._spring_extension_factor(), 1.0, 0.0001, "spring starts its purposeful x-to-2x transition without jumping")
+	t.check_close(spring._extension_factor(canvas), 1.0, 0.0001, "spring starts its purposeful x-to-2x transition without jumping")
 	canvas.video_time_sec = 25.8
-	t.check_close(canvas._spring_extension_factor(), 2.0, 0.0001, "spring reaches the doubled extension after the transition")
-	t.check(canvas._spring_dimension_label(1.0) == "x", "base extension uses the x dimension label")
-	t.check(canvas._spring_dimension_label(1.5) == "x → 2x", "dimension label explains the transition while the spring moves")
-	t.check(canvas._spring_dimension_label(2.0) == "2x", "doubled extension uses the 2x dimension label")
+	t.check_close(spring._extension_factor(canvas), 2.0, 0.0001, "spring reaches the doubled extension after the transition")
+	t.check(spring._dimension_label(1.0) == "x", "base extension uses the x dimension label")
+	t.check(spring._dimension_label(1.5) == "x → 2x", "dimension label explains the transition while the spring moves")
+	t.check(spring._dimension_label(2.0) == "2x", "doubled extension uses the 2x dimension label")
 	canvas.episode = {"story": {"question_sec": 15.0}}
 	canvas.video_time_sec = 24.9
-	var reveal_before_copy_boundary := canvas._energy_bar_reveal(3, 4)
+	var reveal_before_copy_boundary: float = spring._bar_reveal(canvas, 3, 4)
 	canvas.video_time_sec = 25.1
-	var reveal_after_copy_boundary := canvas._energy_bar_reveal(3, 4)
+	var reveal_after_copy_boundary: float = spring._bar_reveal(canvas, 3, 4)
 	t.check_close(reveal_before_copy_boundary, 1.0, 0.0001, "energy bars finish their first reveal")
 	t.check_close(reveal_after_copy_boundary, 1.0, 0.0001, "energy bars do not reset at the next explanation beat")
 	var errors := EpisodeLayout.validate_static_regions()

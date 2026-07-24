@@ -12,10 +12,10 @@ trap cleanup EXIT
 
 xvfb-run -a timeout 20 godot --path "$PROJECT_ROOT" \
   --rendering-method gl_compatibility \
-  -- --preset "$PROJECT_ROOT/presets/smoke.json" --boot-only \
+  -- --episode "$PROJECT_ROOT/content/episodes/smoke.json" --boot-only \
   >"$BOOT_LOG" 2>&1
 
-grep -Fq '[app] preset=smoke-shot' "$BOOT_LOG"
+grep -Fq '[episode] id=framework-smoke' "$BOOT_LOG"
 if grep -Eq 'SCRIPT ERROR|^ERROR:' "$BOOT_LOG"; then
   sed -n '1,200p' "$BOOT_LOG"
   exit 1

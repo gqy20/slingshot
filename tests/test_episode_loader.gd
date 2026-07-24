@@ -143,6 +143,10 @@ func run(t) -> void:
 				"production episode has a three-step explanation"
 			)
 			t.check(
+				String(explanation["module"]) in ["angle_components", "spring_energy"],
+				"production episode selects an explicit explanation module"
+			)
+			t.check(
 				String(explanation["asset_dir"]).begins_with("res://assets/generated/formulas/"),
 				"production formula assets stay in the generated formula namespace"
 			)

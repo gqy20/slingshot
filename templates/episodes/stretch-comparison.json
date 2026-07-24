@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "id": "new-stretch-episode",
+  "series": "物理实验室",
+  "season": 1,
+  "episode": 0,
+  "title": "拉得更长会飞多远？",
+  "question": "保持其他条件相同，拉伸量增加后射程怎样变化？",
+  "display_hook": "拉伸增加\n距离怎样变化？",
+  "base_preset": "res://presets/series-base.json",
+  "theme": "res://content/themes/laboratory.json",
+  "video": {"width": 3840, "height": 2160, "fps": 30},
+  "narration": {
+    "script": "res://content/narration/new-stretch-episode.txt",
+    "model": "speech-2.8-hd",
+    "voice": "Chinese (Mandarin)_Reliable_Executive",
+    "language": "Chinese",
+    "speed": 1.22,
+    "volume": 1.0,
+    "pitch": 0,
+    "subtitle_type": "sentence",
+    "pronunciations": []
+  },
+  "simulation": {"duration_sec": 3.2, "tick_rate": 120},
+  "story": {
+    "question_sec": 15.0,
+    "explain_sec": 30.0,
+    "setup_sec": 15.0,
+    "flight_sec": 20.0,
+    "compare_sec": 40.0,
+    "primary_metric": "flight_range_m",
+    "metric_label": "首次落地水平位移",
+    "metric_unit": "m",
+    "secondary_metric": "spring_energy_j",
+    "secondary_label": "弹性势能",
+    "secondary_unit": "J",
+    "identity_label": "拉伸量实验",
+    "control_label": "同一角度 · 只改变拉伸量",
+    "explanation": {
+      "kind": "derivation",
+      "module": "spring_energy",
+      "asset_dir": "res://assets/generated/formulas/new-stretch-episode",
+      "steps": [
+        {"concept":"同一根弹簧：k 不变，x 在变","equation":"E = ½kx²","typst":"E = frac(1, 2) k x^2","caption":"能量随拉伸量的平方增长"},
+        {"concept":"拉伸增加，平方项增长更快","equation":"x × 2  →  x² × 4","typst":"x times 2 arrow.r x^2 times 4","caption":"先区分拉伸倍率与能量倍率"},
+        {"concept":"再用落点检查射程变化","equation":"Eₖ = ½mv²","typst":"E_k = frac(1, 2) m v^2","caption":"能量、速度和射程不是同一个量"}
+      ],
+      "assumptions": ["同一弹簧", "同一质量", "同一发射角"]
+    },
+    "goal": "max",
+    "show_target": false,
+    "result_reveal_interval_sec": 1.8,
+    "conclusion_delay_sec": 8.0,
+    "conclusion": "根据实验数据给出结论，并区分能量与射程。"
+  },
+  "beat_template": "editorial_comparison_v1",
+  "beat_overrides": {
+    "hook": {"headline":"先比较两种拉伸量","focus":"stretch-short","focus_secondary":"stretch-long","focus_label":"较短","focus_secondary_label":"较长"},
+    "controls": {"headline":"同一角度\n只改变拉伸量"},
+    "question": {"headline":"拉伸增加\n距离怎样变化？"},
+    "setup": {"label":"3 组同角度发射"},
+    "prediction": {"focus":"stretch-long"},
+    "flight": {"focus":"stretch-long"},
+    "ranking": {"focus":"stretch-long"},
+    "counterpoint": {"focus":"stretch-short","subtitle_delay":2.5},
+    "takeaway": {"focus":"stretch-long"}
+  },
+  "variants": [
+    {"id":"stretch-short","label":"0.4 m","color":"#5B7FA3","overrides":{"physics.stretch_m":0.4}},
+    {"id":"stretch-mid","label":"0.8 m","color":"#8EB48B","overrides":{"physics.stretch_m":0.8}},
+    {"id":"stretch-long","label":"1.2 m","color":"#E48865","overrides":{"physics.stretch_m":1.2}}
+  ]
+}

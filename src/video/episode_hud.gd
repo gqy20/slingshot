@@ -16,32 +16,20 @@ var current_beat: Dictionary = {}
 var identity_panel: Panel
 var identity_style: StyleBoxFlat
 var identity_accent: ColorRect
-var phase_panel: Panel
-var phase_style: StyleBoxFlat
-var phase_dot_label: Label
 var explain_panel: Panel
 var explain_style: StyleBoxFlat
 var result_panel: Panel
 var result_style: StyleBoxFlat
-var result_divider: ColorRect
 var subtitle_panel: Panel
 var subtitle_style: StyleBoxFlat
 var legend_chips: Array[Panel] = []
 var legend_styles: Array[StyleBoxFlat] = []
 var legend_labels: Array[Label] = []
 var legend_swatches: Array[ColorRect] = []
-var result_rows: Array[Label] = []
-var result_swatches: Array[ColorRect] = []
-
-var title_label: Label
 var tag_label: Label
-var phase_label: Label
 var question_label: Label
-var explain_title_label: Label
-var explain_detail_label: Label
 var formula_renderer: Control
 var clock_label: Label
-var result_title: Label
 var result_callout_label: Label
 var conclusion_label: Label
 var subtitle_label: Label
@@ -63,24 +51,15 @@ func configure(
 	identity_style.bg_color = Color(colors["surface"], 0.0)
 	identity_style.border_color = Color(colors["divider"], 0.0)
 	identity_accent.color = colors["accent"]
-	phase_style.bg_color = Color(colors["surface_elevated"], 0.0)
-	phase_style.border_color = Color(colors["divider"], 0.0)
 	explain_style.bg_color = Color(colors["background"], 0.0)
 	explain_style.border_color = Color(colors["divider"], 0.0)
 	result_style.bg_color = Color(colors["background"], 0.0)
 	result_style.border_color = Color(colors["divider"], 0.0)
 	subtitle_style.bg_color = Color(colors["background"], 0.0)
 	subtitle_style.border_color = Color(colors["divider"], 0.0)
-	result_divider.color = Color(colors["divider"], 0.0)
 	tag_label.add_theme_color_override("font_color", colors["muted"])
-	title_label.add_theme_color_override("font_color", colors["text"])
-	phase_dot_label.add_theme_color_override("font_color", colors["accent"])
-	phase_label.add_theme_color_override("font_color", colors["muted"])
 	question_label.add_theme_color_override("font_color", colors["text"])
-	explain_title_label.add_theme_color_override("font_color", colors["accent"])
-	explain_detail_label.add_theme_color_override("font_color", colors["text"])
 	clock_label.add_theme_color_override("font_color", colors["muted"])
-	result_title.add_theme_color_override("font_color", colors["text"])
 	result_callout_label.add_theme_color_override("font_color", colors["text"])
 	conclusion_label.add_theme_color_override("font_color", colors["text"])
 	subtitle_label.add_theme_color_override("font_color", colors["text"])
@@ -95,25 +74,15 @@ func configure(
 		tag,
 		episode["story"].get("identity_label", "实验"),
 	]
-	title_label.text = ""
-	title_label.visible = false
 	question_label.text = episode["display_hook"]
 	_build_variant_chips()
-	_build_result_rows()
+	_build_result_summary()
 	formula_renderer.configure(episode["story"].get("explanation", {}), colors)
 	set_phase("QUESTION")
 
 
 func set_phase(value: String) -> void:
 	phase = value
-	phase_label.text = {
-		"QUESTION": "现象",
-		"EXPLAIN": "关系",
-		"SETUP": "条件",
-		"FLIGHT": "轨迹",
-		"COMPARE": "数据",
-	}.get(phase, phase)
-	phase_panel.visible = false
 	question_label.visible = false
 	if phase == "SETUP" and not episode["story"].get("control_label", "").is_empty():
 		question_label.text = episode["story"]["control_label"]
@@ -128,19 +97,12 @@ func set_phase(value: String) -> void:
 	_reset_label_motion(question_label)
 
 	explain_panel.visible = false
-	explain_title_label.visible = false
-	explain_detail_label.visible = false
 	formula_renderer.visible = false
 	for chip in legend_chips:
 		chip.visible = false
 	result_panel.visible = false
-	result_title.visible = false
-	result_divider.visible = false
 	result_callout_label.visible = false
 	conclusion_label.visible = false
-	for index in range(result_rows.size()):
-		result_rows[index].visible = false
-		result_swatches[index].visible = false
 	clock_label.visible = false
 
 
@@ -149,32 +111,23 @@ func set_beat(beat: Dictionary) -> void:
 	var layers: Array = beat.get("layers", [])
 	var show_identity := "identity" in layers
 	identity_panel.visible = show_identity
-	if not beat.is_empty():
-		phase_label.text = String(beat.get("label", phase_label.text))
-		if phase == "QUESTION" and not String(beat.get("headline", "")).is_empty():
-			question_label.text = String(beat["headline"])
+	if phase == "QUESTION" and not String(beat.get("headline", "")).is_empty():
+		question_label.text = String(beat["headline"])
 	question_label.visible = "headline" in layers
 	var formula_step := int(beat.get("formula_step", -1))
 	var show_formula := "formula" in layers and formula_step >= 0
 	explain_panel.visible = show_formula
 	formula_renderer.visible = show_formula
-	explain_title_label.visible = false
-	explain_detail_label.visible = false
 	if show_formula:
 		formula_renderer.set_step(formula_step)
 	for chip in legend_chips:
 		chip.visible = "legend" in layers
 	var show_results := "results" in layers
 	result_panel.visible = show_results
-	result_title.visible = false
-	result_divider.visible = false
 	clock_label.visible = "clock" in layers
 	if not show_results:
 		result_callout_label.visible = false
 		conclusion_label.visible = false
-		for index in range(result_rows.size()):
-			result_rows[index].visible = false
-			result_swatches[index].visible = false
 	var colors: Dictionary = episode["theme"]["colors"]
 	subtitle_style.bg_color = Color(colors["background"], 0.0)
 	subtitle_style.border_color = Color(colors["divider"], 0.0)
@@ -185,7 +138,6 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 		"identity" in current_beat.get("layers", [])
 		and video_time_sec < 1.6
 	)
-	phase_panel.visible = false
 	if phase == "QUESTION":
 		_apply_label_intro(
 			question_label,
@@ -205,10 +157,6 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 		var reveal_at := float(current_beat.get("formula_reveal", 0.42))
 		var hold_formula_visible := (
 			String(current_beat.get("camera_action", "reframe")) == "hold"
-			and (
-				String(current_beat.get("overlay", "")).begins_with("stretch-")
-				or String(current_beat.get("overlay", "")) == "spring-energy"
-			)
 		)
 		var formula_progress := (
 			1.0 if hold_formula_visible
@@ -227,9 +175,6 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 		clock_label.text = "飞行时间  %05.2f s" % simulation_time
 	elif phase == "COMPARE" and "results" in layers:
 		var compare_time := EpisodeLayout.phase_elapsed(episode, phase, video_time_sec)
-		for index in range(result_rows.size()):
-			result_rows[index].visible = false
-			result_swatches[index].visible = false
 		var conclusion_delay := float(
 			episode["story"].get("conclusion_delay_sec", 0.0)
 		)
@@ -258,23 +203,6 @@ func _build_ui() -> void:
 	tag_label = _label(Vector2(16, 0), Vector2(790, 36), VideoTypography.TITLE, Color("#A9ADB4"))
 	tag_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	identity_panel.add_child(tag_label)
-	title_label = _label(Vector2.ZERO, Vector2.ZERO, VideoTypography.TITLE, Color("#F2F0E9"))
-	title_label.visible = false
-	identity_panel.add_child(title_label)
-
-	var phase_result := _panel(EpisodeLayout.PHASE_RECT, Color("#1D2430", 0.0), 0, 0)
-	phase_panel = phase_result["panel"]
-	phase_style = phase_result["style"]
-	add_child(phase_panel)
-	phase_dot_label = _label(Vector2(28, 2), Vector2(22, 34), VideoTypography.META, Color("#F0B35A"))
-	phase_dot_label.text = "●"
-	phase_dot_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	phase_panel.add_child(phase_dot_label)
-	phase_label = _label(Vector2(50, 2), Vector2(210, 34), VideoTypography.META, Color("#9AA4B2"))
-	phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	phase_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	phase_panel.add_child(phase_label)
-
 	question_label = _label(
 		EpisodeLayout.QUESTION_RECT.position,
 		EpisodeLayout.QUESTION_RECT.size,
@@ -290,15 +218,6 @@ func _build_ui() -> void:
 	explain_panel = explain_result["panel"]
 	explain_style = explain_result["style"]
 	add_child(explain_panel)
-	explain_title_label = _label(Vector2(54, 48), Vector2(952, 82), VideoTypography.DISPLAY, Color("#F0B35A"))
-	explain_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	explain_title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	explain_panel.add_child(explain_title_label)
-	explain_detail_label = _label(Vector2(70, 150), Vector2(920, 190), VideoTypography.BODY, Color("#F2F0E9"))
-	explain_detail_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	explain_detail_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	explain_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	explain_panel.add_child(explain_detail_label)
 	formula_renderer = FormulaRenderer.new()
 	formula_renderer.position = Vector2(60, 18)
 	formula_renderer.size = Vector2(980, 400)
@@ -319,13 +238,6 @@ func _build_ui() -> void:
 	result_panel = result_result["panel"]
 	result_style = result_result["style"]
 	add_child(result_panel)
-	result_title = _label(Vector2(350, 36), Vector2(900, 48), VideoTypography.SECTION, Color("#F2F0E9"))
-	result_panel.add_child(result_title)
-	result_divider = ColorRect.new()
-	result_divider.position = Vector2(350, 500)
-	result_divider.size = Vector2(900, 1)
-	result_divider.color = Color("#2D3642")
-	result_panel.add_child(result_divider)
 	result_callout_label = _label(
 		Vector2(350, 78),
 		Vector2(900, 70),
@@ -390,52 +302,8 @@ func _build_variant_chips() -> void:
 		legend_swatches.append(swatch)
 
 
-func _build_result_rows() -> void:
-	for old_row in result_rows:
-		old_row.queue_free()
-	for old_swatch in result_swatches:
-		old_swatch.queue_free()
-	result_rows.clear()
-	result_swatches.clear()
-	var colors: Dictionary = episode["theme"]["colors"]
-	result_title.text = analysis["metric_label"]
-	explain_title_label.text = episode["story"].get("explain_title", "")
-	explain_detail_label.text = episode["story"].get("explain_detail", "")
+func _build_result_summary() -> void:
 	var rows: Array = analysis["rows"]
-	var step := minf(62.0, 350.0 / maxf(1.0, rows.size()))
-	for index in range(rows.size()):
-		var row: Dictionary = rows[index]
-		var winner: bool = row["variant_id"] == analysis["winner_id"]
-		var secondary := ""
-		var secondary_metric: String = analysis.get("secondary_metric", "")
-		if not secondary_metric.is_empty() and row["metrics"].has(secondary_metric):
-			secondary = "  ·  %s %.2f %s" % [
-				analysis.get("secondary_label", ""),
-				float(row["metrics"][secondary_metric]),
-				analysis.get("secondary_unit", ""),
-			]
-		var swatch := ColorRect.new()
-		swatch.position = Vector2(42, 111 + index * step)
-		swatch.size = Vector2(12 if winner else 6, maxf(18.0, step - 24.0))
-		swatch.color = Color.from_string("#%s" % row["color_html"], Color.WHITE)
-		result_panel.add_child(swatch)
-		var label := _label(
-			Vector2(66, 100 + index * step),
-			Vector2(630, maxf(34.0, step - 4.0)),
-			VideoTypography.DATA,
-			colors["text"]
-		)
-		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		label.text = "%s%s   %.2f %s%s" % [
-			"★  " if winner else "",
-			row["label"],
-			row["value"],
-			analysis["metric_unit"],
-			secondary,
-		]
-		result_panel.add_child(label)
-		result_rows.append(label)
-		result_swatches.append(swatch)
 	var conclusion: String = analysis.get("conclusion", "")
 	var result_direction := "最大" if analysis["goal"] == "max" else "最小"
 	var callout_metric := (

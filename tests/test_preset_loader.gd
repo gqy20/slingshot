@@ -75,7 +75,7 @@ func run(t) -> void:
 	var warned := PresetLoader.validate_dict(unknown)
 	t.check(warned["ok"] and warned["warnings"].size() == 1, "unknown top-level key warns")
 
-	var loaded := PresetLoader.load_path("res://presets/default.json")
-	t.check(loaded["ok"], "default preset loads")
+	var loaded := PresetLoader.load_path("res://presets/series-base.json")
+	t.check(loaded["ok"], "series base preset loads")
 	if loaded["ok"]:
-		t.check_close(loaded["preset"]["duration_sec"], 12.0, 0.0001, "default duration")
+		t.check_close(loaded["preset"]["duration_sec"], 12.0, 0.0001, "series base duration")

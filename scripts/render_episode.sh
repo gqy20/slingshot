@@ -149,7 +149,7 @@ mkdir -p "$FRAME_DIR" "$SHARD_DIR" "$PROJECT_VIEW"
 # Movie Maker allocates its recording viewport before EpisodeApp can resize the
 # root window. A per-render project view lets override.cfg select the real frame
 # buffer size without mutating project.godot or racing parallel renders.
-for project_entry in project.godot episode.tscn main.tscn assets content presets src; do
+for project_entry in project.godot episode.tscn assets content presets src; do
   ln -s "$PROJECT_ROOT/$project_entry" "$PROJECT_VIEW/$project_entry"
 done
 if [[ -d "$PROJECT_ROOT/.godot" ]]; then

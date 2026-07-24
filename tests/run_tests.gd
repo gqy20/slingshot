@@ -3,9 +3,9 @@ extends SceneTree
 const TEST_CASES := [
 	preload("res://tests/test_shot_model.gd"),
 	preload("res://tests/test_preset_loader.gd"),
-	preload("res://tests/test_visual_nodes.gd"),
-	preload("res://tests/test_director.gd"),
+	preload("res://tests/test_simulation_nodes.gd"),
 	preload("res://tests/test_episode_loader.gd"),
+	preload("res://tests/test_episode_templates.gd"),
 	preload("res://tests/test_episode_pipeline.gd"),
 	preload("res://tests/test_episode_layout.gd"),
 	preload("res://tests/test_shot_camera.gd"),
@@ -34,7 +34,6 @@ func check_close(actual: float, expected: float, tolerance: float, message: Stri
 
 func _initialize() -> void:
 	check(FileAccess.file_exists("res://project.godot"), "project.godot exists")
-	check(FileAccess.file_exists("res://main.tscn"), "main scene exists")
 	check(FileAccess.file_exists("res://episode.tscn"), "episode scene exists")
 	for test_case in TEST_CASES:
 		test_case.new().run(self)

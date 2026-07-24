@@ -8,13 +8,11 @@
 
 ```text
 src/
-├── app.gd          # 传统单次实验入口
-├── episode_app.gd  # 多变体 Episode 入口
+├── episode_app.gd  # 唯一 Episode 入口
 ├── core/           # 配置、物理、记录与结果分析
-├── simulation/     # 真实物理模拟
+├── simulation/     # 刚体节点与逐 Variant 真实物理模拟
 ├── playback/       # 记录采样与插值
-├── video/          # 导演、画面、HUD 与回放生命周期
-└── scene/          # 可复用场景节点
+└── video/          # 导演、画面、HUD、解释模块与回放生命周期
 
 content/
 ├── episodes/       # 单集配置
@@ -57,6 +55,17 @@ typst --version
 scripts/render_episode.sh content/episodes/smoke.json renders/smoke/episode-smoke.mp4
 ```
 
+新建同系列 Episode 不需要复制现有 14 个 Beat。脚手架会生成单集配置、讲稿占位稿，并使用标准节拍模板自动补齐镜头、图层、意图、镜头理由和连续时间：
+
+```bash
+scripts/create_episode.sh s01e03-angle-demo \
+  --template angle --season 1 --episode 3 \
+  --title "更低的角度一定飞得更近吗？"
+scripts/validate_episode.sh content/episodes/s01e03-angle-demo.json
+```
+
+当前脚手架提供 `angle` 和 `stretch` 两类弹弓实验起点。新文件通常只需修改 `story`、`variants`、`beat_overrides` 和对应讲稿；`beat_template: editorial_comparison_v1` 会按各阶段时长展开标准叙事结构。完整流程见 [Episode 创作指南](docs/episode-authoring.md)。
+
 首次克隆后安装项目内 Git hooks：
 
 ```bash
@@ -92,13 +101,13 @@ scripts/render_episode.sh content/episodes/s01e02-stretch-sweep.json
 
 语音经过两遍响度分析，生成 `-16 ±1 LUFS`、不高于 `-1.5 dBTP`、48 kHz 单声道 24-bit PCM 母版。每集包含 12 秒循环的四音符小鸟主题 BGM，以及发射、落地、揭晓等 Beat 音效；混音时以解说作为 sidechain 自动压低音乐与音效，Godot 使用同一份 SRT 绘制字幕。AAC 编码后再复测交付音轨，要求 `-16 ±1 LUFS`、不高于 `-1.0 dBTP`、48 kHz 单声道。讲稿、MMX CLI 版本、模型、音色、控制参数、音乐、音效、响度、时长和 SHA-256 均写入 manifest。
 
-Episode 在渲染前会执行布局审计：每个阶段拥有独立 Plot Area，逐帧检查小鸟与速度箭头是否进入标题、图例、结果或字幕区域；字幕限制为最多 88 个字符和两条显式行。结果阶段使用左侧轨迹、右侧数据的分栏布局。弹弓拉伸、回弹、能量光点与小鸟的蓄力、飞行形变、眨眼和落地反馈都由视频时间确定性驱动，不改变物理记录。
+Episode 在渲染前会执行布局审计：每个阶段拥有独立 Plot Area，逐帧检查小鸟与速度箭头是否进入标题、图例、结果或字幕区域；字幕限制为最多 88 个字符和两条显式行。结果阶段使用专用结果轨道区分数据层级。弹弓、小鸟、轨迹和强调动画都由视频时间确定性驱动，不改变物理记录；装饰性动效被限制在统一视觉语言内。
 
-每集以连续的 `beats` 时间线组织约 2 分钟内容。Beat 精确声明镜头、聚焦实验组、Overlay、公式步骤和音效提示；`display_hook` 是短屏幕标题，完整 `question` 与旁白仍保留科学语义。Beat 必须从 0 秒无缝覆盖到 Episode 结束，分片 Worker 从任意绝对帧启动都会得到同一状态。
+每集以连续的 Beat 时间线组织约 2 分钟内容。调优后的成片可以显式保存完整 `beats`；新 Episode 也可以声明 `beat_template` 和少量 `beat_overrides`，由 Loader 确定性展开镜头、聚焦实验组、Overlay、公式步骤和音效提示。`display_hook` 是短屏幕标题，完整 `question` 与旁白仍保留科学语义。展开后的 Beat 必须从 0 秒无缝覆盖到 Episode 结束，分片 Worker 从任意绝对帧启动都会得到同一状态。
 
 每个 Beat 还必须声明一个 `intent`、一个 `primary_subject`、镜头 `mode` 和显式 `layers`。`immersive` 模式扩大物理世界、移除固定面板与网格，用于开场、发射、飞行、落地和反例；`measurement` 模式只在控制变量、公式、数据和模型边界出现。Loader 会拒绝沉浸镜头中的图例/公式/结果 UI，也会拒绝公式与结果面板同镜，保证一镜只承担一个判断。
 
-公式镜头先绘制物理标注，再让关键量沿引导路径进入公式区域，最后淡入 Typst 完整公式。EP01 使用速度分量和滞空计时形成 `R = vₓ·t`，EP02 使用拉伸量和能量形成 `E = ½kx²`；公式是现象的收束，不再是暂停动画后立刻出现的独立卡片。
+公式镜头先绘制物理标注，再让关键量沿引导路径进入公式区域，最后淡入 Typst 完整公式。解释动画通过 `story.explanation.module` 显式注册：当前 `angle_components` 使用速度分量和滞空计时形成 `R = vₓ·t`，`spring_energy` 使用拉伸量和能量形成 `E = ½kx²`。公式是现象的收束，不再是暂停动画后立刻出现的独立卡片。
 
 视觉采用 Editorial Science Lab 规范：中性色负责画面结构，琥珀色只用于系列强调，实验组使用同一条“低值冷色 → 高值暖色”的有序数据色阶。数据色不会再填充面板或正文，胜者通过线宽、星标和光环表达，因此跨集保持相同颜色语义。
 
@@ -144,25 +153,11 @@ scripts/review_dense.sh renders/previews/s01e02-stretch-sweep.mp4
 `renders/frames/<episode>/<episode>--<milliseconds>ms--<label>.png`。完整规则见
 [`renders/README.md`](renders/README.md)。
 
-## 传统单次实验
-
-```bash
-scripts/render.sh presets/default.json
-```
-
-输出：
-
-- `renders/previews/default.mp4`：3840×2160、60 FPS、H.264 视频。
-- `renders/previews/default.json`：本次实验的参数、帧数和碰撞 telemetry。
-
-渲染使用 Godot Movie Maker 逐帧生成无损 PNG，再由 FFmpeg 编码 MP4。渲染速度可以低于实时速度，但固定时间步保证最终视频不掉帧。
-
 ## 测试
 
 运行 1 秒端到端渲染：
 
 ```bash
-bash scripts/smoke_test.sh
 bash scripts/episode_smoke_test.sh
 ```
 
@@ -172,7 +167,7 @@ bash scripts/episode_smoke_test.sh
 godot --headless --path . --script res://tests/run_tests.gd
 ```
 
-验证 Xvfb 下的项目启动与 preset 解析：
+验证 Xvfb 下的 Episode 启动与配置解析：
 
 ```bash
 bash tests/test_boot.sh
@@ -184,7 +179,7 @@ Xvfb 环境中出现“无法创建输入法上下文”或“不支持切换 V-
 
 ## 修改实验参数
 
-复制 `presets/default.json` 后可以修改：
+实验的共享物理基线位于 `presets/series-base.json`，单集差异优先写在 Episode 的 `variants[].overrides` 中：
 
 - `bird_mass_kg`、`target_mass_kg`：质量，单位 kg。
 - `spring_k_npm`：弹簧刚度，单位 N/m。
@@ -222,21 +217,9 @@ F_avg ≈ |J| / Δt
 
 其中 `Δt` 是明确记录在 sidecar 中的物理采样间隔。该数值不是材料接触过程中的精确瞬时峰值力。
 
-## CLI 参数
+## CLI 入口
 
-Godot 也可以直接启动：
-
-```bash
-xvfb-run -a -s '-screen 0 3840x2160x24' \
-  godot --path . \
-  --rendering-method gl_compatibility \
-  --write-movie /tmp/slingshot/frame.png \
-  --resolution 3840x2160 \
-  --fixed-fps 60 --disable-vsync \
-  -- --preset presets/default.json --sidecar /tmp/slingshot/result.json
-```
-
-推荐始终使用 `scripts/render.sh`，因为它还负责临时目录、超时、FFmpeg、ffprobe、原子发布和失败日志保留。
+`episode.tscn` 是项目唯一运行入口。推荐使用 `scripts/render_episode.sh` 或 `scripts/render_batch.sh`，它们负责模拟、回放、临时目录、分片、超时、音频、FFmpeg、ffprobe、manifest 和原子发布。
 
 ## 许可证
 

@@ -1,4 +1,4 @@
-class_name SlingshotTargetBody
+class_name SlingshotSimulationTarget
 extends RigidBody2D
 
 const BODY_SIZE := Vector2(110, 150)

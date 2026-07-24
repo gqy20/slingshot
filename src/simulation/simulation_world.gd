@@ -1,8 +1,8 @@
 class_name SlingshotSimulationWorld
 extends Node2D
 
-const BirdBody = preload("res://src/scene/bird_body.gd")
-const TargetBody = preload("res://src/scene/target_body.gd")
+const BirdBody = preload("res://src/simulation/bird_body.gd")
+const TargetBody = preload("res://src/simulation/target_body.gd")
 const ShotModel = preload("res://src/core/shot_model.gd")
 
 var bird: RigidBody2D

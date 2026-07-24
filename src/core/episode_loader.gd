@@ -2,10 +2,11 @@ class_name SlingshotEpisodeLoader
 extends RefCounted
 
 const PresetLoader = preload("res://src/core/preset_loader.gd")
+const EpisodeTemplates = preload("res://src/core/episode_templates.gd")
+const ExplanationCatalog = preload("res://src/core/explanation_catalog.gd")
 
 const REQUIRED_VIDEO_SIZE := Vector2i(3840, 2160)
 const ALLOWED_VIDEO_FPS := [30, 60]
-const ALLOWED_TEMPLATES := ["overlay_comparison"]
 const ALLOWED_GOALS := ["max", "min"]
 const ALLOWED_BEAT_PHASES := ["QUESTION", "EXPLAIN", "SETUP", "FLIGHT", "COMPARE"]
 const ALLOWED_SHOT_MODES := ["immersive", "measurement"]
@@ -108,7 +109,23 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 		+ story["flight_sec"]
 		+ story["compare_sec"]
 	)
-	var beats_result := _normalize_beats(raw.get("beats"), duration_sec)
+	var beat_template := String(raw.get("beat_template", "")).strip_edges()
+	var beats_value: Variant = raw.get("beats")
+	if not beat_template.is_empty():
+		if raw.has("beats"):
+			return _failure("beats and beat_template cannot be used together")
+		var template_result := EpisodeTemplates.expand(
+			beat_template,
+			story,
+			story.get("explanation", {}),
+			raw.get("beat_overrides", {})
+		)
+		if not template_result["ok"]:
+			return _failure(String(template_result["error"]))
+		beats_value = template_result["beats"]
+	elif raw.has("beat_overrides"):
+		return _failure("beat_overrides requires beat_template")
+	var beats_result := _normalize_beats(beats_value, duration_sec)
 	if not beats_result["ok"]:
 		return beats_result
 	var normalized := {
@@ -132,6 +149,7 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 		"story": story,
 		"narration": narration_result["narration"],
 		"duration_sec": duration_sec,
+		"beat_template": beat_template,
 		"beats": beats_result["beats"],
 		"variants": normalized_variants,
 	}
@@ -265,8 +283,6 @@ static func _normalize_story(value: Variant) -> Dictionary:
 	if not value is Dictionary:
 		return _failure("story must be an object")
 	var story: Dictionary = value.duplicate(true)
-	if story.get("template") not in ALLOWED_TEMPLATES:
-		return _failure("story.template must be one of %s" % ALLOWED_TEMPLATES)
 	for key in ["question_sec", "setup_sec", "flight_sec", "compare_sec"]:
 		if not _positive_finite(story.get(key)):
 			return _failure("story.%s must be positive and finite" % key)
@@ -287,8 +303,6 @@ static func _normalize_story(value: Variant) -> Dictionary:
 	story["secondary_unit"] = String(story.get("secondary_unit", ""))
 	story["identity_label"] = String(story.get("identity_label", "实验"))
 	story["control_label"] = String(story.get("control_label", ""))
-	story["explain_title"] = String(story.get("explain_title", ""))
-	story["explain_detail"] = String(story.get("explain_detail", ""))
 	var explanation_result := _normalize_explanation(story.get("explanation", {}))
 	if not explanation_result["ok"]:
 		return explanation_result
@@ -316,6 +330,11 @@ static func _normalize_explanation(value: Variant) -> Dictionary:
 	var kind := String(value.get("kind", ""))
 	if kind not in ["relation", "derivation"]:
 		return _failure("story.explanation.kind must be relation or derivation")
+	var module := String(value.get("module", "")).strip_edges()
+	if module not in ExplanationCatalog.MODULE_IDS:
+		return _failure(
+			"story.explanation.module must be one of %s" % [ExplanationCatalog.MODULE_IDS]
+		)
 	var asset_dir := String(value.get("asset_dir", "")).strip_edges()
 	var uses_typst := not asset_dir.is_empty()
 	if uses_typst and (
@@ -366,6 +385,7 @@ static func _normalize_explanation(value: Variant) -> Dictionary:
 		"error": "",
 		"explanation": {
 			"kind": kind,
+			"module": module,
 			"eyebrow": String(value.get("eyebrow", "")),
 			"asset_dir": asset_dir,
 			"steps": steps,

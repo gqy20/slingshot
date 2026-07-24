@@ -1,4 +1,4 @@
-class_name SlingshotBirdBody
+class_name SlingshotSimulationBird
 extends RigidBody2D
 
 const RADIUS_PX := 28.0

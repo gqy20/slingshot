@@ -5,7 +5,7 @@ const ReplayTrack = preload("res://src/playback/replay_track.gd")
 const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 const EpisodeDirector = preload("res://src/video/episode_director.gd")
 const ShotCamera = preload("res://src/video/shot_camera.gd")
-const TrajectoryAnnotation = preload("res://src/video/trajectory_annotation.gd")
+const ExplanationRegistry = preload("res://src/video/explanations/explanation_registry.gd")
 const VideoTypography = preload("res://src/video/video_typography.gd")
 const VisualLanguage = preload("res://src/video/visual_language.gd")
 
@@ -24,6 +24,7 @@ var ground_y_px := 920.0
 var video_time_sec := 0.0
 var current_beat: Dictionary = {}
 var camera_state := {"scale": 1.0, "offset": Vector2.ZERO}
+var explanation_module: RefCounted
 
 
 func configure(
@@ -34,6 +35,8 @@ func configure(
 	episode = normalized_episode
 	bundle = run_bundle
 	analysis = comparison
+	var explanation: Dictionary = episode["story"].get("explanation", {})
+	explanation_module = ExplanationRegistry.create(String(explanation.get("module", "")))
 	for variant_value in episode["variants"]:
 		var variant: Dictionary = variant_value
 		colors_by_id[variant["id"]] = variant["color"]
@@ -98,203 +101,8 @@ func _draw() -> void:
 
 
 func _draw_explanation_module() -> void:
-	if current_beat.get("overlay", "").begins_with("angle-"):
-		_draw_angle_module()
-	elif current_beat.get("overlay", "").begins_with("stretch-") or current_beat.get("overlay", "") == "spring-energy":
-		_draw_energy_module()
-
-
-func _draw_angle_module() -> void:
-	var theme_colors: Dictionary = episode["theme"]["colors"]
-	var intro := smoothstep(0.0, 0.08, _beat_progress())
-	var variants: Array = episode.get("variants", [])
-	if variants.is_empty():
-		return
-	var weights := _angle_variant_weights(variants.size())
-	var active_index := 0
-	var active_weight := -1.0
-	for index in range(variants.size()):
-		var variant: Dictionary = variants[index]
-		var id := String(variant["id"])
-		var record: Dictionary = records_by_id.get(id, {})
-		var weight := float(weights[index])
-		if record.is_empty() or weight <= 0.001:
-			continue
-		if weight > active_weight:
-			active_weight = weight
-			active_index = index
-		var mapped_points := _map_points(trajectories_by_id.get(id, PackedVector2Array()))
-		if mapped_points.size() >= 2:
-				draw_polyline(
-					mapped_points,
-					Color(colors_by_id[id], (0.10 + 0.48 * weight) * intro),
-					VisualLanguage.width("context") + 3.0 * weight,
-					true
-				)
-		var geometry := TrajectoryAnnotation.initial_geometry(record)
-		if geometry.is_empty():
-			continue
-		var origin := _map_point(geometry["origin"])
-		var tip := origin + Vector2(geometry["direction"]) * 300.0
-		_draw_arrow(
-			origin,
-			tip,
-			Color(colors_by_id[id], (0.12 + 0.70 * weight) * intro),
-			VisualLanguage.width("measure") + 2.5 * weight
-		)
-
-	var active_variant: Dictionary = variants[active_index]
-	var active_id := String(active_variant["id"])
-	var active_record: Dictionary = records_by_id.get(active_id, {})
-	var active_geometry := TrajectoryAnnotation.initial_geometry(active_record)
-	if active_geometry.is_empty():
-		return
-	var origin := _map_point(active_geometry["origin"])
-	var direction: Vector2 = active_geometry["direction"]
-	var angle_deg := float(active_geometry["angle_deg"])
-	var angle := deg_to_rad(angle_deg)
-	var tip := origin + direction * 300.0
-	var horizontal_tip := Vector2(tip.x, origin.y)
-	var horizontal_color: Color = variants[0]["color"]
-	var vertical_color: Color = variants[-1]["color"]
-	draw_arc(origin, 82.0, -angle, 0.0, 36, Color(theme_colors["accent"], 0.72 * intro), VisualLanguage.STROKE_SECONDARY, true)
-	draw_string(
-		VideoTypography.data(),
-		origin + Vector2(62, -18),
-		"%.0f°" % angle_deg,
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		24,
-		Color(theme_colors["accent"], intro)
-	)
-	_draw_arrow(origin, horizontal_tip, Color(horizontal_color, 0.82 * intro), VisualLanguage.STROKE_SECONDARY)
-	_draw_arrow(horizontal_tip, tip, Color(vertical_color, 0.82 * intro), VisualLanguage.STROKE_SECONDARY)
-	draw_dashed_line(horizontal_tip, tip, Color(vertical_color, 0.24 * intro), VisualLanguage.STROKE_MEASURE, 8.0, true)
-	_draw_module_label(tip + Vector2(18, -14), "v", Color(theme_colors["highlight"], intro))
-	_draw_module_label(horizontal_tip + Vector2(-54, 36), "vₓ", Color(horizontal_color, intro))
-	_draw_module_label(horizontal_tip.lerp(tip, 0.52) + Vector2(20, 0), "vᵧ", Color(vertical_color, intro))
-	var points: PackedVector2Array = trajectories_by_id.get(active_id, PackedVector2Array())
-	if not points.is_empty():
-		var clock_center := _map_point(points[-1]) + Vector2(38, -62)
-		draw_arc(clock_center, 28.0, 0.0, TAU, 28, Color(theme_colors["muted"], 0.48 * intro), VisualLanguage.STROKE_MEASURE, true)
-		draw_line(clock_center, clock_center + Vector2(3, -17), Color(theme_colors["accent"], 0.76 * intro), VisualLanguage.STROKE_MEASURE, true)
-		draw_line(clock_center, clock_center + Vector2(13, 6), Color(theme_colors["accent"], 0.76 * intro), VisualLanguage.STROKE_MEASURE, true)
-		_draw_module_label(
-			clock_center + Vector2(38, 8),
-			"t = %.2f s" % TrajectoryAnnotation.flight_time_sec(active_record),
-			Color(theme_colors["accent"], intro)
-		)
-
-
-func _draw_energy_module() -> void:
-	var theme_colors: Dictionary = episode["theme"]["colors"]
-	var plot := EpisodeLayout.plot_rect_for_phase("EXPLAIN")
-	var baseline := plot.position + Vector2(92, 560)
-	var variants: Array = episode["variants"]
-	var step := clampi(int(current_beat.get("formula_step", 0)), 0, 2)
-	var max_energy := 0.0
-	var energies: Array[float] = []
-	for variant_value in variants:
-		var variant: Dictionary = variant_value
-		var physics: Dictionary = variant["preset"]["physics"]
-		var energy := 0.5 * float(physics["spring_k_npm"]) * pow(float(physics["stretch_m"]), 2.0)
-		energies.append(energy)
-		max_energy = maxf(max_energy, energy)
-	draw_line(baseline, baseline + Vector2(550, 0), Color(theme_colors["divider"], 0.72), VisualLanguage.STROKE_MEASURE, true)
-	var winner_id := String(analysis.get("winner_id", ""))
-	for index in range(variants.size()):
-		var x := baseline.x + 45.0 + index * 135.0
-		var bar_height := 250.0 * energies[index] / maxf(max_energy, 0.001)
-		var reveal := _energy_bar_reveal(index, variants.size())
-		var active := String(variants[index]["id"]) == winner_id
-		var color: Color = theme_colors["accent"] if active else theme_colors["muted"]
-		var bar_rect := Rect2(x, baseline.y - bar_height * reveal, 68, bar_height * reveal)
-		draw_rect(bar_rect, Color(color, 0.20 if active else 0.055), true)
-		draw_rect(
-			bar_rect,
-			Color(color, 0.82 if active else 0.30),
-			false,
-			VisualLanguage.STROKE_SECONDARY if active else VisualLanguage.STROKE_CONTEXT,
-			true
-		)
-		draw_line(
-			Vector2(x, baseline.y + 12),
-			Vector2(x + 68, baseline.y + 12),
-			Color(color, 0.86 if active else 0.34),
-			VisualLanguage.STROKE_SECONDARY if active else VisualLanguage.STROKE_CONTEXT,
-			true
-		)
-		_draw_module_label(
-			Vector2(x - 10, baseline.y + 34),
-			String(variants[index]["label"]),
-			Color(theme_colors["text"], 0.90) if active else Color(theme_colors["muted"], 0.64)
-		)
-		if step >= 2:
-			var value_alpha := smoothstep(0.0, 0.55, _beat_transition_progress())
-			_draw_module_label(
-				Vector2(x - 4, baseline.y - bar_height - 38),
-				"%.1f J" % energies[index],
-				Color(theme_colors["text"], value_alpha)
-			)
-	draw_string(
-		VideoTypography.medium(),
-		baseline + Vector2(0, -286),
-		"储能  E",
-		HORIZONTAL_ALIGNMENT_LEFT,
-		180,
-		18,
-		Color(theme_colors["muted"], 0.72)
-	)
-	var spring_start := plot.position + Vector2(90, 130)
-	var rest_finish := spring_start + Vector2(160.0, 0)
-	var extension_factor := _spring_extension_factor()
-	var spring_finish := rest_finish + Vector2(110.0 * extension_factor, 0)
-	var coils := PackedVector2Array([spring_start])
-	for coil in range(17):
-		var ratio := float(coil + 1) / 18.0
-		coils.append(spring_start.lerp(spring_finish, ratio) + Vector2(0, -18 if coil % 2 == 0 else 18))
-	coils.append(spring_finish)
-	draw_polyline(coils, Color(theme_colors["accent"], 0.88), VisualLanguage.STROKE_PRIMARY, true)
-	draw_line(spring_start + Vector2(0, -48), spring_start + Vector2(0, 48), Color(theme_colors["muted"], 0.62), VisualLanguage.STROKE_SECONDARY, true)
-	var dimension_y := spring_start.y - 64.0
-	var dimension_color := Color(theme_colors["accent"], 0.74)
-	draw_line(
-		Vector2(rest_finish.x, dimension_y),
-		Vector2(spring_finish.x, dimension_y),
-		dimension_color,
-		VisualLanguage.STROKE_MEASURE,
-		true
-	)
-	draw_line(
-		Vector2(rest_finish.x, dimension_y - 8.0),
-		Vector2(rest_finish.x, dimension_y + 8.0),
-		dimension_color,
-		VisualLanguage.STROKE_MEASURE,
-		true
-	)
-	draw_line(
-		Vector2(spring_finish.x, dimension_y - 8.0),
-		Vector2(spring_finish.x, dimension_y + 8.0),
-		dimension_color,
-		VisualLanguage.STROKE_MEASURE,
-		true
-	)
-	draw_string(
-		VideoTypography.data(),
-		Vector2(rest_finish.x, dimension_y - 15.0),
-		_spring_dimension_label(extension_factor),
-		HORIZONTAL_ALIGNMENT_CENTER,
-		spring_finish.x - rest_finish.x,
-		24,
-		theme_colors["accent"]
-	)
-	draw_line(
-		rest_finish + Vector2(0, -30),
-		rest_finish + Vector2(0, 30),
-		Color(theme_colors["muted"], 0.28),
-		VisualLanguage.STROKE_CONTEXT,
-		true
-	)
+	if explanation_module != null:
+		explanation_module.draw(self)
 
 
 func _draw_arrow(start: Vector2, finish: Vector2, color: Color, width: float) -> void:
@@ -309,45 +117,6 @@ func _draw_module_label(position: Vector2, value: String, color: Color) -> void:
 	draw_string(VideoTypography.data(), position, value, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, color)
 
 
-func _energy_bar_reveal(index: int, variant_count: int) -> float:
-	var explain_elapsed := EpisodeLayout.phase_elapsed(episode, "EXPLAIN", video_time_sec)
-	var sequence_progress := clampf(explain_elapsed / 4.0, 0.0, 1.0)
-	return clampf(
-		sequence_progress * float(variant_count + 1) - float(index),
-		0.0,
-		1.0
-	)
-
-
-func _beat_transition_progress() -> float:
-	if current_beat.is_empty():
-		return 1.0
-	return smoothstep(
-		0.0,
-		1.0,
-		clampf(
-			(video_time_sec - float(current_beat.get("at", video_time_sec))) / 0.8,
-			0.0,
-			1.0
-		)
-	)
-
-
-func _spring_extension_factor() -> float:
-	var step := clampi(int(current_beat.get("formula_step", 0)), 0, 2)
-	if step <= 0:
-		return 1.0
-	return lerpf(1.0, 2.0, _beat_transition_progress())
-
-
-func _spring_dimension_label(extension_factor: float) -> String:
-	if extension_factor <= 1.05:
-		return "x"
-	if extension_factor >= 1.95:
-		return "2x"
-	return "x → 2x"
-
-
 func _beat_progress() -> float:
 	if current_beat.is_empty():
 		return 0.0
@@ -357,25 +126,6 @@ func _beat_progress() -> float:
 		0.0,
 		1.0
 	)
-
-
-func _angle_variant_weights(variant_count: int) -> Array[float]:
-	var result: Array[float] = []
-	result.resize(variant_count)
-	var step := clampi(int(current_beat.get("formula_step", 0)), 0, 2)
-	if step != 1:
-		var winner_id := String(analysis.get("winner_id", ""))
-		var winner_index := clampi(variant_count / 2, 0, variant_count - 1)
-		for index in range(episode.get("variants", []).size()):
-			if String(episode["variants"][index]["id"]) == winner_id:
-				winner_index = index
-				break
-		result[winner_index] = 1.0
-		return result
-	var position := smoothstep(0.04, 0.96, _beat_progress()) * float(variant_count - 1)
-	for index in range(variant_count):
-		result[index] = maxf(0.0, 1.0 - absf(position - float(index)))
-	return result
 
 
 func _draw_background() -> void:
@@ -1141,10 +891,10 @@ func _shot_mode() -> String:
 func _show_physical_stage() -> bool:
 	if not _has_layer("world"):
 		return false
-	var overlay := String(current_beat.get("overlay", ""))
 	return not (
 		phase == "EXPLAIN"
-		and (overlay.begins_with("stretch-") or overlay == "spring-energy")
+		and explanation_module != null
+		and explanation_module.hides_physical_stage()
 	)
 
 

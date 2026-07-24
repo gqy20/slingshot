@@ -99,10 +99,6 @@ func run(t) -> void:
 		"winner callout uses the personality accent role"
 	)
 	t.check(
-		hud.explain_title_label.theme_type_variation == VideoTypography.DISPLAY,
-		"scientific explanation stays in Sarasa display"
-	)
-	t.check(
 		hud.subtitle_label.theme_type_variation == VideoTypography.SUBTITLE,
 		"continuous subtitles stay in Sarasa Gothic"
 	)

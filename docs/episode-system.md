@@ -17,11 +17,11 @@ Episode JSON
 
 模拟阶段决定发生了什么；分析阶段决定结果意味着什么；导演阶段决定何时展示；回放阶段只负责画面，不再修改物理状态。
 
-`display_hook` 只负责短屏幕标题；`question` 与 narration 负责完整表述。`beats` 是连续、无重叠的绝对时间线，每项包含 Phase、shot、focus、overlay、formula step 与 sfx cue。Loader 会拒绝时间缺口、重叠、重复 ID 和未覆盖完整时长的配置。
+`display_hook` 只负责短屏幕标题；`question` 与 narration 负责完整表述。显式 `beats` 是连续、无重叠的绝对时间线，每项包含 Phase、shot、focus、overlay、formula step 与 sfx cue。新 Episode 可以改用 `beat_template: editorial_comparison_v1` 和 `beat_overrides`；Loader 会先确定性展开标准节拍，再执行同一套时间缺口、重叠、重复 ID 和完整时长校验。
 
 每个 Beat 同时声明 `mode`、唯一 `intent`、`primary_subject` 与 `layers`。`immersive` 只允许物理世界、主体、轨迹、极少量标题和字幕；`measurement` 才允许网格、图例、时钟、公式或结果。公式与结果不能同镜，沉浸镜头不能携带测量 UI。可见层由 Beat 而非 Phase 决定，因此同一个 COMPARE 阶段可以先显示数据排名，再退出所有面板，以全屏轨迹揭示反例。
 
-科学解释使用 `story.explanation` 描述 `relation`（变量关系）或 `derivation`（逐步推导）。每一步只保留一个概念、一条公式和一句白话结论，条件固定显示在步骤轨道下方。公式源码交给固定版本的 Typst 生成 SVG，`equation` 字段保留为检索、测试与加载失败时的文本兜底；中文概念、结论和条件仍由统一的 Godot Typography Theme 排版。
+科学解释使用 `story.explanation` 描述 `relation`（变量关系）或 `derivation`（逐步推导），并通过 `module` 选择已注册的因果动画。每一步只保留一个概念、一条公式和一句白话结论，条件固定显示在步骤轨道下方。公式源码交给固定版本的 Typst 生成 SVG，`equation` 字段保留为检索、测试与加载失败时的文本兜底；中文概念、结论和条件仍由统一的 Godot Typography Theme 排版。
 
 解释镜头使用两段式编排：前半段只呈现物理箭头、计时器、量尺、弹簧或能量条，关键符号沿确定性路径移动到公式区域；到达 Beat 的 `formula_reveal` 后，再淡入 Typst 完整公式。Godot 负责因果动画，Typst 只负责最终数学排版。
 
@@ -53,6 +53,8 @@ Episode JSON
 - 可复用的视觉主题；
 - 固定 3840×2160 原生输出、可选 30/60 FPS。
 
+脚手架入口为 `scripts/create_episode.sh`，当前可以从 `angle` 或 `stretch` 模板创建一集。模板文件位于 `templates/episodes/`，只包含内容默认值、解释模块、少量 Beat 覆盖和实验组；完整镜头时间线由 `src/core/episode_templates.gd` 生成。`scripts/validate_episode.sh` 可以在配音和渲染前独立检查配置。
+
 Variant override 只允许修改 physics.* 和 scene.* 中已经存在的键。每个 Variant 会重新经过 preset 校验。
 
 ## 确定性导出
@@ -78,15 +80,14 @@ scripts/render_episode.sh 创建独立临时目录：
 - src/core/：配置、记录结构和结果分析。
 - src/simulation/：真实刚体世界和逐 Variant 模拟。
 - src/playback/：RunRecord 采样与插值。
-- src/video/：时间映射、程序化画面、字幕安全区、HUD 和导出生命周期。
-- src/scene/：传统单次演示仍在使用的场景节点。
+- src/video/：时间映射、程序化画面、字幕安全区、HUD 和导出生命周期；`explanations/` 保存可注册解释动画。
 - content/episodes/：单集内容。
 - content/narration/：供 mmx-cli 合成的逐集讲稿。
 - content/themes/：跨集共享的视觉规范。
 
 新增视频模板时，应优先扩展 Director、Layout 或 Overlay，而不是让模拟层感知镜头。
 
-EpisodeLayout 为 Question、Explain、Setup、Flight、Compare 分别定义 Plot Area 和文字保留区。动画坐标使用等比映射，避免改变抛物线角度；Compare 阶段将轨迹压缩到左侧，右侧独占结果面板。渲染入口会对 RunRecord 的所有飞行帧执行主体包围盒审计。趣味动效只读取视频时间、速度和事件，作为物理位置之上的视觉变换层。
+EpisodeLayout 为 Question、Explain、Setup、Flight、Compare 分别定义 Plot Area 和文字保留区。动画坐标使用等比映射，避免改变抛物线角度；Compare 阶段使用专用结果轨道区分数据层级。渲染入口会对 RunRecord 的所有飞行帧执行主体包围盒审计。强调动画只读取视频时间、速度和事件，作为物理位置之上的确定性视觉层。
 
 视觉系统采用 Editorial Science Lab token。背景、表面、分割线、正文、次级文字和品牌强调色由 `content/themes/laboratory.json` 集中定义；界面只使用中性色与单一琥珀强调色。每集的实验组颜色来自共享的低值冷色到高值暖色数据色阶，只允许出现在轨迹、小鸟、图例色条和结果色条中，胜者通过线宽、星标和光环表达。
 

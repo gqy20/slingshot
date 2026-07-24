@@ -1,0 +1,30 @@
+class_name SlingshotExplanationRegistry
+extends RefCounted
+
+const ExplanationCatalog = preload("res://src/core/explanation_catalog.gd")
+const AngleComponents = preload("res://src/video/explanations/angle_components.gd")
+const SpringEnergy = preload("res://src/video/explanations/spring_energy.gd")
+
+const MODULES := {
+	ExplanationCatalog.ANGLE_COMPONENTS: AngleComponents,
+	ExplanationCatalog.SPRING_ENERGY: SpringEnergy,
+}
+
+
+static func has_module(module_id: String) -> bool:
+	return MODULES.has(module_id)
+
+
+static func create(module_id: String) -> RefCounted:
+	var script: Variant = MODULES.get(module_id)
+	if script == null:
+		return null
+	return script.new()
+
+
+static func module_ids() -> Array[String]:
+	var result: Array[String] = []
+	for module_id in MODULES.keys():
+		result.append(String(module_id))
+	result.sort()
+	return result

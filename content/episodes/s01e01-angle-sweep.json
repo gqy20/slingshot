@@ -30,7 +30,6 @@
     "tick_rate": 120
   },
   "story": {
-    "template": "overlay_comparison",
     "question_sec": 15.0,
     "explain_sec": 30.0,
     "setup_sec": 15.0,
@@ -44,10 +43,9 @@
     "secondary_unit": "m",
     "identity_label": "发射角实验",
     "control_label": "同一速度 · 只改变角度",
-	"explain_title": "射程 = 水平速度 × 滞空时间",
-	"explain_detail": "发射角增大，水平速度减小，滞空时间增加。",
 		"explanation": {
 			"kind": "relation",
+			"module": "angle_components",
 			"eyebrow": "",
 			"asset_dir": "res://assets/generated/formulas/s01e01-angle-sweep",
 			"steps": [

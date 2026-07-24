@@ -30,7 +30,6 @@
     "tick_rate": 120
   },
   "story": {
-    "template": "overlay_comparison",
     "question_sec": 15.0,
     "explain_sec": 30.0,
     "setup_sec": 15.0,
@@ -44,10 +43,9 @@
     "secondary_unit": "J",
     "identity_label": "拉伸距离实验",
 	"control_label": "同一角度 · 只改变拉伸",
-    "explain_title": "E = ½kx²",
-    "explain_detail": "弹簧储能与拉伸距离的平方成正比。\nx × 2  →  E × 4",
 		"explanation": {
 			"kind": "derivation",
+			"module": "spring_energy",
 			"eyebrow": "",
 			"asset_dir": "res://assets/generated/formulas/s01e02-stretch-sweep",
 			"steps": [
