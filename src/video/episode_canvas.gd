@@ -76,10 +76,20 @@ func set_playback(
 
 func _draw() -> void:
 	_draw_background()
+	var overlay := String(current_beat.get("overlay", ""))
+	if overlay in ["range-curve", "parameter-curve"]:
+		_draw_range_curve()
+		return
+	if _is_chart_handoff():
+		_draw_previous_chart_handoff()
 	if _has_layer("grid"):
 		_draw_grid()
 	if _show_physical_stage():
 		_draw_sling()
+	if _is_question_to_explanation_handoff():
+		_draw_question_handoff()
+	if _is_explanation_to_controls_handoff():
+		_draw_explanation_handoff()
 	if phase == "EXPLAIN" and _has_layer("annotations"):
 		_draw_explanation_module()
 	elif phase == "QUESTION" and _has_layer("subjects"):
@@ -89,13 +99,18 @@ func _draw() -> void:
 		_draw_reference_target()
 	if _has_layer("trajectories"):
 		_draw_trajectories()
+	if String(current_beat.get("id", "")) == "launch":
+		_draw_launch_guide_handoff()
+	if overlay == "model-boundary":
+		_draw_model_boundary_labels()
 	if phase in ["FLIGHT", "COMPARE"] and _has_layer("subjects"):
 		if episode["story"].get("show_target", true):
 			_draw_variant_targets()
 		_draw_variant_birds()
 		_draw_event_effects()
 	if phase == "COMPARE" and _has_layer("results"):
-		_draw_result_markers()
+		if overlay != "range-curve":
+			_draw_result_markers()
 	elif phase == "COMPARE" and String(current_beat.get("overlay", "")) == "counterexample":
 		_draw_focus_height_marker()
 
@@ -103,6 +118,104 @@ func _draw() -> void:
 func _draw_explanation_module() -> void:
 	if explanation_module != null:
 		explanation_module.draw(self)
+
+
+func _handoff_kind() -> String:
+	return String(current_beat.get("handoff", ""))
+
+
+func _handoff_progress() -> float:
+	return ShotCamera.transition_progress(current_beat, video_time_sec)
+
+
+func _is_question_to_explanation_handoff() -> bool:
+	return _handoff_kind() == "trajectory-to-model" and _handoff_progress() < 1.0
+
+
+func _is_explanation_to_controls_handoff() -> bool:
+	return _handoff_kind() == "formula-to-controls" and _handoff_progress() < 1.0
+
+
+func _is_chart_handoff() -> bool:
+	return _handoff_kind() == "chart-to-trajectories" and _handoff_progress() < 1.0
+
+
+func _draw_question_handoff() -> void:
+	var opacity := 1.0 - _handoff_progress()
+	_draw_teaser_subject("angle-45", "45°", 0, opacity, 1.0)
+	_draw_teaser_subject("angle-40", "空气中更远", 1, opacity * 0.88, 1.0)
+
+
+func _draw_explanation_handoff() -> void:
+	if explanation_module == null:
+		return
+	var opacity := 1.0 - _handoff_progress()
+	var previous := _previous_beat(current_beat)
+	if previous.is_empty():
+		return
+	var active := current_beat
+	current_beat = previous
+	explanation_module.draw(self, opacity)
+	current_beat = active
+
+
+func _draw_previous_chart_handoff() -> void:
+	var opacity := 1.0 - _handoff_progress()
+	var previous := _previous_beat(current_beat)
+	if previous.is_empty():
+		return
+	var active := current_beat
+	current_beat = previous
+	_draw_range_curve(opacity, false)
+	current_beat = active
+
+
+func _draw_launch_guide_handoff() -> void:
+	if _handoff_kind() != "angles-to-launch" or _handoff_progress() >= 1.0:
+		return
+	var variants: Array = episode.get("variants", [])
+	var focus_id := String(current_beat.get("focus", ""))
+	var active_index := 0
+	for index in range(variants.size()):
+		if String(variants[index].get("id", "")) == focus_id:
+			active_index = index
+			break
+	var opacity := 1.0 - _handoff_progress()
+	for index in range(variants.size()):
+		_draw_setup_angle_ray(variants[index], index, opacity, active_index)
+
+
+func _draw_model_boundary_labels() -> void:
+	var labels := [
+		{
+			"id": String(current_beat.get("focus", "")),
+			"text": String(current_beat.get("focus_label", "")),
+			"offset": Vector2(18, -18),
+		},
+		{
+			"id": String(current_beat.get("focus_secondary", "")),
+			"text": String(current_beat.get("focus_secondary_label", "")),
+			"offset": Vector2(18, -34),
+		},
+	]
+	for label_value in labels:
+		var label: Dictionary = label_value
+		var id := String(label["id"])
+		var text := String(label["text"])
+		var points: PackedVector2Array = trajectories_by_id.get(id, PackedVector2Array())
+		if text.is_empty() or points.is_empty():
+			continue
+		var apex := _map_point(_trajectory_apex(points))
+		var color: Color = colors_by_id.get(id, episode["theme"]["colors"]["muted"])
+		draw_string(
+			VideoTypography.medium(),
+			apex + Vector2(label["offset"]),
+			text,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			-1,
+			18,
+			Color(color, 0.82)
+		)
 
 
 func _draw_arrow(start: Vector2, finish: Vector2, color: Color, width: float) -> void:
@@ -125,6 +238,16 @@ func _beat_progress() -> float:
 		/ maxf(0.001, float(current_beat.get("duration", 1.0))),
 		0.0,
 		1.0
+	)
+
+
+func _beat_intro_progress(duration_sec: float = 0.8) -> float:
+	if current_beat.is_empty():
+		return 1.0
+	return smoothstep(
+		0.0,
+		maxf(0.001, duration_sec),
+		video_time_sec - float(current_beat.get("at", video_time_sec))
 	)
 
 
@@ -252,6 +375,13 @@ func _sling_state() -> Dictionary:
 		var slot: float = progress * float(variants.size())
 		var index := mini(int(floor(slot)), variants.size() - 1)
 		var slot_progress: float = slot - floor(slot)
+		var focus_id := String(current_beat.get("focus", ""))
+		if not focus_id.is_empty():
+			for focus_index in range(variants.size()):
+				if String(variants[focus_index].get("id", "")) == focus_id:
+					index = focus_index
+					slot_progress = 0.5
+					break
 		var pull := 1.0
 		if slot_progress < 0.30:
 			pull = smoothstep(0.0, 0.30, slot_progress)
@@ -324,26 +454,8 @@ func _draw_trajectories() -> void:
 		if phase in ["QUESTION", "EXPLAIN"]:
 			continue
 		elif phase == "SETUP":
-			var full_points: PackedVector2Array = trajectories_by_id.get(id, PackedVector2Array())
-			var setup_progress := clampf(
-				EpisodeLayout.phase_elapsed(episode, phase, video_time_sec)
-				/ float(episode["story"]["setup_sec"]),
-				0.0,
-				1.0
-			)
-			var reveal_progress := clampf(
-				setup_progress * float(variants.size() + 1) - float(index),
-				0.0,
-				1.0
-			)
-			if reveal_progress <= 0.0:
-				continue
-			points = full_points.slice(
-				0,
-				maxi(2, int(full_points.size() * 0.16 * reveal_progress))
-			)
-			alpha = VisualLanguage.ALPHA_SECONDARY
-			width = VisualLanguage.STROKE_SECONDARY
+			_draw_setup_angle_ray(variant, index, 1.0, _setup_active_variant_index())
+			continue
 		elif phase == "FLIGHT":
 			points = ReplayTrack.partial_trajectory(
 				records_by_id[id],
@@ -359,14 +471,31 @@ func _draw_trajectories() -> void:
 		else:
 			points = trajectories_by_id.get(id, PackedVector2Array())
 			var focus_id := String(current_beat.get("focus", ""))
+			var secondary_id := String(current_beat.get("focus_secondary", ""))
 			if String(current_beat.get("id", "")) == "ranking":
 				alpha = 0.58 if id == focus_id else VisualLanguage.ALPHA_CONTEXT
 				width = VisualLanguage.STROKE_PRIMARY if id == focus_id else VisualLanguage.STROKE_CONTEXT
 			elif String(current_beat.get("overlay", "")) == "counterexample":
 				alpha = VisualLanguage.ALPHA_PRIMARY if id == focus_id else 0.035
 				width = VisualLanguage.STROKE_PRIMARY if id == focus_id else VisualLanguage.STROKE_CONTEXT
+			elif String(current_beat.get("overlay", "")) == "model-boundary":
+				if id == focus_id:
+					alpha = VisualLanguage.ALPHA_PRIMARY
+					width = VisualLanguage.STROKE_PRIMARY
+				elif id == secondary_id:
+					alpha = 0.48
+					width = VisualLanguage.STROKE_SECONDARY
+				else:
+					alpha = 0.075
+					width = VisualLanguage.STROKE_CONTEXT
 			elif not focus_id.is_empty():
-				alpha = VisualLanguage.ALPHA_PRIMARY if id == focus_id else VisualLanguage.ALPHA_CONTEXT
+				if id == focus_id:
+					alpha = VisualLanguage.ALPHA_PRIMARY
+				else:
+					var context_fade := 1.0
+					if String(current_beat.get("id", "")) == "takeaway":
+						context_fade = lerpf(1.0, 0.28, smoothstep(0.0, 0.52, _beat_progress()))
+					alpha = VisualLanguage.ALPHA_CONTEXT * context_fade
 				width = VisualLanguage.STROKE_PRIMARY if id == focus_id else VisualLanguage.STROKE_CONTEXT
 			else:
 				alpha = VisualLanguage.ALPHA_PRIMARY if id == analysis.get("winner_id") else 0.22
@@ -374,17 +503,74 @@ func _draw_trajectories() -> void:
 		var mapped_points := _map_points(points)
 		if mapped_points.size() >= 2:
 			draw_polyline(mapped_points, Color(color, alpha), maxf(VisualLanguage.STROKE_CONTEXT, width * _world_scale()), true)
-		if phase == "SETUP":
-			var label_position := mapped_points[-1] + Vector2(18, -16 - index * 3)
-			draw_string(
-				VideoTypography.data(),
-				label_position,
-				String(variant["label"]),
-				HORIZONTAL_ALIGNMENT_LEFT,
-				-1,
-				18,
-				Color(color, 0.72)
-			)
+
+
+func _setup_active_variant_index() -> int:
+	var variants: Array = episode.get("variants", [])
+	if variants.is_empty():
+		return 0
+	var focus_id := String(current_beat.get("focus", ""))
+	if not focus_id.is_empty():
+		for index in range(variants.size()):
+			if String(variants[index].get("id", "")) == focus_id:
+				return index
+	var duration := maxf(0.001, float(episode["story"].get("setup_sec", 1.0)))
+	var progress := clampf(
+		EpisodeLayout.phase_elapsed(episode, "SETUP", video_time_sec) / duration,
+		0.0,
+		0.9999
+	)
+	return mini(int(floor(progress * float(variants.size()))), variants.size() - 1)
+
+
+func _draw_setup_angle_ray(
+	variant: Dictionary,
+	index: int,
+	opacity: float,
+	active_index: int
+) -> void:
+	var physics: Dictionary = variant["preset"]["physics"]
+	var angle_deg := float(physics["launch_angle_deg"])
+	var angle := deg_to_rad(angle_deg)
+	var direction := Vector2(cos(angle), -sin(angle))
+	var start := _map_point(launch_position_px)
+	var finish := _map_point(launch_position_px + direction * 310.0)
+	var color: Color = colors_by_id.get(String(variant["id"]), episode["theme"]["colors"]["muted"])
+	var is_active := index == active_index
+	var is_complete := index < active_index
+	var alpha := 0.14
+	var width := VisualLanguage.STROKE_CONTEXT
+	if is_complete:
+		alpha = 0.30
+		width = VisualLanguage.STROKE_MEASURE
+	if is_active:
+		alpha = 0.94
+		width = VisualLanguage.STROKE_PRIMARY
+	alpha *= clampf(opacity, 0.0, 1.0)
+	draw_line(start, finish, Color(color, alpha), width, true)
+	draw_circle(finish, 5.0 if is_active else 2.5, Color(color, alpha))
+	if not is_active:
+		return
+	var radius := 76.0 * _world_scale()
+	draw_arc(
+		start,
+		radius,
+		-angle,
+		0.0,
+		24,
+		Color(color, alpha * 0.58),
+		VisualLanguage.STROKE_MEASURE,
+		true
+	)
+	draw_string(
+		VideoTypography.data(),
+		finish + Vector2(16, -8),
+		String(variant["label"]),
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		22,
+		Color(color, alpha)
+	)
 
 
 func _draw_variant_birds() -> void:
@@ -414,11 +600,14 @@ func _draw_variant_birds() -> void:
 			index
 		)
 		if phase == "FLIGHT":
-			_draw_velocity_vector(
-				state["bird_position_px"],
-				state["bird_velocity_px_s"],
-				colors_by_id[id]
-			)
+			if String(episode["simulation"].get("model", "rigidbody")) != "projectile_drag":
+				_draw_velocity_vector(
+					state["bird_position_px"],
+					state["bird_velocity_px_s"],
+					colors_by_id[id]
+				)
+			elif id == focus_id and _has_layer("annotations"):
+				_draw_air_vectors(state, colors_by_id[id])
 
 
 func _draw_cold_open_teaser() -> void:
@@ -455,7 +644,9 @@ func _draw_teaser_subject(
 	sequence_progress: float
 ) -> void:
 	var record: Dictionary = records_by_id[id]
-	var duration := float(record.get("duration_sec", 0.0))
+	var duration := float(record.get("metrics", {}).get(
+		"flight_time_sec", record.get("duration_sec", 0.0)
+	))
 	var teaser_time := duration * lerpf(0.42, 0.88, smoothstep(0.0, 1.0, sequence_progress))
 	var state := ReplayTrack.sample(record, teaser_time)
 	var full_points: PackedVector2Array = trajectories_by_id.get(id, PackedVector2Array())
@@ -539,6 +730,8 @@ func _draw_result_celebration() -> void:
 func _draw_result_markers() -> void:
 	var rows: Array = analysis.get("rows", [])
 	if rows.is_empty():
+		return
+	if _beat_progress() < float(current_beat.get("result_reveal", 0.0)):
 		return
 	var winner_id := String(analysis.get("winner_id", ""))
 	var winner_only := String(current_beat.get("id", "")) == "takeaway"
@@ -869,6 +1062,280 @@ func _draw_velocity_vector(position: Vector2, velocity: Vector2, color: Color) -
 	)
 
 
+func _draw_air_vectors(state: Dictionary, color: Color) -> void:
+	_draw_velocity_vector(
+		Vector2(state["bird_position_px"]),
+		Vector2(state["bird_velocity_px_s"]),
+		color
+	)
+	var drag_force := Vector2(state.get("drag_force_n", Vector2.ZERO))
+	if drag_force.length() <= 1e-6:
+		return
+	var start := _map_point(Vector2(state["bird_position_px"]))
+	var length := clampf(46.0 + drag_force.length() * 34.0, 46.0, 128.0)
+	var finish := start + drag_force.normalized() * length
+	_draw_arrow(
+		start, finish, Color(episode["theme"]["colors"]["accent"], 0.78),
+		VisualLanguage.STROKE_SECONDARY
+	)
+	draw_string(
+		VideoTypography.medium(), finish + Vector2(-58, -12), "阻力",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 17,
+		Color(episode["theme"]["colors"]["accent"], 0.82)
+	)
+
+
+func _draw_range_curve(opacity: float = 1.0, show_transition: bool = true) -> void:
+	opacity = clampf(opacity, 0.0, 1.0)
+	var scans: Array = []
+	var overlay := String(current_beat.get("overlay", "range-curve"))
+	for scan_value in bundle.get("range_scans", []):
+		var scan: Dictionary = scan_value
+		var scan_id := String(scan.get("id", ""))
+		if overlay == "parameter-curve" and scan_id in ["air", "higher-ballistic-coefficient"]:
+			scans.append(scan)
+		elif overlay == "range-curve" and scan_id in ["vacuum", "air"]:
+			scans.append(scan)
+	if scans.is_empty():
+		return
+	var colors: Dictionary = episode["theme"]["colors"]
+	var plot := Rect2(238, 170, 1444, 650)
+	var min_angle := INF
+	var max_angle := -INF
+	var max_range := 0.0
+	for scan_value in scans:
+		var scan: Dictionary = scan_value
+		for point_value in scan.get("points", []):
+			var point: Dictionary = point_value
+			min_angle = minf(min_angle, float(point["angle_deg"]))
+			max_angle = maxf(max_angle, float(point["angle_deg"]))
+			max_range = maxf(max_range, float(point["range_m"]))
+	if not is_finite(min_angle) or max_angle <= min_angle or max_range <= 0.0:
+		return
+	var chart_title := (
+		"阻力相对变弱时，峰值回到哪里？"
+		if overlay == "parameter-curve"
+		else "发射角改变时，最远点在哪里？"
+	)
+	draw_string(
+		VideoTypography.medium(), plot.position + Vector2(0, -52),
+		chart_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 24,
+		Color(colors["text"], 0.92 * opacity)
+	)
+	draw_line(plot.position + Vector2(0, plot.size.y), plot.end, Color(colors["divider"], 0.66 * opacity), 1.5, true)
+	draw_line(plot.position, plot.position + Vector2(0, plot.size.y), Color(colors["divider"], 0.66 * opacity), 1.5, true)
+	for tick_index in range(6):
+		var ratio := float(tick_index) / 5.0
+		var x := plot.position.x + plot.size.x * ratio
+		var angle := lerpf(min_angle, max_angle, ratio)
+		draw_line(
+			Vector2(x, plot.end.y), Vector2(x, plot.end.y + 8),
+			Color(colors["divider"], 0.54 * opacity), 1.0, true
+		)
+		draw_string(
+			VideoTypography.data(), Vector2(x - 34, plot.end.y + 36), "%.0f°" % angle,
+			HORIZONTAL_ALIGNMENT_CENTER, 68, 17, Color(colors["muted"], 0.78 * opacity)
+		)
+	for tick_index in range(5):
+		var ratio := float(tick_index) / 4.0
+		var y := plot.end.y - plot.size.y * ratio
+		var value := max_range * ratio
+		draw_line(
+			Vector2(plot.position.x - 8, y), Vector2(plot.position.x, y),
+			Color(colors["divider"], 0.54 * opacity), 1.0, true
+		)
+		draw_string(
+			VideoTypography.data(), Vector2(plot.position.x - 98, y + 6), "%.0f m" % value,
+			HORIZONTAL_ALIGNMENT_RIGHT, 78, 16, Color(colors["muted"], 0.76 * opacity)
+		)
+	var reveal := smoothstep(0.0, 0.58, _visual_sequence_progress())
+	for scan_index in range(scans.size()):
+		var scan: Dictionary = scans[scan_index]
+		var points: Array = scan.get("points", [])
+		var scan_color := Color.from_string(String(scan["color_html"]), colors["accent"])
+		_draw_range_curve_segments(
+			points,
+			plot,
+			min_angle,
+			max_angle,
+			max_range,
+			1.0,
+			Color(scan_color, (0.12 if scan_index == 0 else 0.17) * opacity),
+			VisualLanguage.STROKE_CONTEXT
+		)
+	if show_transition and _handoff_kind() == "landings-to-chart" and _handoff_progress() < 1.0:
+		_draw_landing_to_chart_handoff(plot, min_angle, max_angle, max_range, scans, opacity)
+	for scan_index in range(scans.size()):
+		var scan: Dictionary = scans[scan_index]
+		var points: Array = scan.get("points", [])
+		var scan_color := Color.from_string(String(scan["color_html"]), colors["accent"])
+		_draw_range_curve_segments(
+			points,
+			plot,
+			min_angle,
+			max_angle,
+			max_range,
+			reveal,
+			Color(scan_color, (0.44 if scan_index == 0 else 0.94) * opacity),
+			VisualLanguage.STROKE_SECONDARY if scan_index == 0 else VisualLanguage.STROKE_PRIMARY
+		)
+		var best: Dictionary = scan.get("best", {})
+		if reveal > 0.72 and not best.is_empty():
+			var best_position := Vector2(
+				plot.position.x + plot.size.x * (float(best["angle_deg"]) - min_angle) / (max_angle - min_angle),
+				plot.end.y - plot.size.y * float(best["range_m"]) / max_range
+			)
+			draw_circle(best_position, 7.0 if scan_index > 0 else 5.0, Color(scan_color, opacity))
+			draw_string(
+				VideoTypography.data(), best_position + Vector2(14, -14),
+				"%s  %.0f°" % [String(scan["label"]), float(best["angle_deg"])],
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 19,
+				Color(scan_color, (0.92 if scan_index > 0 else 0.70) * opacity)
+			)
+	if reveal > 0.02 and reveal < 0.98 and not scans.is_empty():
+		var active_scan: Dictionary = scans[-1]
+		var active_points: Array = active_scan.get("points", [])
+		if active_points.size() >= 2:
+			var active_position := _range_curve_position_at_reveal(
+				active_points, plot, min_angle, max_angle, max_range, reveal
+			)
+			var active_angle := lerpf(min_angle, max_angle, reveal)
+			var active_color := Color.from_string(
+				String(active_scan["color_html"]), colors["accent"]
+			)
+			draw_line(
+				Vector2(active_position.x, active_position.y + 10),
+				Vector2(active_position.x, plot.end.y),
+				Color(active_color, 0.18 * opacity),
+				VisualLanguage.STROKE_CONTEXT,
+				true
+			)
+			draw_circle(active_position, 6.0, Color(active_color, 0.96 * opacity))
+			draw_string(
+				VideoTypography.data(), active_position + Vector2(14, -14),
+				"扫描到 %.0f°" % active_angle,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 18,
+				Color(active_color, 0.90 * opacity)
+			)
+
+
+func _draw_landing_to_chart_handoff(
+	plot: Rect2,
+	min_angle: float,
+	max_angle: float,
+	max_range: float,
+	scans: Array,
+	opacity: float
+) -> void:
+	var air_scan: Dictionary = {}
+	for scan_value in scans:
+		var scan: Dictionary = scan_value
+		if String(scan.get("id", "")) == "air":
+			air_scan = scan
+			break
+	if air_scan.is_empty():
+		return
+	var progress := smoothstep(0.0, 1.0, _handoff_progress())
+	var dot_alpha := (1.0 - smoothstep(0.78, 1.0, progress)) * opacity
+	for variant_value in episode.get("variants", []):
+		var variant: Dictionary = variant_value
+		var id := String(variant["id"])
+		var trajectory: PackedVector2Array = trajectories_by_id.get(id, PackedVector2Array())
+		if trajectory.is_empty():
+			continue
+		var angle := float(variant["preset"]["physics"]["launch_angle_deg"])
+		var point := _scan_point_for_angle(air_scan.get("points", []), angle)
+		if point.is_empty():
+			continue
+		var source := _map_point(trajectory[-1])
+		var target := _range_curve_point(point, plot, min_angle, max_angle, max_range)
+		var position := source.lerp(target, progress)
+		var color: Color = colors_by_id.get(id, episode["theme"]["colors"]["accent"])
+		draw_circle(position, 5.0, Color(color, 0.88 * dot_alpha))
+
+
+func _scan_point_for_angle(points: Array, angle: float) -> Dictionary:
+	var closest: Dictionary = {}
+	var closest_distance := INF
+	for point_value in points:
+		var point: Dictionary = point_value
+		var distance := absf(float(point["angle_deg"]) - angle)
+		if distance < closest_distance:
+			closest = point
+			closest_distance = distance
+	return closest
+
+
+func _range_curve_position_at_reveal(
+	points: Array,
+	plot: Rect2,
+	min_angle: float,
+	max_angle: float,
+	max_range: float,
+	reveal: float
+) -> Vector2:
+	var position := clampf(reveal, 0.0, 1.0) * float(points.size() - 1)
+	var start_index := mini(int(floor(position)), points.size() - 2)
+	var fraction := position - float(start_index)
+	return _range_curve_point(points[start_index], plot, min_angle, max_angle, max_range).lerp(
+		_range_curve_point(points[start_index + 1], plot, min_angle, max_angle, max_range),
+		fraction
+	)
+
+
+func _draw_range_curve_segments(
+	points: Array,
+	plot: Rect2,
+	min_angle: float,
+	max_angle: float,
+	max_range: float,
+	reveal: float,
+	color: Color,
+	width: float
+) -> void:
+	if points.size() < 2 or reveal <= 0.0:
+		return
+	# Godot's compatibility renderer can emit a malformed movie frame when the
+	# vertex count of an animated draw_polyline changes. Individual segments keep
+	# the reveal deterministic and make the leading edge move continuously.
+	var reveal_position := reveal * float(points.size() - 1)
+	var complete_segments := mini(int(floor(reveal_position)), points.size() - 1)
+	for segment_index in range(complete_segments):
+		draw_line(
+			_range_curve_point(points[segment_index], plot, min_angle, max_angle, max_range),
+			_range_curve_point(points[segment_index + 1], plot, min_angle, max_angle, max_range),
+			color,
+			width,
+			true
+		)
+	if complete_segments >= points.size() - 1:
+		return
+	var partial := reveal_position - float(complete_segments)
+	if partial <= 0.0:
+		return
+	var partial_start := _range_curve_point(
+		points[complete_segments], plot, min_angle, max_angle, max_range
+	)
+	var partial_end := partial_start.lerp(
+		_range_curve_point(points[complete_segments + 1], plot, min_angle, max_angle, max_range),
+		partial
+	)
+	draw_line(partial_start, partial_end, color, width, true)
+
+
+func _range_curve_point(
+	point: Dictionary,
+	plot: Rect2,
+	min_angle: float,
+	max_angle: float,
+	max_range: float
+) -> Vector2:
+	return Vector2(
+		plot.position.x + plot.size.x * (float(point["angle_deg"]) - min_angle) / (max_angle - min_angle),
+		plot.end.y - plot.size.y * float(point["range_m"]) / max_range
+	)
+
+
 func _map_point(point: Vector2) -> Vector2:
 	return ShotCamera.map_point(camera_state, point)
 
@@ -1002,11 +1469,20 @@ func _previous_camera_basis(beat: Dictionary) -> Dictionary:
 	return {}
 
 
+func _previous_beat(beat: Dictionary) -> Dictionary:
+	var beats: Array = episode.get("beats", [])
+	var id := String(beat.get("id", ""))
+	for index in range(beats.size()):
+		if String(beats[index].get("id", "")) == id and index > 0:
+			return beats[index - 1]
+	return {}
+
+
 func _camera_anchor_for_beat(beat: Dictionary) -> Vector2:
 	var shot := String(beat.get("shot", ""))
 	var focus_id := String(beat.get("focus", ""))
 	match shot:
-		"relation", "formula", "launch":
+		"relation", "formula", "setup", "launch":
 			return launch_position_px
 		"follow", "takeaway":
 			var focus_state: Dictionary = states_by_id.get(focus_id, {})

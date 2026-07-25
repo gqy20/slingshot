@@ -23,6 +23,9 @@ var total_frame_count := 0
 var render_output_size := Vector2i(3840, 2160)
 var running := false
 var last_phase := ""
+var display_subtitle_cues: Array = []
+var capture_repeat_count := 1
+var capture_repeat_index := 0
 
 
 func start(
@@ -32,13 +35,17 @@ func start(
 	subtitle_path: String = "",
 	frame_start: int = 0,
 	frame_end: int = -1,
-	render_size: Vector2i = Vector2i(3840, 2160)
+	render_size: Vector2i = Vector2i(3840, 2160),
+	external_subtitles: bool = false,
+	capture_repeat: int = 1
 ) -> void:
 	episode = normalized_episode
 	render_output_size = render_size
 	bundle = run_bundle
 	sidecar_path = output_sidecar_path
 	analysis = ResultAnalyzer.analyze(episode, bundle)
+	capture_repeat_count = maxi(1, capture_repeat)
+	capture_repeat_index = 0
 	var layout_errors := EpisodeLayout.validate_static_regions()
 	layout_errors.append_array(EpisodeLayout.audit_bundle(bundle))
 	if not layout_errors.is_empty():
@@ -62,12 +69,13 @@ func start(
 		push_error(subtitle_result["error"])
 		get_tree().quit(3)
 		return
-	var subtitle_layout := SubtitleTrack.validate_layout(subtitle_result["cues"])
+	display_subtitle_cues = SubtitleTrack.split_long_cues(subtitle_result["cues"])
+	var subtitle_layout := SubtitleTrack.validate_layout(display_subtitle_cues)
 	if not subtitle_layout["ok"]:
 		push_error(subtitle_layout["error"])
 		get_tree().quit(3)
 		return
-	hud.configure(episode, analysis, subtitle_result["cues"])
+	hud.configure(episode, analysis, [] if external_subtitles else display_subtitle_cues)
 
 	var fps := float(episode["video"]["fps"])
 	total_frame_count = roundi(float(episode["duration_sec"]) * fps)
@@ -99,23 +107,28 @@ func start(
 func _process(_delta: float) -> void:
 	if not running:
 		return
-	var fps := float(episode["video"]["fps"])
-	var video_time := float(frame_index) / fps
-	var phase := EpisodeDirector.phase_for_time(episode, video_time)
-	var beat := EpisodeDirector.beat_for_time(episode, video_time)
-	var times := EpisodeDirector.simulation_times(episode, bundle, video_time)
-	var states := {}
-	for record_value in bundle["records"]:
-		var record: Dictionary = record_value
-		var id: String = record["variant_id"]
-		states[id] = ReplayTrack.sample(record, float(times.get(id, 0.0)))
-	canvas.set_playback(phase, times, states, video_time, beat)
-	if phase != last_phase:
-		last_phase = phase
-		hud.set_phase(phase)
-	hud.set_beat(beat)
-	hud.set_elapsed(video_time, times)
+	if capture_repeat_index == 0:
+		var fps := float(episode["video"]["fps"])
+		var video_time := float(frame_index) / fps
+		var phase := EpisodeDirector.phase_for_time(episode, video_time)
+		var beat := EpisodeDirector.beat_for_time(episode, video_time)
+		var times := EpisodeDirector.simulation_times(episode, bundle, video_time)
+		var states := {}
+		for record_value in bundle["records"]:
+			var record: Dictionary = record_value
+			var id: String = record["variant_id"]
+			states[id] = ReplayTrack.sample(record, float(times.get(id, 0.0)))
+		canvas.set_playback(phase, times, states, video_time, beat)
+		if phase != last_phase:
+			last_phase = phase
+			hud.set_phase(phase)
+		hud.set_beat(beat)
+		hud.set_elapsed(video_time, times)
 
+	capture_repeat_index += 1
+	if capture_repeat_index < capture_repeat_count:
+		return
+	capture_repeat_index = 0
 	frame_index += 1
 	if frame_index >= frame_end_exclusive:
 		_finish()
@@ -165,6 +178,7 @@ func _finish() -> void:
 			"one_intent_per_beat": true,
 			"layer_profiles_validated": true,
 			"subtitle_max_characters": 88,
+			"subtitle_long_cues_split": true,
 			"subtitle_max_explicit_lines": 2,
 		},
 		"variants": summaries,
@@ -186,7 +200,7 @@ func _finish() -> void:
 
 
 func subtitle_cues_count() -> int:
-	return hud.subtitle_cues.size() if is_instance_valid(hud) else 0
+	return display_subtitle_cues.size()
 
 
 static func resolve_frame_range(total_frames: int, start_frame: int, end_frame: int) -> Vector2i:

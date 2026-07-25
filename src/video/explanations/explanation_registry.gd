@@ -4,10 +4,12 @@ extends RefCounted
 const ExplanationCatalog = preload("res://src/core/explanation_catalog.gd")
 const AngleComponents = preload("res://src/video/explanations/angle_components.gd")
 const SpringEnergy = preload("res://src/video/explanations/spring_energy.gd")
+const DragEffect = preload("res://src/video/explanations/drag_effect.gd")
 
 const MODULES := {
 	ExplanationCatalog.ANGLE_COMPONENTS: AngleComponents,
 	ExplanationCatalog.SPRING_ENERGY: SpringEnergy,
+	ExplanationCatalog.DRAG_EFFECT: DragEffect,
 }
 
 

@@ -86,6 +86,97 @@ static func display_text_at(
 	return ""
 
 
+static func split_long_cues(cues: Array, max_characters: int = 88) -> Array:
+	var result: Array = []
+	for cue_value in cues:
+		if not cue_value is Dictionary:
+			result.append(cue_value)
+			continue
+		var cue: Dictionary = cue_value
+		var text := String(cue.get("text", ""))
+		if text.length() <= max_characters:
+			result.append(cue.duplicate(true))
+			continue
+		var phrases := _display_phrases(text, mini(36, maxi(8, max_characters / 2)))
+		if phrases.size() <= 1:
+			result.append(cue.duplicate(true))
+			continue
+		var total_characters := 0
+		for phrase in phrases:
+			total_characters += String(phrase).length()
+		var start := float(cue.get("start_sec", 0.0))
+		var finish := float(cue.get("end_sec", start))
+		var cursor := 0
+		for phrase_index in range(phrases.size()):
+			var phrase := String(phrases[phrase_index])
+			var phrase_start := lerpf(
+				start, finish, float(cursor) / float(maxi(1, total_characters))
+			)
+			cursor += phrase.length()
+			var phrase_finish := (
+				finish if phrase_index == phrases.size() - 1
+				else lerpf(start, finish, float(cursor) / float(maxi(1, total_characters)))
+			)
+			result.append({
+				"start_sec": phrase_start,
+				"end_sec": phrase_finish,
+				"text": phrase,
+			})
+	return result
+
+
+static func split_display_cues(cues: Array, max_characters: int = 36) -> Array:
+	var result: Array = []
+	for cue_value in cues:
+		if not cue_value is Dictionary:
+			continue
+		var cue: Dictionary = cue_value
+		var phrases := _display_phrases(String(cue.get("text", "")), max_characters)
+		if phrases.size() <= 1:
+			result.append(cue.duplicate(true))
+			continue
+		var total_characters := 0
+		for phrase in phrases:
+			total_characters += String(phrase).length()
+		var start := float(cue.get("start_sec", 0.0))
+		var finish := float(cue.get("end_sec", start))
+		var cursor := 0
+		for phrase_index in range(phrases.size()):
+			var phrase := String(phrases[phrase_index])
+			var phrase_start := lerpf(
+				start, finish, float(cursor) / float(maxi(1, total_characters))
+			)
+			cursor += phrase.length()
+			var phrase_finish := (
+				finish if phrase_index == phrases.size() - 1
+				else lerpf(start, finish, float(cursor) / float(maxi(1, total_characters)))
+			)
+			result.append({
+				"start_sec": phrase_start,
+				"end_sec": phrase_finish,
+				"text": phrase,
+			})
+	return result
+
+
+static func to_srt(cues: Array) -> String:
+	var blocks := PackedStringArray()
+	for index in range(cues.size()):
+		if not cues[index] is Dictionary:
+			continue
+		var cue: Dictionary = cues[index]
+		blocks.append(
+			"%d\n%s --> %s\n%s"
+			% [
+				index + 1,
+				_format_timestamp(float(cue.get("start_sec", 0.0))),
+				_format_timestamp(float(cue.get("end_sec", 0.0))),
+				String(cue.get("text", "")),
+			]
+		)
+	return "\n\n".join(blocks) + ("\n" if not blocks.is_empty() else "")
+
+
 static func _display_phrases(text: String, max_characters: int) -> PackedStringArray:
 	var result := PackedStringArray()
 	var current := ""
@@ -138,6 +229,17 @@ static func _parse_timestamp(value: String) -> float:
 	if not seconds_text.is_valid_float():
 		return -1.0
 	return int(parts[0]) * 3600.0 + int(parts[1]) * 60.0 + float(seconds_text)
+
+
+static func _format_timestamp(value: float) -> String:
+	var total_milliseconds := maxi(0, roundi(value * 1000.0))
+	var milliseconds := total_milliseconds % 1000
+	var total_seconds := total_milliseconds / 1000
+	var seconds := total_seconds % 60
+	var total_minutes := total_seconds / 60
+	var minutes := total_minutes % 60
+	var hours := total_minutes / 60
+	return "%02d:%02d:%02d,%03d" % [hours, minutes, seconds, milliseconds]
 
 
 static func _failure(message: String) -> Dictionary:

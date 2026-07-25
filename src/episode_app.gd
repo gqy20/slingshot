@@ -86,7 +86,9 @@ func _ready() -> void:
 		String(args.get("subtitles", "")),
 		int(args.get("frame_start", 0)),
 		int(args.get("frame_end", -1)),
-		Vector2i(render_width, render_height)
+		Vector2i(render_width, render_height),
+		bool(args.get("external_subtitles", false)),
+		int(args.get("capture_repeat", 1))
 	)
 
 
@@ -110,6 +112,8 @@ func _parse_user_args(argv: PackedStringArray) -> Dictionary:
 		"render_width": 0,
 		"render_height": 0,
 		"boot_only": false,
+		"external_subtitles": false,
+		"capture_repeat": 1,
 	}
 	var index := 0
 	while index < argv.size():
@@ -152,5 +156,11 @@ func _parse_user_args(argv: PackedStringArray) -> Dictionary:
 					index += 1
 			"--boot-only":
 				result["boot_only"] = true
+			"--external-subtitles":
+				result["external_subtitles"] = true
+			"--capture-repeat":
+				if index + 1 < argv.size():
+					result["capture_repeat"] = maxi(1, argv[index + 1].to_int())
+					index += 1
 		index += 1
 	return result

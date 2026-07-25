@@ -8,9 +8,18 @@ const ExplanationCatalog = preload("res://src/core/explanation_catalog.gd")
 const REQUIRED_VIDEO_SIZE := Vector2i(3840, 2160)
 const ALLOWED_VIDEO_FPS := [30, 60]
 const ALLOWED_GOALS := ["max", "min"]
+const ALLOWED_SIMULATION_MODELS := ["rigidbody", "projectile_drag"]
 const ALLOWED_BEAT_PHASES := ["QUESTION", "EXPLAIN", "SETUP", "FLIGHT", "COMPARE"]
 const ALLOWED_SHOT_MODES := ["immersive", "measurement"]
 const ALLOWED_CAMERA_ACTIONS := ["establish", "hold", "reframe", "track"]
+const ALLOWED_HANDOFFS := [
+	"",
+	"trajectory-to-model",
+	"formula-to-controls",
+	"angles-to-launch",
+	"landings-to-chart",
+	"chart-to-trajectories",
+]
 const ALLOWED_BEAT_LAYERS := [
 	"world", "subjects", "trajectories", "annotations",
 	"identity", "headline", "legend", "grid", "formula", "clock", "results", "subtitle",
@@ -60,6 +69,14 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 		return _failure("simulation.tick_rate must be between 30 and 240")
 	simulation["duration_sec"] = float(simulation["duration_sec"])
 	simulation["tick_rate"] = tick_rate
+	var simulation_model := String(simulation.get("model", "rigidbody")).strip_edges()
+	if simulation_model not in ALLOWED_SIMULATION_MODELS:
+		return _failure("simulation.model must be one of %s" % [ALLOWED_SIMULATION_MODELS])
+	simulation["model"] = simulation_model
+	var scan_result := _normalize_angle_scan(simulation.get("angle_scan", {}))
+	if not scan_result["ok"]:
+		return scan_result
+	simulation["angle_scan"] = scan_result["scan"]
 
 	var story_result := _normalize_story(raw.get("story"))
 	if not story_result["ok"]:
@@ -210,6 +227,12 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 			return _failure("beats[%d] cannot show formula and results together" % index)
 		if "formula" in layers and int(raw.get("formula_step", -1)) < 0:
 			return _failure("beats[%d] formula layer requires formula_step" % index)
+		var handoff := String(raw.get("handoff", "")).strip_edges()
+		if handoff not in ALLOWED_HANDOFFS:
+			return _failure("beats[%d].handoff is invalid: %s" % [index, handoff])
+		var result_reveal_value: Variant = raw.get("result_reveal", 0.0)
+		if not _is_number(result_reveal_value):
+			return _failure("beats[%d].result_reveal must be numeric" % index)
 		beats.append({
 			"id": id,
 			"label": String(raw["label"]).strip_edges(),
@@ -234,11 +257,45 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 			"subtitle_delay": clampf(float(raw.get("subtitle_delay", 0.0)), 0.0, beat_duration),
 			"sfx": String(raw.get("sfx", "")),
 			"chapter": bool(raw.get("chapter", false)),
+			"visual_sequence": String(raw.get("visual_sequence", "")),
+			"handoff": handoff,
+			"handoff_formula_step": int(raw.get("handoff_formula_step", -1)),
+			"result_reveal": clampf(float(result_reveal_value), 0.0, 0.9),
+			"conclusion_display": String(raw.get("conclusion_display", "")).strip_edges(),
 		})
 		cursor += beat_duration
 	if absf(cursor - duration_sec) > 0.001:
 		return _failure("beats must cover the complete %.3f second episode" % duration_sec)
 	return {"ok": true, "error": "", "beats": beats}
+
+
+static func _normalize_angle_scan(value: Variant) -> Dictionary:
+	if value == null or value == {}:
+		return {"ok": true, "error": "", "scan": {}}
+	if not value is Dictionary:
+		return _failure("simulation.angle_scan must be an object")
+	var scan: Dictionary = value
+	for key in ["min_angle_deg", "max_angle_deg", "step_deg"]:
+		if not _positive_finite(scan.get(key)):
+			return _failure("simulation.angle_scan.%s must be positive and finite" % key)
+	var min_angle := float(scan["min_angle_deg"])
+	var max_angle := float(scan["max_angle_deg"])
+	var step := float(scan["step_deg"])
+	if min_angle >= max_angle or max_angle >= 90.0:
+		return _failure("simulation.angle_scan requires 0 < min < max < 90")
+	if step > max_angle - min_angle:
+		return _failure("simulation.angle_scan.step_deg is too large")
+	return {
+		"ok": true,
+		"error": "",
+		"scan": {
+			"min_angle_deg": min_angle,
+			"max_angle_deg": max_angle,
+			"step_deg": step,
+			"include_vacuum": bool(scan.get("include_vacuum", true)),
+			"include_parameter_variant": bool(scan.get("include_parameter_variant", false)),
+		},
+	}
 
 
 static func _load_theme(path: String) -> Dictionary:

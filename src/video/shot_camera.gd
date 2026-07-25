@@ -57,7 +57,7 @@ static func zoom_for_shot(shot: String) -> float:
 		"hero": 1.06,
 		"relation": 1.0,
 		"formula": 1.0,
-		"setup": 1.0,
+		"setup": 1.38,
 		"launch": 1.05,
 		"follow": 1.16,
 		"landing": 1.0,
@@ -69,6 +69,8 @@ static func zoom_for_shot(shot: String) -> float:
 
 static func target_screen_for_shot(shot: String, base_anchor_screen: Vector2) -> Vector2:
 	return {
+		"setup": Vector2(560.0, 760.0),
+		"launch": Vector2(400.0, 760.0),
 		"follow": Vector2(1030.0, 500.0),
 		"comparison": Vector2(1020.0, 525.0),
 		"takeaway": Vector2(1020.0, 750.0),

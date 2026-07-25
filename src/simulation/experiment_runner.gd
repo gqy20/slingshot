@@ -6,6 +6,7 @@ signal completed(bundle: Dictionary)
 const SimulationWorld = preload("res://src/simulation/simulation_world.gd")
 const RunRecord = preload("res://src/core/run_record.gd")
 const ShotModel = preload("res://src/core/shot_model.gd")
+const ProjectileSolver = preload("res://src/simulation/projectile_drag_solver.gd")
 
 var episode: Dictionary = {}
 var output_path := ""
@@ -29,8 +30,91 @@ func start(normalized_episode: Dictionary, record_path: String) -> void:
 	episode = normalized_episode
 	output_path = record_path
 	Engine.physics_ticks_per_second = int(episode["simulation"]["tick_rate"])
+	if String(episode["simulation"].get("model", "rigidbody")) == "projectile_drag":
+		call_deferred("_simulate_projectile_drag_episode")
+		return
 	variant_index = -1
 	_start_next_variant()
+
+
+func _simulate_projectile_drag_episode() -> void:
+	var tick_rate := int(episode["simulation"]["tick_rate"])
+	var duration := float(episode["simulation"]["duration_sec"])
+	records = []
+	for variant_value in episode["variants"]:
+		var variant: Dictionary = variant_value
+		var record := ProjectileSolver.simulate(variant["preset"], tick_rate, duration)
+		record["variant_id"] = variant["id"]
+		record["label"] = variant["label"]
+		record["color_html"] = variant["color_html"]
+		records.append(record)
+		print(
+			"[episode:simulate] complete=%s range=%.3f max_height=%.3f"
+			% [
+				variant["id"],
+				float(record["metrics"]["flight_range_m"]),
+				float(record["metrics"]["max_height_m"]),
+			]
+		)
+	var extras := _projectile_angle_scans(tick_rate, duration)
+	var bundle := RunRecord.make_bundle(episode, records, extras)
+	var result := RunRecord.write_json(output_path, bundle)
+	if result != OK:
+		push_error("failed to write run record: %s" % error_string(result))
+		get_tree().quit(3)
+		return
+	print("[episode:simulate] record=%s variants=%d" % [output_path, records.size()])
+	completed.emit(bundle)
+	get_tree().quit(0)
+
+
+func _projectile_angle_scans(tick_rate: int, duration: float) -> Dictionary:
+	var scan: Dictionary = episode["simulation"].get("angle_scan", {})
+	if scan.is_empty() or episode["variants"].is_empty():
+		return {}
+	var base_preset: Dictionary = episode["variants"][0]["preset"].duplicate(true)
+	var min_angle := float(scan["min_angle_deg"])
+	var max_angle := float(scan["max_angle_deg"])
+	var step := float(scan["step_deg"])
+	var drag_points := ProjectileSolver.scan_angles(
+		base_preset, tick_rate, duration, min_angle, max_angle, step
+	)
+	var range_scans: Array = [{
+		"id": "air",
+		"label": "有空气",
+		"color_html": episode["theme"]["colors"]["accent"].to_html(false),
+		"points": drag_points,
+		"best": ProjectileSolver.best_point(drag_points),
+	}]
+	if bool(scan.get("include_vacuum", true)):
+		var vacuum_preset := base_preset.duplicate(true)
+		vacuum_preset["physics"]["air_density_kg_m3"] = 0.0
+		var vacuum_points := ProjectileSolver.scan_angles(
+			vacuum_preset, tick_rate, duration, min_angle, max_angle, step
+		)
+		range_scans.push_front({
+			"id": "vacuum",
+			"label": "理想真空",
+			"color_html": episode["theme"]["colors"]["muted"].to_html(false),
+			"points": vacuum_points,
+			"best": ProjectileSolver.best_point(vacuum_points),
+		})
+	if bool(scan.get("include_parameter_variant", false)):
+		var high_ballistic_preset := base_preset.duplicate(true)
+		high_ballistic_preset["physics"]["bird_mass_kg"] = (
+			float(high_ballistic_preset["physics"]["bird_mass_kg"]) * 2.0
+		)
+		var high_ballistic_points := ProjectileSolver.scan_angles(
+			high_ballistic_preset, tick_rate, duration, min_angle, max_angle, step
+		)
+		range_scans.append({
+			"id": "higher-ballistic-coefficient",
+			"label": "质量×2，同外形同速",
+			"color_html": episode["theme"]["colors"]["highlight"].to_html(false),
+			"points": high_ballistic_points,
+			"best": ProjectileSolver.best_point(high_ballistic_points),
+		})
+	return {"range_scans": range_scans}
 
 
 func _physics_process(delta: float) -> void:

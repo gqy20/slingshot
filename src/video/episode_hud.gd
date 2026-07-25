@@ -116,6 +116,8 @@ func set_beat(beat: Dictionary) -> void:
 	question_label.visible = "headline" in layers
 	var formula_step := int(beat.get("formula_step", -1))
 	var show_formula := "formula" in layers and formula_step >= 0
+	if String(beat.get("handoff", "")) == "formula-to-controls":
+		formula_renderer.set_step(int(beat.get("handoff_formula_step", 2)))
 	explain_panel.visible = show_formula
 	formula_renderer.visible = show_formula
 	if show_formula:
@@ -124,6 +126,8 @@ func set_beat(beat: Dictionary) -> void:
 		chip.visible = "legend" in layers
 	var show_results := "results" in layers
 	result_panel.visible = show_results
+	if show_results and not String(beat.get("conclusion_display", "")).is_empty():
+		conclusion_label.text = String(beat["conclusion_display"])
 	clock_label.visible = "clock" in layers
 	if not show_results:
 		result_callout_label.visible = false
@@ -167,8 +171,16 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 		explain_panel.visible = formula_progress > 0.001
 		explain_panel.modulate.a = formula_progress
 	else:
-		formula_renderer.modulate.a = 1.0
-		explain_panel.modulate.a = 1.0
+		var formula_handoff := String(current_beat.get("handoff", "")) == "formula-to-controls"
+		var handoff_progress := clampf(
+			(video_time_sec - float(current_beat.get("at", video_time_sec))) / 0.8,
+			0.0,
+			1.0
+		)
+		formula_renderer.visible = formula_handoff and handoff_progress < 1.0
+		explain_panel.visible = formula_renderer.visible
+		formula_renderer.modulate.a = 1.0 - handoff_progress if formula_handoff else 1.0
+		explain_panel.modulate.a = formula_renderer.modulate.a
 	if phase == "FLIGHT" and "clock" in layers:
 		var values: Array = simulation_times.values()
 		var simulation_time := 0.0 if values.is_empty() else float(values[0])
@@ -180,7 +192,11 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 		)
 		if conclusion_delay <= 0.0:
 			conclusion_delay = 0.8
-		var show_conclusion := compare_time >= conclusion_delay
+		var reveal_progress := float(current_beat.get("result_reveal", 0.0))
+		var show_conclusion := (
+			compare_time >= conclusion_delay
+			and EpisodeDirector.beat_progress(current_beat, video_time_sec) >= reveal_progress
+		)
 		result_callout_label.visible = show_conclusion
 		conclusion_label.visible = show_conclusion
 		if show_conclusion:

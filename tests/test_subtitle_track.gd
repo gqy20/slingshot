@@ -56,6 +56,34 @@ func run(t) -> void:
 		])["ok"],
 		"subtitle layout rejects overlong cues"
 	)
+	var long_text := "第一段先说明共同条件，第二段解释变量怎样变化，第三段给出模型边界。".repeat(3)
+	var split_cues := SubtitleTrack.split_long_cues([{
+		"start_sec": 10.0,
+		"end_sec": 22.0,
+		"text": long_text,
+	}])
+	t.check(split_cues.size() > 1, "long source cues split into timed semantic phrases")
+	t.check(SubtitleTrack.validate_layout(split_cues)["ok"], "split subtitle cues fit the layout")
+	var reconstructed := ""
+	for cue in split_cues:
+		reconstructed += String(cue["text"])
+	t.check(reconstructed == long_text, "subtitle cue splitting preserves exact text")
+	t.check_close(split_cues[0]["start_sec"], 10.0, 0.0001, "split cues preserve start time")
+	t.check_close(split_cues[-1]["end_sec"], 22.0, 0.0001, "split cues preserve end time")
+	var display_cues := SubtitleTrack.split_display_cues(phrase_cues)
+	t.check(display_cues.size() > 1, "display cues export semantic phrase timing")
+	t.check(
+		SubtitleTrack.text_at(display_cues, 0.5)
+		== SubtitleTrack.display_text_at(phrase_cues, 0.5),
+		"exported display cues match runtime subtitle phrasing"
+	)
+	var split_srt := SubtitleTrack.to_srt(split_cues)
+	var roundtrip := SubtitleTrack.parse_text(split_srt)
+	t.check(roundtrip["ok"], "split subtitle cues serialize to valid SRT")
+	t.check(
+		roundtrip["cues"].size() == split_cues.size(),
+		"serialized split subtitles preserve cue count"
+	)
 	t.check(
 		not SubtitleTrack.validate_layout([
 			{"text": "第一行\n第二行\n第三行"},

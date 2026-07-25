@@ -12,6 +12,14 @@ const PHYSICS_KEYS := [
 	"efficiency",
 	"launch_angle_deg",
 ]
+const OPTIONAL_PHYSICS_DEFAULTS := {
+	"launch_speed_mps": 0.0,
+	"air_density_kg_m3": 0.0,
+	"drag_coefficient": 0.0,
+	"projectile_radius_m": 0.05,
+	"wind_x_mps": 0.0,
+	"wind_y_mps": 0.0,
+}
 const COLOR_KEYS := ["bird_color", "accent_color", "target_color"]
 const COORDINATE_KEYS := ["launch_position_m", "target_position_m"]
 const TOP_LEVEL_KEYS := ["id", "seed", "duration_sec", "video", "physics", "scene"]
@@ -58,6 +66,11 @@ static func validate_dict(raw: Dictionary) -> Dictionary:
 		physics[key] = float(physics[key])
 		if not is_finite(physics[key]):
 			return _failure("physics.%s must be finite" % key, warnings)
+	for key in OPTIONAL_PHYSICS_DEFAULTS:
+		var value: Variant = physics.get(key, OPTIONAL_PHYSICS_DEFAULTS[key])
+		if not _is_number(value) or not is_finite(float(value)):
+			return _failure("physics.%s must be finite and numeric" % key, warnings)
+		physics[key] = float(value)
 	for key in [
 		"pixels_per_meter",
 		"gravity_mps2",
@@ -72,6 +85,11 @@ static func validate_dict(raw: Dictionary) -> Dictionary:
 		return _failure("physics.efficiency must be in (0, 1]", warnings)
 	if physics["launch_angle_deg"] <= 0.0 or physics["launch_angle_deg"] >= 90.0:
 		return _failure("physics.launch_angle_deg must be between 0 and 90", warnings)
+	for key in ["launch_speed_mps", "air_density_kg_m3", "drag_coefficient"]:
+		if physics[key] < 0.0:
+			return _failure("physics.%s must not be negative" % key, warnings)
+	if physics["projectile_radius_m"] <= 0.0:
+		return _failure("physics.projectile_radius_m must be positive", warnings)
 
 	var scene_value: Variant = raw.get("scene")
 	if not scene_value is Dictionary:
@@ -80,11 +98,17 @@ static func validate_dict(raw: Dictionary) -> Dictionary:
 	if not _is_number(scene.get("ground_y_m")) or not is_finite(float(scene["ground_y_m"])):
 		return _failure("scene.ground_y_m must be finite and numeric", warnings)
 	scene["ground_y_m"] = float(scene["ground_y_m"])
+	var landing_y_value: Variant = scene.get("landing_y_m", scene["ground_y_m"])
+	if not _is_number(landing_y_value) or not is_finite(float(landing_y_value)):
+		return _failure("scene.landing_y_m must be finite and numeric", warnings)
+	scene["landing_y_m"] = float(landing_y_value)
 	for key in COORDINATE_KEYS:
 		var normalized: Variant = _coordinate(scene.get(key))
 		if normalized == null:
 			return _failure("scene.%s must contain two finite numbers" % key, warnings)
 		scene[key] = normalized
+	if scene["landing_y_m"] < scene["launch_position_m"].y:
+		return _failure("scene.landing_y_m must not be above launch_position_m", warnings)
 	for key in COLOR_KEYS:
 		var normalized_color: Variant = _color(scene.get(key))
 		if normalized_color == null:

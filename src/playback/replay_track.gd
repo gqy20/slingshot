@@ -14,7 +14,7 @@ static func sample(record: Dictionary, time_sec: float) -> Dictionary:
 	var weight := clampf(position - floor(position), 0.0, 1.0)
 	var lower: Dictionary = frames[lower_index]
 	var upper: Dictionary = frames[upper_index]
-	return {
+	var result := {
 		"bird_position_px": _vector(lower["bird_position_px"]).lerp(
 			_vector(upper["bird_position_px"]), weight
 		),
@@ -34,6 +34,17 @@ static func sample(record: Dictionary, time_sec: float) -> Dictionary:
 			_vector(upper["target_velocity_px_s"]), weight
 		),
 	}
+	for key in [
+		"position_m", "velocity_mps", "drag_force_n", "drag_power_w",
+		"kinetic_energy_j", "potential_energy_j", "dissipated_energy_j",
+	]:
+		if not lower.has(key) or not upper.has(key):
+			continue
+		if lower[key] is Array or lower[key] is Vector2:
+			result[key] = _vector(lower[key]).lerp(_vector(upper[key]), weight)
+		else:
+			result[key] = lerpf(float(lower[key]), float(upper[key]), weight)
+	return result
 
 
 static func event_time(record: Dictionary, event_type: String) -> float:

@@ -1,0 +1,35 @@
+{
+  "id": "t001-drag-base",
+  "seed": 20260725,
+  "duration_sec": 6.0,
+  "video": {
+    "width": 1920,
+    "height": 1080,
+    "fps": 60
+  },
+  "physics": {
+    "pixels_per_meter": 65.0,
+    "gravity_mps2": 9.81,
+    "bird_mass_kg": 0.15,
+    "target_mass_kg": 3.0,
+    "spring_k_npm": 500.0,
+    "stretch_m": 0.32,
+    "efficiency": 0.95,
+    "launch_angle_deg": 45.0,
+    "launch_speed_mps": 18.5,
+    "air_density_kg_m3": 1.225,
+    "drag_coefficient": 0.47,
+    "projectile_radius_m": 0.08,
+    "wind_x_mps": 0.0,
+    "wind_y_mps": 0.0
+  },
+  "scene": {
+    "ground_y_m": 13.5,
+    "landing_y_m": 12.5,
+    "launch_position_m": [2.5, 12.5],
+    "target_position_m": [40.0, 12.5],
+    "bird_color": "#E48865",
+    "accent_color": "#F0B35A",
+    "target_color": "#6E8A80"
+  }
+}

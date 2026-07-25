@@ -10,8 +10,24 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 . "$SCRIPT_DIR/render_paths.sh"
 GODOT_BIN="${GODOT_BIN:-godot}"
+FFMPEG_BIN="${FFMPEG_BIN:-}"
 
-for required_command in "$GODOT_BIN" xvfb-run ffmpeg ffprobe realpath sha256sum timeout jq awk; do
+if [[ -z "$FFMPEG_BIN" ]]; then
+	for ffmpeg_candidate in /usr/bin/ffmpeg "$(command -v ffmpeg 2>/dev/null || true)"; do
+		if [[ -x "$ffmpeg_candidate" ]] \
+			&& "$ffmpeg_candidate" -hide_banner -filters 2>/dev/null \
+				| awk '$2 == "subtitles" { found = 1 } END { exit !found }'; then
+			FFMPEG_BIN="$ffmpeg_candidate"
+			break
+		fi
+	done
+fi
+if [[ -z "$FFMPEG_BIN" ]]; then
+	printf 'episode-render: ffmpeg with libass subtitles support is required\n' >&2
+	exit 2
+fi
+
+for required_command in "$GODOT_BIN" "$FFMPEG_BIN" xvfb-run ffprobe realpath sha256sum timeout jq awk; do
   if ! command -v "$required_command" >/dev/null 2>&1; then
     printf 'episode-render: missing command: %s\n' "$required_command" >&2
     exit 2
@@ -44,8 +60,9 @@ VIDEO_DURATION="$(jq -r '
 ' "$EPISODE_ABS")"
 TOTAL_FRAMES="$(awk -v duration="$VIDEO_DURATION" -v fps="$FPS" \
   'BEGIN { printf "%d", duration * fps + 0.5 }')"
-RENDER_WORKERS="${EPISODE_RENDER_WORKERS:-2}"
+RENDER_WORKERS="${EPISODE_RENDER_WORKERS:-1}"
 MIN_FRAMES_PER_SHARD="${EPISODE_SHARD_MIN_FRAMES:-300}"
+CAPTURE_REPEAT="${EPISODE_CAPTURE_REPEAT:-2}"
 if [[ ! "$RENDER_WORKERS" =~ ^[1-9][0-9]*$ ]]; then
   printf 'episode-render: EPISODE_RENDER_WORKERS must be a positive integer\n' >&2
   exit 2
@@ -53,6 +70,19 @@ fi
 if [[ ! "$MIN_FRAMES_PER_SHARD" =~ ^[1-9][0-9]*$ ]]; then
   printf 'episode-render: EPISODE_SHARD_MIN_FRAMES must be a positive integer\n' >&2
   exit 2
+fi
+if [[ ! "$CAPTURE_REPEAT" =~ ^[1-9][0-9]*$ ]]; then
+	printf 'episode-render: EPISODE_CAPTURE_REPEAT must be a positive integer\n' >&2
+	exit 2
+fi
+# Multiple Vulkan movie-writer processes backed by llvmpipe can corrupt each
+# other's CanvasItem passes even when every process owns a separate X server.
+# Keep a single episode serial: batch-level concurrency remains available for
+# machines with several independent render jobs, but one movie never shards.
+if [[ "$RENDER_WORKERS" -gt 1 ]]; then
+	printf 'episode-render: capping workers %s -> 1 for coherent movie capture\n' \
+		"$RENDER_WORKERS"
+	RENDER_WORKERS=1
 fi
 max_workers_by_length=$((TOTAL_FRAMES / MIN_FRAMES_PER_SHARD))
 if [[ "$max_workers_by_length" -lt 1 ]]; then
@@ -144,6 +174,8 @@ RECORD_TMP="$RENDER_TMP/run-record.json"
 MP4_TMP="$RENDER_TMP/output.mp4"
 JSON_TMP="$RENDER_TMP/output.json"
 MANIFEST_TMP="$RENDER_TMP/manifest.txt"
+SUBTITLE_RENDER_SRT="$RENDER_TMP/subtitles-render.srt"
+SUBTITLE_ASS="$RENDER_TMP/subtitles.ass"
 mkdir -p "$FRAME_DIR" "$SHARD_DIR" "$PROJECT_VIEW"
 
 # Movie Maker allocates its recording viewport before EpisodeApp can resize the
@@ -189,9 +221,13 @@ PLAYBACK_ARGS=(
 	--play-record "$RECORD_TMP"
 	--render-width "$WIDTH"
 	--render-height "$HEIGHT"
+	--capture-repeat "$CAPTURE_REPEAT"
 )
 if [[ "$HAS_NARRATION" == true ]]; then
-  PLAYBACK_ARGS+=(--subtitles "$SUBTITLE_SRT")
+	# Keep subtitle cues in the sidecar, but composite their visible text after
+	# Godot renders the picture. Visible subtitle Controls make software Movie
+	# Writer alternate between incomplete Canvas passes.
+	PLAYBACK_ARGS+=(--subtitles "$SUBTITLE_SRT" --external-subtitles)
 fi
 XVFB_SCREEN="-screen 0 ${WIDTH}x${HEIGHT}x24"
 render_pids=()
@@ -212,13 +248,18 @@ for ((shard_index = 0; shard_index < RENDER_WORKERS; shard_index += 1)); do
   printf 'episode-render: shard=%s frames=[%s,%s)\n' \
     "$shard_index" "$frame_start" "$frame_end"
   (
+    # The OpenGL compatibility renderer intermittently captures the stale X11
+    # back buffer under Xvfb/llvmpipe, producing alternating incomplete frames.
+    # Selecting the Mobile method alone can still fall back to OpenGL, so pin
+    # the Vulkan driver explicitly to keep movie-writer frames coherent.
     if ! xvfb-run -a -s "$XVFB_SCREEN" \
       timeout "${RENDER_TIMEOUT_SEC:-3600}" \
       "$GODOT_BIN" --path "$PROJECT_VIEW" \
-      --rendering-method gl_compatibility \
+      --rendering-method mobile \
+      --rendering-driver vulkan \
       --resolution "${WIDTH}x${HEIGHT}" \
       --write-movie "$shard_frames/frame.png" \
-      --fixed-fps "$FPS" --disable-vsync \
+      --fixed-fps "$((FPS * CAPTURE_REPEAT))" --disable-vsync \
       res://episode.tscn -- "${shard_args[@]}" \
       >"$shard_log" 2>&1; then
       sed -n '1,260p' "$shard_log" >&2
@@ -247,7 +288,7 @@ merged_frames=0
 for ((shard_index = 0; shard_index < RENDER_WORKERS; shard_index += 1)); do
   frame_start=$((TOTAL_FRAMES * shard_index / RENDER_WORKERS))
   frame_end=$((TOTAL_FRAMES * (shard_index + 1) / RENDER_WORKERS))
-  expected_frames=$((frame_end - frame_start))
+  expected_frames=$(((frame_end - frame_start) * CAPTURE_REPEAT))
   shard_frames="$SHARD_DIR/shard-$(printf '%02d' "$shard_index")"
   actual_frames="$(find "$shard_frames" -maxdepth 1 -name 'frame*.png' -printf '.' | wc -c)"
   if [[ "$actual_frames" -ne "$expected_frames" ]]; then
@@ -255,10 +296,14 @@ for ((shard_index = 0; shard_index < RENDER_WORKERS; shard_index += 1)); do
       "$shard_index" "$actual_frames" "$expected_frames" >&2
     exit 1
   fi
+  raw_frame_index=0
   while IFS= read -r local_frame; do
-    printf -v merged_name 'frame%08d.png' "$merged_frames"
-    mv "$local_frame" "$FRAME_DIR/$merged_name"
-    merged_frames=$((merged_frames + 1))
+    if ((raw_frame_index % CAPTURE_REPEAT == CAPTURE_REPEAT - 1)); then
+      printf -v merged_name 'frame%08d.png' "$merged_frames"
+      mv "$local_frame" "$FRAME_DIR/$merged_name"
+      merged_frames=$((merged_frames + 1))
+    fi
+    raw_frame_index=$((raw_frame_index + 1))
   done < <(find "$shard_frames" -maxdepth 1 -name 'frame*.png' -print | sort)
 done
 if [[ "$merged_frames" -ne "$TOTAL_FRAMES" ]]; then
@@ -276,17 +321,27 @@ if [[ ! -s "$JSON_TMP" ]]; then
 fi
 
 if [[ "$HAS_NARRATION" == true ]]; then
-  ffmpeg -y -loglevel error \
-    -framerate "$FPS" -i "$FRAME_DIR/frame%08d.png" \
-    -i "$NARRATION_AUDIO" -i "$SOUND_DESIGN_AUDIO" \
-    -t "$VIDEO_DURATION" \
-    -filter_complex '[2:a]volume=0.40[sfx];[sfx][1:a]sidechaincompress=threshold=0.015:ratio=8:attack=15:release=300[sfxduck];[1:a][sfxduck]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.78:level=false[aout]' \
-    -map 0:v:0 -map '[aout]' \
+	"$GODOT_BIN" --headless --path "$PROJECT_ROOT" \
+		--script res://scripts/export_subtitles.gd -- \
+		"$SUBTITLE_SRT" "$SUBTITLE_RENDER_SRT"
+	"$FFMPEG_BIN" -y -loglevel error -i "$SUBTITLE_RENDER_SRT" "$SUBTITLE_ASS"
+	sed -i \
+		-e 's/^PlayResX:.*/PlayResX: 1920/' \
+		-e 's/^PlayResY:.*/PlayResY: 1080/' \
+		-e 's|^Style: Default,.*|Style: Default,Sarasa Gothic SC,26,\&H00E9F0F2,\&H00E9F0F2,\&HC0050608,\&H00050608,-1,0,0,0,100,100,0,0,1,0,1,2,190,190,48,1|' \
+		"$SUBTITLE_ASS"
+	SUBTITLE_FILTER="subtitles=filename='$SUBTITLE_ASS':fontsdir='$PROJECT_ROOT/assets/fonts'"
+	"$FFMPEG_BIN" -y -loglevel error \
+		-framerate "$FPS" -i "$FRAME_DIR/frame%08d.png" \
+		-i "$NARRATION_AUDIO" -i "$SOUND_DESIGN_AUDIO" \
+		-t "$VIDEO_DURATION" \
+		-filter_complex "[0:v]$SUBTITLE_FILTER[vout];[2:a]volume=0.40[sfx];[sfx][1:a]sidechaincompress=threshold=0.015:ratio=8:attack=15:release=300[sfxduck];[1:a][sfxduck]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.78:level=false[aout]" \
+		-map '[vout]' -map '[aout]' \
     -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p \
     -c:a aac -b:a 192k \
     -movflags +faststart "$MP4_TMP"
 else
-  ffmpeg -y -loglevel error \
+  "$FFMPEG_BIN" -y -loglevel error \
     -framerate "$FPS" -i "$FRAME_DIR/frame%08d.png" \
     -t "$VIDEO_DURATION" \
     -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p \
@@ -348,11 +403,18 @@ godot_version="$("$GODOT_BIN" --version | head -1)"
 		printf 'audio_delivery_measured_i=%s\n' "$(jq -r '.measured_i' <<<"$delivery_audio_json")"
 		printf 'audio_delivery_measured_tp=%s\n' "$(jq -r '.measured_tp' <<<"$delivery_audio_json")"
 		printf 'subtitle_text_exact=true\n'
+		printf 'subtitle_renderer=ffmpeg_libass\n'
 	fi
   printf 'engine=%s\n' "$godot_version"
-	printf 'renderer=gl_compatibility\n'
+	printf 'renderer=mobile_vulkan\n'
 	printf 'render_resolution=%sx%s\n' "$WIDTH" "$HEIGHT"
 	printf 'render_workers=%s\n' "$RENDER_WORKERS"
+	printf 'capture_repeat=%s\n' "$CAPTURE_REPEAT"
+	if [[ "$CAPTURE_REPEAT" -eq 1 ]]; then
+		printf 'capture_buffer_parity=direct\n'
+	else
+		printf 'capture_buffer_parity=last_of_repeat\n'
+	fi
 	printf 'render_sharding=absolute_frame_ranges\n'
   printf 'deterministic_seeded=true\n'
 } >"$MANIFEST_TMP"

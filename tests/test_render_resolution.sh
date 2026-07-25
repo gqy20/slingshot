@@ -33,4 +33,22 @@ if ! grep -Fq 'render_resolution=1920x1080' \
   exit 1
 fi
 
+if ! grep -Fq 'renderer=mobile_vulkan' \
+  "$resolution_tmp/smoke-1080p.manifest.txt"; then
+  printf 'render resolution manifest does not pin the coherent Vulkan renderer\n' >&2
+  exit 1
+fi
+
+if ! grep -Fq 'capture_repeat=2' \
+  "$resolution_tmp/smoke-1080p.manifest.txt"; then
+  printf 'render resolution manifest does not record stable serial capture\n' >&2
+  exit 1
+fi
+
+if ! grep -Fq 'capture_buffer_parity=last_of_repeat' \
+  "$resolution_tmp/smoke-1080p.manifest.txt"; then
+  printf 'render resolution manifest does not record settled buffer capture\n' >&2
+  exit 1
+fi
+
 printf 'RENDER RESOLUTION TEST: passed\n'

@@ -120,14 +120,14 @@ scripts/remux_narration.sh content/episodes/s01e01-angle-sweep.json
 - S01E01：相同弹簧能量下比较 15°、30°、45°、60°、75° 的首次落地距离；
 - S01E02：保持 45°，比较 0.3 m、0.6 m、0.9 m、1.2 m 拉伸距离。
 
-单集默认使用两个内部分片。批量入口把总 Godot Worker 数限制为 4；显式并行两集时，每集使用两个绝对帧区间 Worker，正好覆盖当前 6 核 CPU 的有效并行区间：
+单集固定使用一个连续渲染进程，并让每个逻辑状态保持两个 Movie Writer tick 后选取已稳定的末帧。当前 Linux 软件 Vulkan 驱动下，并行分片或逐 tick 改变画面都会让 CanvasItem 图层隔帧缺失，因此完整性优先于单集内并行；批量入口仍可并行不同集：
 
 ```bash
 scripts/render_batch.sh
 scripts/render_batch.sh --jobs 2 content/episodes/s01e01-angle-sweep.json content/episodes/s01e02-stretch-sweep.json
 ```
 
-可通过 `EPISODE_RENDER_WORKERS` 调整单集期望分片数，通过 `RENDER_MAX_WORKERS` 设置整批任务的并发上限。少于 300 帧的短视频默认不分片；测试时可用 `EPISODE_SHARD_MIN_FRAMES` 调整阈值。每个渲染任务会创建隔离的临时项目视图，用 `override.cfg` 在 Movie Maker 初始化前设置真实帧缓冲尺寸，因此 1080p 不再暗中生成 4K PNG，4K 也不经过低分辨率放大。
+`EPISODE_RENDER_WORKERS` 大于 1 时会被安全地收敛为 1；`RENDER_MAX_WORKERS` 只控制整批任务的并发上限。每个渲染任务会创建隔离的临时项目视图，用 `override.cfg` 在 Movie Maker 初始化前设置真实帧缓冲尺寸，因此 1080p 不再暗中生成 4K PNG，4K 也不经过低分辨率放大。
 
 批量脚本会按实际分辨率路由输出：4K 写入 `renders/final/<episode>.mp4`，1080p 固定写入 `renders/previews/<episode>.mp4`。同一集的每次审片都会原位替换这三个稳定文件：`.mp4`、`.json` 和 `.manifest.txt`，不再产生带版本后缀的预览。
 

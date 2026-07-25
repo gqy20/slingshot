@@ -2,14 +2,20 @@ class_name SlingshotRunRecord
 extends RefCounted
 
 
-static func make_bundle(episode: Dictionary, records: Array) -> Dictionary:
-	return {
+static func make_bundle(
+	episode: Dictionary,
+	records: Array,
+	extras: Dictionary = {}
+) -> Dictionary:
+	var bundle := {
 		"schema_version": 1,
 		"episode_id": episode["id"],
 		"simulation": episode["simulation"].duplicate(true),
 		"engine": Engine.get_version_info().get("string", "unknown"),
 		"records": records.duplicate(true),
 	}
+	bundle.merge(extras.duplicate(true), true)
+	return bundle
 
 
 static func write_json(path: String, value: Variant) -> Error:
