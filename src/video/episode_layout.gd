@@ -9,7 +9,7 @@ const LEGEND_RECT := Rect2(220.0, 112.0, 1240.0, 44.0)
 const CLOCK_RECT := Rect2(1480.0, 112.0, 380.0, 40.0)
 const QUESTION_RECT := Rect2(180.0, 112.0, 1560.0, 150.0)
 const SETUP_COPY_RECT := Rect2(260.0, 126.0, 1400.0, 54.0)
-const EXPLAIN_RECT := Rect2(760.0, 230.0, 1100.0, 440.0)
+const EXPLAIN_RECT := Rect2(900.0, 205.0, 960.0, 500.0)
 const RESULT_RECT := Rect2(160.0, 120.0, 1600.0, 760.0)
 const RESULT_RAIL_RECT := Rect2(300.0, 92.0, 1320.0, 104.0)
 const SUBTITLE_RECT := Rect2(190.0, 970.0, 1540.0, 70.0)
@@ -22,7 +22,7 @@ static func plot_rect_for_phase(phase: String, mode: String = "measurement") -> 
 		"QUESTION":
 			return Rect2(70.0, 285.0, 1780.0, 615.0)
 		"EXPLAIN":
-			return Rect2(42.0, 205.0, 670.0, 695.0)
+			return Rect2(50.0, 185.0, 820.0, 715.0)
 		"SETUP":
 			return Rect2(54.0, 205.0, 1812.0, 695.0)
 		"COMPARE":

@@ -77,6 +77,30 @@ func run(t) -> void:
 		== SubtitleTrack.display_text_at(phrase_cues, 0.5),
 		"exported display cues match runtime subtitle phrasing"
 	)
+	var touching_cues := [
+		{"start_sec": 10.0, "end_sec": 12.572, "text": "上一句"},
+		{"start_sec": 12.572, "end_sec": 14.279, "text": "下一句"},
+		{"start_sec": 15.0, "end_sec": 16.0, "text": "保留原有间隔"},
+	]
+	var burn_in_cues := SubtitleTrack.prepare_burn_in_cues(touching_cues)
+	t.check_close(
+		burn_in_cues[0]["end_sec"],
+		12.552,
+		0.0001,
+		"burn-in subtitles leave conversion-safe gaps between touching cues"
+	)
+	t.check_close(
+		burn_in_cues[1]["end_sec"],
+		14.279,
+		0.0001,
+		"burn-in subtitles preserve existing gaps"
+	)
+	t.check_close(
+		touching_cues[0]["end_sec"],
+		12.572,
+		0.0001,
+		"burn-in subtitle preparation does not mutate source timing"
+	)
 	var split_srt := SubtitleTrack.to_srt(split_cues)
 	var roundtrip := SubtitleTrack.parse_text(split_srt)
 	t.check(roundtrip["ok"], "split subtitle cues serialize to valid SRT")

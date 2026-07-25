@@ -69,9 +69,9 @@ static func zoom_for_shot(shot: String) -> float:
 
 static func target_screen_for_shot(shot: String, base_anchor_screen: Vector2) -> Vector2:
 	return {
-		"setup": Vector2(560.0, 760.0),
-		"launch": Vector2(400.0, 760.0),
+		"setup": Vector2(680.0, 760.0),
+		"launch": Vector2(520.0, 760.0),
 		"follow": Vector2(1030.0, 500.0),
 		"comparison": Vector2(1020.0, 525.0),
-		"takeaway": Vector2(1020.0, 750.0),
+		"takeaway": Vector2(960.0, 650.0),
 	}.get(shot, base_anchor_screen)

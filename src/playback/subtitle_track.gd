@@ -159,6 +159,28 @@ static func split_display_cues(cues: Array, max_characters: int = 36) -> Array:
 	return result
 
 
+static func prepare_burn_in_cues(cues: Array, minimum_gap_sec: float = 0.02) -> Array:
+	var result: Array = []
+	for cue_value in cues:
+		if cue_value is Dictionary:
+			result.append(cue_value.duplicate(true))
+	var gap := maxf(0.0, minimum_gap_sec)
+	for index in range(result.size() - 1):
+		var cue: Dictionary = result[index]
+		var next_cue: Dictionary = result[index + 1]
+		var start := float(cue.get("start_sec", 0.0))
+		var finish := float(cue.get("end_sec", start))
+		var next_start := float(next_cue.get("start_sec", finish))
+		if finish + gap <= next_start:
+			continue
+		var collision_safe_finish := next_start - gap
+		if collision_safe_finish <= start:
+			collision_safe_finish = minf(finish, next_start)
+		if collision_safe_finish > start:
+			cue["end_sec"] = collision_safe_finish
+	return result
+
+
 static func to_srt(cues: Array) -> String:
 	var blocks := PackedStringArray()
 	for index in range(cues.size()):

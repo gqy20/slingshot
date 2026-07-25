@@ -190,12 +190,12 @@ func _draw_model_boundary_labels() -> void:
 		{
 			"id": String(current_beat.get("focus", "")),
 			"text": String(current_beat.get("focus_label", "")),
-			"offset": Vector2(18, -18),
+			"offset": Vector2(22, -24),
 		},
 		{
 			"id": String(current_beat.get("focus_secondary", "")),
 			"text": String(current_beat.get("focus_secondary_label", "")),
-			"offset": Vector2(18, -34),
+			"offset": Vector2(22, -60),
 		},
 	]
 	for label_value in labels:
@@ -213,7 +213,7 @@ func _draw_model_boundary_labels() -> void:
 			text,
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
-			18,
+			26,
 			Color(color, 0.82)
 		)
 
@@ -227,7 +227,7 @@ func _draw_arrow(start: Vector2, finish: Vector2, color: Color, width: float) ->
 
 
 func _draw_module_label(position: Vector2, value: String, color: Color) -> void:
-	draw_string(VideoTypography.data(), position, value, HORIZONTAL_ALIGNMENT_LEFT, -1, 22, color)
+	draw_string(VideoTypography.data(), position, value, HORIZONTAL_ALIGNMENT_LEFT, -1, 26, color)
 
 
 func _beat_progress() -> float:
@@ -534,7 +534,7 @@ func _draw_setup_angle_ray(
 	var angle := deg_to_rad(angle_deg)
 	var direction := Vector2(cos(angle), -sin(angle))
 	var start := _map_point(launch_position_px)
-	var finish := _map_point(launch_position_px + direction * 310.0)
+	var finish := _map_point(launch_position_px + direction * 460.0)
 	var color: Color = colors_by_id.get(String(variant["id"]), episode["theme"]["colors"]["muted"])
 	var is_active := index == active_index
 	var is_complete := index < active_index
@@ -551,6 +551,9 @@ func _draw_setup_angle_ray(
 	draw_circle(finish, 5.0 if is_active else 2.5, Color(color, alpha))
 	if not is_active:
 		return
+	var travel := fmod(video_time_sec * 0.34, 1.0)
+	var flow_alpha := sin(PI * travel) * alpha
+	draw_circle(start.lerp(finish, travel), 7.0, Color(color, flow_alpha))
 	var radius := 76.0 * _world_scale()
 	draw_arc(
 		start,
@@ -568,8 +571,30 @@ func _draw_setup_angle_ray(
 		String(variant["label"]),
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
-		22,
+		28,
 		Color(color, alpha)
+	)
+	if String(current_beat.get("overlay", "")) == "protractor":
+		_draw_setup_velocity_components(start, finish, color, alpha)
+
+
+func _draw_setup_velocity_components(
+	start: Vector2,
+	finish: Vector2,
+	color: Color,
+	alpha: float
+) -> void:
+	var corner := Vector2(finish.x, start.y)
+	var component_color := Color(color, alpha * 0.42)
+	_draw_arrow(start, corner, component_color, VisualLanguage.STROKE_MEASURE)
+	_draw_arrow(corner, finish, component_color, VisualLanguage.STROKE_MEASURE)
+	draw_string(
+		VideoTypography.data(), start.lerp(corner, 0.56) + Vector2(-18, 38),
+		"vₓ", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, component_color
+	)
+	draw_string(
+		VideoTypography.data(), corner.lerp(finish, 0.52) + Vector2(18, 6),
+		"vᵧ", HORIZONTAL_ALIGNMENT_LEFT, -1, 26, component_color
 	)
 
 
@@ -677,7 +702,7 @@ func _draw_teaser_subject(
 			label,
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
-			24,
+			30,
 			Color(colors_by_id[id], alpha)
 		)
 
@@ -773,7 +798,7 @@ func _draw_result_rail(rows: Array, winner_id: String) -> void:
 		"落点射程",
 		HORIZONTAL_ALIGNMENT_RIGHT,
 		140,
-		18,
+		26,
 		Color(theme_colors["muted"], 0.66)
 	)
 	draw_line(
@@ -803,7 +828,7 @@ func _draw_result_rail(rows: Array, winner_id: String) -> void:
 			variant_label,
 			HORIZONTAL_ALIGNMENT_CENTER,
 			cell.size.x,
-			18 if winner else 16,
+			28 if winner else 26,
 			theme_colors["text"] if winner else Color(theme_colors["muted"], 0.70)
 		)
 		draw_string(
@@ -812,7 +837,7 @@ func _draw_result_rail(rows: Array, winner_id: String) -> void:
 			"%.2f %s" % [float(row["value"]), String(analysis.get("metric_unit", ""))],
 			HORIZONTAL_ALIGNMENT_CENTER,
 			cell.size.x,
-			26 if winner else 20,
+			30 if winner else 26,
 			theme_colors["text"] if winner else Color(theme_colors["muted"], 0.82)
 		)
 
@@ -848,7 +873,7 @@ func _draw_takeaway_marker(rows: Array, winner_id: String) -> void:
 			label,
 			HORIZONTAL_ALIGNMENT_LEFT,
 			-1,
-			22,
+			28,
 			theme_colors["text"]
 		)
 
@@ -888,7 +913,7 @@ func _draw_focus_height_marker() -> void:
 		String(analysis.get("secondary_label", "最高点")),
 		HORIZONTAL_ALIGNMENT_LEFT,
 		label_width,
-		17,
+		26,
 		Color(episode["theme"]["colors"]["muted"], 0.72)
 	)
 	draw_string(
@@ -1080,7 +1105,7 @@ func _draw_air_vectors(state: Dictionary, color: Color) -> void:
 	)
 	draw_string(
 		VideoTypography.medium(), finish + Vector2(-58, -12), "阻力",
-		HORIZONTAL_ALIGNMENT_LEFT, -1, 17,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
 		Color(episode["theme"]["colors"]["accent"], 0.82)
 	)
 
@@ -1119,13 +1144,13 @@ func _draw_range_curve(opacity: float = 1.0, show_transition: bool = true) -> vo
 	)
 	draw_string(
 		VideoTypography.medium(), plot.position + Vector2(0, -52),
-		chart_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 24,
+		chart_title, HORIZONTAL_ALIGNMENT_LEFT, -1, 32,
 		Color(colors["text"], 0.92 * opacity)
 	)
 	draw_line(plot.position + Vector2(0, plot.size.y), plot.end, Color(colors["divider"], 0.66 * opacity), 1.5, true)
 	draw_line(plot.position, plot.position + Vector2(0, plot.size.y), Color(colors["divider"], 0.66 * opacity), 1.5, true)
-	for tick_index in range(6):
-		var ratio := float(tick_index) / 5.0
+	for tick_index in range(5):
+		var ratio := float(tick_index) / 4.0
 		var x := plot.position.x + plot.size.x * ratio
 		var angle := lerpf(min_angle, max_angle, ratio)
 		draw_line(
@@ -1134,10 +1159,10 @@ func _draw_range_curve(opacity: float = 1.0, show_transition: bool = true) -> vo
 		)
 		draw_string(
 			VideoTypography.data(), Vector2(x - 34, plot.end.y + 36), "%.0f°" % angle,
-			HORIZONTAL_ALIGNMENT_CENTER, 68, 17, Color(colors["muted"], 0.78 * opacity)
+			HORIZONTAL_ALIGNMENT_CENTER, 82, 26, Color(colors["muted"], 0.78 * opacity)
 		)
-	for tick_index in range(5):
-		var ratio := float(tick_index) / 4.0
+	for tick_index in range(4):
+		var ratio := float(tick_index) / 3.0
 		var y := plot.end.y - plot.size.y * ratio
 		var value := max_range * ratio
 		draw_line(
@@ -1146,7 +1171,7 @@ func _draw_range_curve(opacity: float = 1.0, show_transition: bool = true) -> vo
 		)
 		draw_string(
 			VideoTypography.data(), Vector2(plot.position.x - 98, y + 6), "%.0f m" % value,
-			HORIZONTAL_ALIGNMENT_RIGHT, 78, 16, Color(colors["muted"], 0.76 * opacity)
+			HORIZONTAL_ALIGNMENT_RIGHT, 92, 26, Color(colors["muted"], 0.76 * opacity)
 		)
 	var reveal := smoothstep(0.0, 0.58, _visual_sequence_progress())
 	for scan_index in range(scans.size()):
@@ -1189,7 +1214,7 @@ func _draw_range_curve(opacity: float = 1.0, show_transition: bool = true) -> vo
 			draw_string(
 				VideoTypography.data(), best_position + Vector2(14, -14),
 				"%s  %.0f°" % [String(scan["label"]), float(best["angle_deg"])],
-				HORIZONTAL_ALIGNMENT_LEFT, -1, 19,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
 				Color(scan_color, (0.92 if scan_index > 0 else 0.70) * opacity)
 			)
 	if reveal > 0.02 and reveal < 0.98 and not scans.is_empty():
@@ -1214,7 +1239,7 @@ func _draw_range_curve(opacity: float = 1.0, show_transition: bool = true) -> vo
 			draw_string(
 				VideoTypography.data(), active_position + Vector2(14, -14),
 				"扫描到 %.0f°" % active_angle,
-				HORIZONTAL_ALIGNMENT_LEFT, -1, 18,
+				HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
 				Color(active_color, 0.90 * opacity)
 			)
 
@@ -1484,13 +1509,13 @@ func _camera_anchor_for_beat(beat: Dictionary) -> Vector2:
 	match shot:
 		"relation", "formula", "setup", "launch":
 			return launch_position_px
-		"follow", "takeaway":
+		"follow":
 			var focus_state: Dictionary = states_by_id.get(focus_id, {})
 			if not focus_state.is_empty():
 				return Vector2(focus_state["bird_position_px"])
 		"landing":
 			return EpisodeLayout.SOURCE_WORLD_RECT.get_center()
-		"comparison":
+		"comparison", "takeaway":
 			var points: PackedVector2Array = trajectories_by_id.get(focus_id, PackedVector2Array())
 			if not points.is_empty():
 				var bounds := Rect2(points[0], Vector2.ZERO)

@@ -63,7 +63,6 @@
     "explanation": {
       "kind": "relation",
       "module": "drag_effect",
-      "eyebrow": "从理想答案到真实条件",
       "asset_dir": "res://assets/generated/formulas/s01e03-angle-with-drag",
       "steps": [
         {

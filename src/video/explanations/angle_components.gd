@@ -81,7 +81,7 @@ func draw(canvas) -> void:
 		"%.0f°" % angle_deg,
 		HORIZONTAL_ALIGNMENT_LEFT,
 		-1,
-		24,
+		26,
 		Color(theme_colors["accent"], intro)
 	)
 	canvas._draw_arrow(

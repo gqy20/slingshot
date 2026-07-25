@@ -72,7 +72,7 @@ func draw(canvas) -> void:
 		"储能  E",
 		HORIZONTAL_ALIGNMENT_LEFT,
 		180,
-		18,
+		26,
 		Color(theme_colors["muted"], 0.72)
 	)
 	var spring_start := plot.position + Vector2(90, 130)
@@ -124,7 +124,7 @@ func draw(canvas) -> void:
 		_dimension_label(extension_factor),
 		HORIZONTAL_ALIGNMENT_CENTER,
 		spring_finish.x - rest_finish.x,
-		24,
+		26,
 		theme_colors["accent"]
 	)
 	canvas.draw_line(

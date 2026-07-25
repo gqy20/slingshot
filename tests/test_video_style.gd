@@ -11,16 +11,16 @@ const EXPECTED_ROLE_SIZES := {
 	VideoTypography.HERO: 56,
 	VideoTypography.ACCENT: 40,
 	VideoTypography.DISPLAY: 48,
-	VideoTypography.TITLE: 18,
-	VideoTypography.SECTION: 24,
+	VideoTypography.TITLE: 26,
+	VideoTypography.SECTION: 28,
 	VideoTypography.BODY: 26,
 	VideoTypography.SUBTITLE: 26,
-	VideoTypography.DATA: 22,
-	VideoTypography.DATA_META: 16,
-	VideoTypography.META: 16,
+	VideoTypography.DATA: 26,
+	VideoTypography.DATA_META: 26,
+	VideoTypography.META: 26,
 	VideoTypography.FORMULA_MAIN: 64,
 	VideoTypography.FORMULA_STEP: 30,
-	VideoTypography.FORMULA_META: 16,
+	VideoTypography.FORMULA_META: 26,
 }
 
 
@@ -78,6 +78,11 @@ func run(t) -> void:
 		t.check(
 			VideoTypography.size_for(role) == EXPECTED_ROLE_SIZES[role],
 			"typography role has canonical size: %s" % role
+		)
+		t.check(
+			VideoTypography.size_for(role)
+			>= VideoTypography.size_for(VideoTypography.SUBTITLE),
+			"visible typography is never smaller than subtitles: %s" % role
 		)
 	t.check(
 		VideoTypography.theme().get_font("font", VideoTypography.FORMULA_MAIN) == VideoTypography.data(),

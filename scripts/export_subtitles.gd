@@ -14,7 +14,9 @@ func _initialize() -> void:
 		printerr(loaded["error"])
 		quit(2)
 		return
-	var cues := SubtitleTrack.split_display_cues(loaded["cues"])
+	var cues := SubtitleTrack.prepare_burn_in_cues(
+		SubtitleTrack.split_display_cues(loaded["cues"])
+	)
 	var layout := SubtitleTrack.validate_layout(cues)
 	if not layout["ok"]:
 		printerr(layout["error"])

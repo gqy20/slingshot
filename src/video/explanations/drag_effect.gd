@@ -24,15 +24,30 @@ func draw(canvas, opacity: float = 1.0) -> void:
 		return
 	var focus_variant := _variant_for_id(variants, focus_id)
 	var intro: float = float(canvas._beat_intro_progress(0.9)) * clampf(opacity, 0.0, 1.0)
-	_draw_ideal_reference(canvas, focus_variant, intro)
-	_draw_real_trajectory(canvas, focus_id, intro)
+	var motion_progress := _motion_progress(canvas)
+	_draw_ideal_reference(canvas, focus_variant, intro, motion_progress)
+	_draw_real_trajectory(canvas, focus_id, intro, motion_progress)
 	if step >= 1:
-		_draw_force_pair(canvas, record, focus_id, intro)
+		_draw_force_pair(canvas, record, focus_id, intro, motion_progress)
 	if step >= 2:
 		_draw_angle_family(canvas, focus_id, intro)
 
 
-func _draw_ideal_reference(canvas, variant: Dictionary, alpha: float) -> void:
+func _motion_progress(canvas) -> float:
+	var elapsed := maxf(
+		0.0,
+		canvas.video_time_sec - float(canvas.current_beat.get("at", canvas.video_time_sec))
+	)
+	var cycle := fmod(elapsed, 5.2) / 5.2
+	return smoothstep(0.0, 1.0, cycle)
+
+
+func _draw_ideal_reference(
+	canvas,
+	variant: Dictionary,
+	alpha: float,
+	motion_progress: float
+) -> void:
 	var physics: Dictionary = variant["preset"]["physics"]
 	var scene: Dictionary = variant["preset"]["scene"]
 	var speed := float(physics.get("launch_speed_mps", 0.0))
@@ -63,31 +78,79 @@ func _draw_ideal_reference(canvas, variant: Dictionary, alpha: float) -> void:
 				)
 		canvas.draw_string(
 			VideoTypography.medium(), points[mini(18, points.size() - 1)] + Vector2(18, -16),
-			"理想真空", HORIZONTAL_ALIGNMENT_LEFT, -1, 18,
+			"理想真空", HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
 			Color(canvas.episode["theme"]["colors"]["muted"], 0.68 * alpha)
 		)
+		var marker_index := clampi(
+			int(round(motion_progress * float(points.size() - 1))),
+			0,
+			points.size() - 1
+		)
+		var marker := points[marker_index]
+		var marker_color := Color(canvas.episode["theme"]["colors"]["muted"], 0.76 * alpha)
+		canvas.draw_circle(marker, 13.0, Color(marker_color, 0.12 * alpha))
+		canvas.draw_circle(marker, 5.0, marker_color)
 
 
-func _draw_real_trajectory(canvas, focus_id: String, alpha: float) -> void:
+func _draw_real_trajectory(
+	canvas,
+	focus_id: String,
+	alpha: float,
+	motion_progress: float
+) -> void:
+	var record: Dictionary = canvas.records_by_id.get(focus_id, {})
+	if record.is_empty():
+		return
 	var points: PackedVector2Array = canvas._map_points(
 		canvas.trajectories_by_id.get(focus_id, PackedVector2Array())
 	)
 	if points.size() < 2:
 		return
 	canvas.draw_polyline(
-		points, Color(canvas.colors_by_id[focus_id], 0.82 * alpha),
-		VisualLanguage.STROKE_PRIMARY, true
+		points, Color(canvas.colors_by_id[focus_id], 0.22 * alpha),
+		VisualLanguage.STROKE_SECONDARY, true
 	)
+	var flight_time := float(record.get("metrics", {}).get("flight_time_sec", 0.0))
+	var sample_time := flight_time * lerpf(0.04, 0.94, motion_progress)
+	var active_points: PackedVector2Array = canvas._map_points(
+		ReplayTrack.partial_trajectory(record, sample_time)
+	)
+	if active_points.size() >= 2:
+		canvas.draw_polyline(
+			active_points, Color(canvas.colors_by_id[focus_id], 0.88 * alpha),
+			VisualLanguage.STROKE_PRIMARY, true
+		)
+	var state: Dictionary = ReplayTrack.sample(record, sample_time)
+	if not state.is_empty():
+		canvas._draw_bird(
+			Vector2(state["bird_position_px"]),
+			float(state["bird_rotation"]),
+			canvas.colors_by_id[focus_id],
+			alpha,
+			false,
+			Vector2(state["bird_velocity_px_s"]),
+			_variant_index_for_id(canvas.episode.get("variants", []), focus_id),
+			true
+		)
 	canvas.draw_string(
 		VideoTypography.medium(), points[mini(23, points.size() - 1)] + Vector2(18, 30),
-		"有空气", HORIZONTAL_ALIGNMENT_LEFT, -1, 18,
+		"有空气", HORIZONTAL_ALIGNMENT_LEFT, -1, 26,
 		Color(canvas.colors_by_id[focus_id], 0.86 * alpha)
 	)
 
 
-func _draw_force_pair(canvas, record: Dictionary, focus_id: String, alpha: float) -> void:
+func _draw_force_pair(
+	canvas,
+	record: Dictionary,
+	focus_id: String,
+	alpha: float,
+	motion_progress: float
+) -> void:
 	var flight_time := float(record.get("metrics", {}).get("flight_time_sec", 0.0))
-	var state := ReplayTrack.sample(record, flight_time * 0.36)
+	var state := ReplayTrack.sample(
+		record,
+		flight_time * lerpf(0.04, 0.94, motion_progress)
+	)
 	if state.is_empty():
 		return
 	var center: Vector2 = canvas._map_point(Vector2(state["bird_position_px"]))
@@ -112,23 +175,58 @@ func _draw_force_pair(canvas, record: Dictionary, focus_id: String, alpha: float
 			drag_tip + Vector2(-62, -12), "F阻力",
 			Color(canvas.episode["theme"]["colors"]["accent"], alpha)
 		)
-	canvas.draw_circle(center, 10.0, Color(canvas.colors_by_id[focus_id], 0.92 * alpha))
+	canvas.draw_circle(center, 38.0, Color(canvas.colors_by_id[focus_id], 0.08 * alpha))
 
 
 func _draw_angle_family(canvas, focus_id: String, alpha: float) -> void:
+	var alternatives: Array = []
 	for variant_value in canvas.episode.get("variants", []):
 		var variant: Dictionary = variant_value
+		if String(variant["id"]) != focus_id:
+			alternatives.append(variant)
+	if alternatives.is_empty():
+		return
+	var elapsed := maxf(
+		0.0,
+		canvas.video_time_sec - float(canvas.current_beat.get("at", canvas.video_time_sec))
+	)
+	var active_index := mini(int(floor(elapsed / 2.8)) % alternatives.size(), alternatives.size() - 1)
+	for index in range(alternatives.size()):
+		var variant: Dictionary = alternatives[index]
 		var id := String(variant["id"])
-		if id == focus_id:
-			continue
 		var points: PackedVector2Array = canvas._map_points(
 			canvas.trajectories_by_id.get(id, PackedVector2Array())
 		)
 		if points.size() >= 2:
+			var active := index == active_index
 			canvas.draw_polyline(
-				points, Color(canvas.colors_by_id[id], 0.16 * alpha),
-				VisualLanguage.STROKE_CONTEXT, true
+				points,
+				Color(canvas.colors_by_id[id], (0.68 if active else 0.10) * alpha),
+				VisualLanguage.STROKE_SECONDARY if active else VisualLanguage.STROKE_CONTEXT,
+				true
 			)
+			if active:
+				var apex := _apex(points)
+				canvas.draw_string(
+					VideoTypography.data(), apex + Vector2(18, -18),
+					String(variant["label"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 28,
+					Color(canvas.colors_by_id[id], 0.92 * alpha)
+				)
+
+
+func _apex(points: PackedVector2Array) -> Vector2:
+	var apex := points[0]
+	for point in points:
+		if point.y < apex.y:
+			apex = point
+	return apex
+
+
+func _variant_index_for_id(variants: Array, id: String) -> int:
+	for index in range(variants.size()):
+		if String(variants[index].get("id", "")) == id:
+			return index
+	return 0
 
 
 func _variant_for_id(variants: Array, id: String) -> Dictionary:
