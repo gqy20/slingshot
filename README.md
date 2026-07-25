@@ -34,11 +34,15 @@ Episode 系统的完整边界和数据流见 [Episode 视频系统](docs/episode
 ## 环境
 
 - Godot 4.7.1 标准版（无需 Mono/.NET）
-- Xvfb
 - FFmpeg 与 ffprobe
 - mmx-cli 1.0.18 或更新版本（1.0.16 的重复发音表序列化与当前 T2A API 不兼容）
 - Typst 0.15.1（仅在修改公式后重建 SVG 时需要）
-- Linux 下可用的 OpenGL 3 兼容驱动
+- Windows：PowerShell 5.1 或更新版本，以及 Vulkan 驱动
+- Linux：Bash、Xvfb，以及可用的 OpenGL 3/Vulkan 驱动
+
+Windows 工具默认可安装到 `%USERPROFILE%\.local\bin`。PowerShell 入口会优先查找
+该目录中的 `Godot_v4.7.1-stable_win64_console.exe` 与 `typst.exe`，也支持用
+`GODOT_BIN` 显式覆盖 Godot 路径。
 
 检查环境：
 
@@ -49,10 +53,23 @@ command -v xvfb-run ffprobe
 typst --version
 ```
 
+Windows PowerShell 环境检查：
+
+```powershell
+.\scripts\check_environment.ps1
+.\scripts\import_project.ps1
+```
+
 ## 一条命令生成 Episode
 
 ```bash
 scripts/render_episode.sh content/episodes/smoke.json renders/smoke/episode-smoke.mp4
+```
+
+Windows PowerShell：
+
+```powershell
+.\scripts\render_episode.ps1 content\episodes\smoke.json renders\smoke\episode-smoke.mp4 -SkipNarration
 ```
 
 新建同系列 Episode 不需要复制现有 14 个 Beat。脚手架会生成单集配置、讲稿占位稿，并使用标准节拍模板自动补齐镜头、图层、意图、镜头理由和连续时间：
@@ -71,6 +88,8 @@ scripts/validate_episode.sh content/episodes/s01e03-angle-demo.json
 ```bash
 scripts/install_git_hooks.sh
 ```
+
+Windows 使用 `.\scripts\install_git_hooks.ps1`。
 
 提交信息采用 Conventional Commits，例如 `feat(audio): add timed speech controls`。项目 hook 会拒绝缺少类型、超长主题或不规范 scope 的提交标题。
 
@@ -91,6 +110,15 @@ scripts/generate_narration.sh \
   content/episodes/s01e02-stretch-sweep.json
 scripts/render_episode.sh content/episodes/s01e01-angle-sweep.json
 scripts/render_episode.sh content/episodes/s01e02-stretch-sweep.json
+```
+
+对应的 Windows PowerShell 命令：
+
+```powershell
+.\scripts\build_formula_assets.ps1 content\episodes\s01e01-angle-sweep.json content\episodes\s01e02-stretch-sweep.json
+.\scripts\generate_narration.ps1 content\episodes\s01e01-angle-sweep.json content\episodes\s01e02-stretch-sweep.json
+.\scripts\render_episode.ps1 content\episodes\s01e01-angle-sweep.json
+.\scripts\render_episode.ps1 content\episodes\s01e02-stretch-sweep.json
 ```
 
 `generate_narration.sh` 使用 mmx-cli 的 `speech-2.8-hd` 在同一次合成中生成 MP3 和句级 SRT。Episode 固定音色、0.5–2.0 范围内的语速、音量、-12–12 级的音高与难词发音表；讲稿使用 MiniMax `<#x#>` 标记精确控制 0.01–99.99 秒停顿。校验时会从讲稿和字幕中移除非朗读控制标记，再逐字符确认“实际朗读正文 = SRT 正文”。实验量统一使用阿拉伯数字，朗读字幕采用中文单位。
@@ -165,6 +193,12 @@ bash scripts/episode_smoke_test.sh
 
 ```bash
 godot --headless --path . --script res://tests/run_tests.gd
+```
+
+Windows PowerShell 会先处理 Godot 导入缓存，再运行相同测试：
+
+```powershell
+.\scripts\run_tests.ps1
 ```
 
 验证 Xvfb 下的 Episode 启动与配置解析：
