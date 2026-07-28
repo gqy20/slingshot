@@ -5,6 +5,7 @@ param(
     [int]$Width = 0,
     [int]$Height = 0,
     [switch]$SkipNarration,
+    [switch]$SkipSubtitles,
     [int]$CaptureRepeat = 1,
     [ValidateSet('auto', 'nvenc', 'libx264')][string]$VideoEncoder = 'auto',
     [double]$PreviewSeconds = 0,
@@ -43,8 +44,9 @@ if ($hasNarration) {
     $narrationDir = Join-Path $script:RenderRoot "narration\$episodeName"
     $narrationSource = Join-Path $narrationDir 'narration.mp3'
     $narrationAudio = Join-Path $narrationDir 'narration-normalized.wav'
-    $subtitleSrt = Join-Path $narrationDir 'narration.srt'
-    foreach ($asset in @($narrationSource, $narrationAudio, $subtitleSrt)) {
+    $generatedSubtitleSrt = Join-Path $narrationDir 'narration.srt'
+    $subtitleSrt = $generatedSubtitleSrt
+    foreach ($asset in @($narrationSource, $narrationAudio, $generatedSubtitleSrt)) {
         if (-not (Test-Path $asset)) {
             throw "Narration asset missing: $asset. Run: .\scripts\generate_narration.ps1 $episodePath"
         }
@@ -52,7 +54,8 @@ if ($hasNarration) {
     & (Join-Path $PSScriptRoot 'build_sound_design.ps1') -Episode $episodePath
     $soundDesignAudio = Join-Path $script:RenderRoot "audio\$episodeName\sound-design.wav"
     if (-not (Test-Path $soundDesignAudio)) { throw 'Sound design generation failed.' }
-} elseif ($null -ne $narrationProperty -and $null -ne $narrationProperty.Value) {
+}
+if ($null -ne $narrationProperty -and $null -ne $narrationProperty.Value) {
     $editorialSubtitle = [string]$config.narration.subtitle_script
     if (-not [string]::IsNullOrWhiteSpace($editorialSubtitle)) {
         if (-not $editorialSubtitle.StartsWith('res://') -or $editorialSubtitle.Contains('..')) {
@@ -64,6 +67,7 @@ if ($hasNarration) {
         }
     }
 }
+if ($SkipSubtitles) { $subtitleSrt = $null }
 $hasSubtitles = -not [string]::IsNullOrWhiteSpace([string]$subtitleSrt)
 
 $outputDir = if ($Width -eq 1920) { Join-Path $script:RenderRoot 'previews' } else { Join-Path $script:RenderRoot 'final' }

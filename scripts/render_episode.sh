@@ -139,6 +139,14 @@ NARRATION_SOURCE="$NARRATION_DIR/narration.mp3"
 NARRATION_AUDIO="${NARRATION_AUDIO:-$NARRATION_DIR/narration-normalized.wav}"
 LOUDNESS_REPORT="$NARRATION_DIR/narration-loudness.json"
 SUBTITLE_SRT="${SUBTITLE_SRT:-$NARRATION_DIR/narration.srt}"
+EDITORIAL_SUBTITLE="$(jq -r '.narration.subtitle_script // empty' "$EPISODE_ABS")"
+if [[ -n "$EDITORIAL_SUBTITLE" ]]; then
+	if [[ "$EDITORIAL_SUBTITLE" != res://* || "$EDITORIAL_SUBTITLE" == *..* ]]; then
+		printf 'episode-render: unsafe narration.subtitle_script: %s\n' "$EDITORIAL_SUBTITLE" >&2
+		exit 2
+	fi
+	SUBTITLE_SRT="$PROJECT_ROOT/${EDITORIAL_SUBTITLE#res://}"
+fi
 SOUND_DESIGN_AUDIO="$RENDER_AUDIO_DIR/$episode_name/sound-design.wav"
 HAS_NARRATION="$(jq -r '(.narration // {}) | length > 0' "$EPISODE_ABS")"
 if [[ "${EPISODE_SKIP_NARRATION:-0}" == 1 ]]; then

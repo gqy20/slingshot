@@ -130,6 +130,16 @@ func _draw_impact_episode(overlay: String) -> void:
 	match overlay:
 		"impact-sampling-cold-open":
 			_draw_impact_sampling_miss(true)
+		"impact-hook-time-gap":
+			_draw_hook_time_gap()
+		"impact-hook-system-error":
+			_draw_hook_system_error()
+		"impact-hook-curve-transform":
+			_draw_hook_curve_transform()
+		"impact-hook-forensics":
+			_draw_hook_forensics()
+		"impact-hook-fivefold":
+			_draw_hook_fivefold()
 		"curve-slingshot-stinger":
 			_draw_curve_slingshot_stinger()
 		"impact-title":
@@ -270,6 +280,28 @@ func _draw_force_profile(
 		previous = point
 
 
+func _draw_force_cursor(
+	plot: Rect2,
+	duration_sec: float,
+	max_time_sec: float,
+	max_force_n: float,
+	color: Color,
+	progress: float,
+	offset_sec: float = 0.0
+) -> void:
+	var local_time := duration_sec * clampf(progress, 0.0, 1.0)
+	var force := _force_value(8.0, duration_sec, local_time)
+	var point := _force_point(
+		plot, offset_sec + local_time, force, max_time_sec, max_force_n
+	)
+	draw_line(
+		Vector2(point.x, plot.end.y), point,
+		Color(color, 0.24), 2.0, true
+	)
+	draw_circle(point, 11.0, Color(color, 0.10))
+	draw_circle(point, 5.5, Color(color, 0.98))
+
+
 func _draw_impact_ball(center: Vector2, color: Color, radius: float = 46.0) -> void:
 	_draw_deformed_impact_ball(center, color, radius, 0.0)
 
@@ -335,7 +367,7 @@ func _draw_dual_impact() -> void:
 	var motion_progress := clampf(elapsed / 9.5, 0.0, 1.0)
 	var cycle := smoothstep(0.0, 1.0, motion_progress)
 	var timeline_ms := lerpf(-8.0, 48.0, cycle)
-	var panels := [Rect2(80, 180, 830, 650), Rect2(1010, 180, 830, 650)]
+	var panels := [Rect2(80, 140, 830, 650), Rect2(1010, 140, 830, 650)]
 	var ids := ["hard", "soft"]
 	for index in range(2):
 		var panel: Rect2 = panels[index]
@@ -347,6 +379,7 @@ func _draw_dual_impact() -> void:
 		var duration_ms := 8.0 if id == "hard" else 40.0
 		var contact_time := clampf(timeline_ms, 0.0, duration_ms)
 		var contact := sin(PI * contact_time / duration_ms) if timeline_ms >= 0.0 and timeline_ms <= duration_ms else 0.0
+		draw_rect(panel, Color(color, 0.16 * contact), false, 3.0 + 3.0 * contact)
 		var approach := smoothstep(-8.0, 0.0, timeline_ms)
 		var rebound := smoothstep(duration_ms, duration_ms + 8.0, timeline_ms)
 		var wall_x := panel.end.x - 145.0
@@ -374,16 +407,21 @@ func _draw_dual_impact() -> void:
 			else ("接触结束" if timeline_ms > duration_ms else "接触中  %.0f ms" % timeline_ms)
 		)
 		draw_string(VideoTypography.data(), panel.position + Vector2(420, 52), state_copy, HORIZONTAL_ALIGNMENT_RIGHT, 360, 27, Color(color, 0.92))
-	var rail := Rect2(520, 865, 880, 4)
+	var rail := Rect2(520, 825, 880, 4)
 	draw_rect(rail, Color(colors["divider"], 0.46), true)
+	var cursor_pulse := 0.0
 	for mark_ms in [0.0, 8.0, 40.0]:
 		var mark_value := float(mark_ms)
 		var mark_x: float = rail.position.x + rail.size.x * (mark_value + 8.0) / 56.0
+		var arrival_sec := 9.5 * (mark_value + 8.0) / 56.0
+		var pulse := exp(-pow((elapsed - arrival_sec) / 0.28, 2.0))
+		cursor_pulse = maxf(cursor_pulse, pulse)
 		draw_line(Vector2(mark_x, rail.position.y - 9), Vector2(mark_x, rail.position.y + 13), Color(colors["muted"], 0.70), 2.0, true)
 		draw_string(VideoTypography.data(), Vector2(mark_x - 42, rail.position.y + 42), "%.0f ms" % mark_value, HORIZONTAL_ALIGNMENT_CENTER, 84, 24, Color(colors["muted"], 0.82))
 	var cursor_x := rail.position.x + rail.size.x * clampf(cycle, 0.0, 1.0)
-	draw_circle(Vector2(cursor_x, rail.position.y + 2), 8.0, Color(colors["accent"], 0.96))
-	draw_string(VideoTypography.medium(), Vector2(700, 945), "接触过程 ×100 慢放", HORIZONTAL_ALIGNMENT_CENTER, 520, 27, Color(colors["text"], 0.86))
+	draw_circle(Vector2(cursor_x, rail.position.y + 2), 14.0 + 12.0 * cursor_pulse, Color(colors["accent"], 0.08 * cursor_pulse))
+	draw_circle(Vector2(cursor_x, rail.position.y + 2), 8.0 + 3.0 * cursor_pulse, Color(colors["accent"], 0.96))
+	draw_string(VideoTypography.medium(), Vector2(700, 905), "接触过程 ×100 慢放", HORIZONTAL_ALIGNMENT_CENTER, 520, 27, Color(colors["text"], 0.86))
 
 
 func _draw_contact_profile(id: String) -> void:
@@ -394,7 +432,9 @@ func _draw_contact_profile(id: String) -> void:
 	var impulse := float(metrics["impulse_ns"])
 	var color: Color = colors_by_id[id]
 	var elapsed := maxf(0.0, video_time_sec - float(current_beat.get("at", video_time_sec)))
-	var motion_progress := clampf(elapsed / 10.0, 0.0, 1.0)
+	var beat_duration := float(current_beat.get("duration", 15.0))
+	var motion_window := maxf(8.0, beat_duration - 2.8)
+	var motion_progress := clampf(elapsed / motion_window, 0.0, 1.0)
 	var cycle := smoothstep(0.0, 1.0, motion_progress)
 	var timeline_sec := lerpf(-duration * 0.22, duration * 1.22, cycle)
 	var contact_ratio := clampf(timeline_sec / duration, 0.0, 1.0)
@@ -413,6 +453,15 @@ func _draw_contact_profile(id: String) -> void:
 	draw_string(VideoTypography.data(), Vector2(100, 790), "最大形变  %.0f mm" % (float(metrics["max_penetration_m"]) * 1000.0), HORIZONTAL_ALIGNMENT_LEFT, -1, 27, Color(colors["muted"], 0.86))
 	_draw_force_axes(plot, 45.0, 1700.0)
 	_draw_force_profile(plot, impulse, duration, 0.045, 1700.0, color, contact_ratio, 0.16)
+	if timeline_sec >= 0.0 and timeline_sec <= duration:
+		_draw_force_cursor(plot, duration, 0.045, 1700.0, color, contact_ratio)
+	if id == "soft":
+		var depth_mm := float(metrics["max_penetration_m"]) * 1000.0 * contact
+		var gauge_y := 745.0
+		draw_line(Vector2(wall_x, gauge_y), Vector2(wall_x + 36.0 * contact, gauge_y), Color(color, 0.88), 3.0, true)
+		draw_line(Vector2(wall_x, gauge_y - 10), Vector2(wall_x, gauge_y + 10), Color(color, 0.72), 2.0, true)
+		draw_line(Vector2(wall_x + 36.0 * contact, gauge_y - 10), Vector2(wall_x + 36.0 * contact, gauge_y + 10), Color(color, 0.72), 2.0, true)
+		draw_string(VideoTypography.data(), Vector2(405, 785), "当前压入  %.0f mm" % depth_mm, HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color(color, 0.88))
 	var peak := float(metrics["peak_force_n"])
 	draw_string(VideoTypography.data(), plot.position + Vector2(560, 42), "峰值  %.0f N" % peak, HORIZONTAL_ALIGNMENT_LEFT, -1, 30, Color(color, smoothstep(0.72, 0.96, contact_ratio)))
 	var timeline_copy := (
@@ -504,7 +553,7 @@ func _draw_impact_momentum() -> void:
 		HORIZONTAL_ALIGNMENT_CENTER, 800, 39, Color(state_color, 0.96)
 	)
 	var reveal := smoothstep(9.35, 11.4, elapsed)
-	draw_string(VideoTypography.bold(), Vector2(420, 730), "Δp = 1 kg × (-3 - 5) m/s = -8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 1080, 42, Color(colors["text"], reveal))
+	draw_string(VideoTypography.bold(), Vector2(420, 820), "Δp = 1 kg × (-3 - 5) m/s = -8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 1080, 42, Color(colors["text"], reveal))
 
 
 func _draw_equal_area() -> void:
@@ -514,12 +563,24 @@ func _draw_equal_area() -> void:
 	var soft_plot := Rect2(1070, 270, 720, 460)
 	_draw_force_axes(hard_plot, 45, 1700, 0.65)
 	_draw_force_axes(soft_plot, 45, 1700, 0.65)
-	_draw_force_profile(hard_plot, 8.0, 0.008, 0.045, 1700, colors_by_id["hard"], 1.0, 0.22)
-	_draw_force_profile(soft_plot, 8.0, 0.040, 0.045, 1700, colors_by_id["soft"], 1.0, 0.22)
+	var hard_reveal := smoothstep(0.04, 0.34, p)
+	var soft_reveal := smoothstep(0.28, 0.58, p)
+	_draw_force_profile(hard_plot, 8.0, 0.008, 0.045, 1700, colors_by_id["hard"], hard_reveal, 0.22)
+	_draw_force_profile(soft_plot, 8.0, 0.040, 0.045, 1700, colors_by_id["soft"], soft_reveal, 0.22)
 	draw_string(VideoTypography.bold(), Vector2(130, 185), "钢板 · 硬接触", HORIZONTAL_ALIGNMENT_CENTER, 720, 32, Color(colors_by_id["hard"], 0.96))
 	draw_string(VideoTypography.bold(), Vector2(1070, 185), "软垫 · 软接触", HORIZONTAL_ALIGNMENT_CENTER, 720, 32, Color(colors_by_id["soft"], 0.96))
-	var reveal := smoothstep(0.48, 0.78, p)
-	draw_string(VideoTypography.bold(), Vector2(610, 875), "曲线面积相同  =  8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 700, 40, Color(colors["text"], reveal))
+	var hard_badge := smoothstep(0.34, 0.52, p)
+	var soft_badge := smoothstep(0.54, 0.70, p)
+	var equality := smoothstep(0.72, 0.86, p)
+	var hard_card := Rect2(280, 835, 520, 74)
+	var soft_card := Rect2(1120, 835, 520, 74)
+	draw_rect(hard_card, Color(colors_by_id["hard"], 0.08 * hard_badge), true)
+	draw_rect(hard_card, Color(colors_by_id["hard"], 0.60 * hard_badge), false, 2.0)
+	draw_rect(soft_card, Color(colors_by_id["soft"], 0.08 * soft_badge), true)
+	draw_rect(soft_card, Color(colors_by_id["soft"], 0.60 * soft_badge), false, 2.0)
+	draw_string(VideoTypography.bold(), Vector2(305, 884), "钢板面积  8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 470, 34, Color(colors_by_id["hard"], hard_badge))
+	draw_string(VideoTypography.bold(), Vector2(1145, 884), "软垫面积  8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 470, 34, Color(colors_by_id["soft"], soft_badge))
+	draw_string(VideoTypography.bold(), Vector2(900, 887), "=", HORIZONTAL_ALIGNMENT_CENTER, 120, 42, Color(colors["text"], equality))
 
 
 func _draw_impulse_formula() -> void:
@@ -540,6 +601,9 @@ func _draw_area_stretch() -> void:
 	var plot := Rect2(250, 230, 1420, 560)
 	_draw_force_axes(plot, 45, 1700)
 	_draw_force_profile(plot, 8.0, duration, 0.045, 1700, colors["accent"], 1.0, 0.20)
+	var duration_x := plot.position.x + plot.size.x * duration / 0.045
+	draw_line(Vector2(duration_x, plot.position.y), Vector2(duration_x, plot.end.y), Color(colors["accent"], 0.22), 2.0, true)
+	draw_string(VideoTypography.bold(), Vector2(650, 165), "面积始终保持  8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 620, 34, Color(colors["highlight"], 0.92))
 	draw_string(VideoTypography.data(), Vector2(300, 895), "接触时间  %.0f ms" % (duration * 1000.0), HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors["text"], 0.94))
 	draw_string(VideoTypography.data(), Vector2(760, 895), "平均力  %.0f N" % average, HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors["muted"], 0.90))
 	draw_string(VideoTypography.data(), Vector2(1190, 895), "峰值  %.0f N" % peak, HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors["accent"], 0.96))
@@ -547,33 +611,41 @@ func _draw_area_stretch() -> void:
 
 func _draw_impact_applications() -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
+	var p := _beat_progress()
 	var panels := [Rect2(100, 245, 500, 500), Rect2(710, 245, 500, 500), Rect2(1320, 245, 500, 500)]
 	var labels := ["安全气囊", "头盔缓冲层", "包装泡沫"]
 	for index in range(3):
 		var panel: Rect2 = panels[index]
+		var action := smoothstep(0.06 + index * 0.24, 0.30 + index * 0.24, p)
 		draw_rect(panel, Color(colors["surface"], 0.78), true)
-		draw_rect(panel, Color(colors["divider"], 0.42), false, 2.0)
-		draw_string(VideoTypography.medium(), panel.position + Vector2(0, 445), labels[index], HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 31, Color(colors["text"], 0.92))
+		draw_rect(panel, Color(colors["divider"], 0.42 + 0.24 * action), false, 2.0 + action)
+		draw_string(VideoTypography.medium(), panel.position + Vector2(0, 445), labels[index], HORIZONTAL_ALIGNMENT_CENTER, panel.size.x, 31, Color(colors["text"], 0.58 + 0.34 * action))
 		var center := panel.position + Vector2(250, 220)
 		if index == 0:
-			draw_circle(center, 118, Color(colors["highlight"], 0.18))
-			draw_arc(center, 118, 0, TAU, 54, Color(colors["highlight"], 0.72), 5.0, true)
+			var bag_radius := lerpf(26.0, 118.0, action)
+			draw_circle(center, bag_radius, Color(colors["highlight"], 0.08 + 0.10 * action))
+			draw_arc(center, bag_radius, 0, TAU, 54, Color(colors["highlight"], 0.30 + 0.42 * action), 5.0, true)
 			draw_line(center + Vector2(-120, 90), center + Vector2(120, 90), Color(colors["muted"], 0.60), 5.0, true)
 		elif index == 1:
 			draw_arc(center, 135, PI, TAU, 48, Color(colors["text"], 0.76), 16.0, true)
-			draw_arc(center, 105, PI, TAU, 48, Color(colors["accent"], 0.72), 18.0, true)
+			var liner_radius := lerpf(118.0, 101.0, action)
+			draw_arc(center + Vector2(0, 8.0 * action), liner_radius, PI, TAU, 48, Color(colors["accent"], 0.36 + 0.42 * action), 18.0, true)
 		else:
 			draw_rect(Rect2(center - Vector2(120, 100), Vector2(240, 200)), Color(colors["muted"], 0.14), false, 6.0)
 			for x in range(int(center.x - 90), int(center.x + 91), 45):
 				for y in range(int(center.y - 70), int(center.y + 71), 45):
-					draw_circle(Vector2(x, y), 13, Color(colors["accent"], 0.32))
-	draw_string(VideoTypography.bold(), Vector2(460, 805), "同样的速度变化，摊到更长的时间", HORIZONTAL_ALIGNMENT_CENTER, 1000, 39, Color(colors["accent"], 0.92))
+					var cell := Vector2(x, y)
+					draw_set_transform(cell, 0.0, Vector2(1.0 + 0.18 * action, 1.0 - 0.48 * action))
+					draw_circle(Vector2.ZERO, 13, Color(colors["accent"], 0.18 + 0.24 * action))
+					draw_set_transform(Vector2.ZERO)
+	var conclusion_reveal := smoothstep(0.76, 0.92, p)
+	draw_string(VideoTypography.bold(), Vector2(460, 805), "同样的速度变化，摊到更长的时间", HORIZONTAL_ALIGNMENT_CENTER, 1000, 39, Color(colors["accent"], 0.92 * conclusion_reveal))
 
 
 func _draw_contact_model() -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
 	var elapsed := maxf(0.0, video_time_sec - float(current_beat.get("at", video_time_sec)))
-	var motion_progress := clampf(elapsed / 6.8, 0.0, 1.0)
+	var motion_progress := clampf(elapsed / 8.5, 0.0, 1.0)
 	var cycle := smoothstep(0.0, 1.0, motion_progress)
 	var contact := sin(clampf((cycle - 0.18) / 0.62, 0.0, 1.0) * PI) if cycle >= 0.18 and cycle <= 0.80 else 0.0
 	var approach := smoothstep(0.0, 0.18, cycle)
@@ -596,22 +668,30 @@ func _draw_contact_model() -> void:
 		var u := float(index) / 17.0
 		spring.append(spring_start.lerp(spring_end, u) + Vector2(0, -28 if index % 2 == 0 else 28))
 	spring.append(spring_end)
-	draw_polyline(spring, Color(colors["accent"], 0.90), 5.0, true)
+	var spring_focus := smoothstep(0.25, 0.85, contact)
+	draw_polyline(spring, Color(colors["accent"], 0.46 + 0.50 * spring_focus), 5.0 + 2.0 * spring_focus, true)
 	draw_line(Vector2(moving_node_x, 386), Vector2(moving_node_x, 646), Color(colors["text"], 0.70), 7.0, true)
 	if contact > 0.01:
 		draw_line(Vector2(ball_center.x + 52.0, 510), Vector2(moving_node_x, 510), Color(colors_by_id["soft"], 0.72), 4.0, true)
 	var damper_body_end := wall_x - 160.0
+	var damper_focus := 0.0
+	if cycle >= 0.18 and cycle <= 0.80:
+		var contact_phase := clampf((cycle - 0.18) / 0.62, 0.0, 1.0)
+		damper_focus = absf(cos(contact_phase * PI))
 	draw_rect(Rect2(moving_node_x, 565, maxf(80.0, damper_body_end - moving_node_x), 92), Color(colors["surface_elevated"], 0.92), true)
-	draw_rect(Rect2(damper_body_end, 582, 160, 58), Color(colors["muted"], 0.30), true)
+	draw_rect(Rect2(damper_body_end, 582, 160, 58), Color(colors["muted"], 0.24 + 0.28 * damper_focus), true)
 	draw_line(Vector2(moving_node_x, 611), Vector2(wall_x - 100.0, 611), Color(colors["text"], 0.46), 5.0, true)
 	draw_line(Vector2(wall_x, 330), Vector2(wall_x, 715), Color(colors["text"], 0.64), 9.0, true)
 	draw_string(VideoTypography.medium(), Vector2(715, 335), "弹性 kx", HORIZONTAL_ALIGNMENT_CENTER, 260, 31, Color(colors["accent"], 0.92))
 	draw_string(VideoTypography.medium(), Vector2(715, 710), "阻尼 cẋ", HORIZONTAL_ALIGNMENT_CENTER, 260, 31, Color(colors["muted"], 0.92))
 	var plot := Rect2(1180, 310, 500, 360)
 	_draw_force_axes(plot, 45, 1700, 0.58)
-	_draw_force_profile(plot, 8.0, 0.040, 0.045, 1700, colors_by_id["soft"], clampf((cycle - 0.18) / 0.62, 0.0, 1.0), 0.12)
-	draw_string(VideoTypography.bold(), Vector2(330, 815), "Kelvin–Voigt 接触结构示意", HORIZONTAL_ALIGNMENT_CENTER, 1260, 36, Color(colors["text"], 0.92))
-	draw_string(VideoTypography.medium(), Vector2(430, 875), "用于解释曲线来源 · 不反推真实材料参数", HORIZONTAL_ALIGNMENT_CENTER, 1060, 28, Color(colors["muted"], 0.84))
+	var curve_progress := clampf((cycle - 0.18) / 0.62, 0.0, 1.0)
+	_draw_force_profile(plot, 8.0, 0.040, 0.045, 1700, colors_by_id["soft"], curve_progress, 0.12)
+	if cycle >= 0.18 and cycle <= 0.80:
+		_draw_force_cursor(plot, 0.040, 0.045, 1700, colors_by_id["soft"], curve_progress)
+	draw_string(VideoTypography.bold(), Vector2(330, 790), "Kelvin–Voigt 接触结构示意", HORIZONTAL_ALIGNMENT_CENTER, 1260, 36, Color(colors["text"], 0.92))
+	draw_string(VideoTypography.medium(), Vector2(430, 850), "用于解释曲线来源 · 不反推真实材料参数", HORIZONTAL_ALIGNMENT_CENTER, 1060, 28, Color(colors["muted"], 0.84))
 
 
 func _draw_sampling_build() -> void:
@@ -620,12 +700,19 @@ func _draw_sampling_build() -> void:
 	_draw_force_axes(plot, 33.0, 1700.0)
 	_draw_force_profile(plot, 8.0, 0.008, 0.033, 1700.0, colors_by_id["hard"], 1.0, 0.10, 0.012)
 	var stages := [10000.0, 1000.0, 100.0, 30.0]
-	var stage_index := clampi(int(_beat_progress() * 4.0), 0, 3)
+	var stage_position: float = minf(_beat_progress() * 4.0, 3.999)
+	var stage_index := clampi(int(floor(stage_position)), 0, 3)
+	var stage_fraction: float = stage_position - floor(stage_position)
+	var blend := smoothstep(0.72, 0.98, stage_fraction) if stage_index < 3 else 0.0
 	var rate: float = stages[stage_index]
-	_draw_sampling_points(plot, rate, 0.012, 0.008, 0.033, 1700.0)
+	_draw_sampling_points(plot, rate, 0.012, 0.008, 0.033, 1700.0, 1.0 - blend)
+	if stage_index < 3 and blend > 0.001:
+		_draw_sampling_points(plot, float(stages[stage_index + 1]), 0.012, 0.008, 0.033, 1700.0, blend)
+	if blend > 0.5 and stage_index < 3:
+		rate = float(stages[stage_index + 1])
 	var measured := _sampled_peak_for_rate(rate)
-	draw_string(VideoTypography.bold(), Vector2(430, 890), "采样 %.0f Hz" % rate, HORIZONTAL_ALIGNMENT_LEFT, -1, 36, Color(colors["text"], 0.94))
-	draw_string(VideoTypography.data(), Vector2(1080, 890), "测得峰值  %.0f N" % measured, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["accent"], 0.96))
+	draw_string(VideoTypography.bold(), Vector2(430, 860), "采样 %.0f Hz" % rate, HORIZONTAL_ALIGNMENT_LEFT, -1, 36, Color(colors["text"], 0.94))
+	draw_string(VideoTypography.data(), Vector2(1080, 860), "测得峰值  %.0f N" % measured, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["accent"], 0.96))
 
 
 func _sampled_peak_for_rate(rate: float) -> float:
@@ -641,7 +728,8 @@ func _draw_sampling_points(
 	contact_start_sec: float,
 	contact_duration_sec: float,
 	max_time_sec: float,
-	max_force_n: float
+	max_force_n: float,
+	alpha: float = 1.0
 ) -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
 	var interval := 1.0 / rate_hz
@@ -656,8 +744,8 @@ func _draw_sampling_points(
 	while sample_time <= max_time_sec + 1e-9:
 		var force := _force_value(8.0, contact_duration_sec, sample_time - contact_start_sec)
 		var point := _force_point(plot, sample_time, force, max_time_sec, max_force_n)
-		draw_circle(point, 5.5 if rate_hz <= 100.0 else 3.5, Color(colors["text"], 0.88))
-		draw_line(Vector2(point.x, plot.end.y), point, Color(colors["text"], 0.10), 1.0, true)
+		draw_circle(point, 5.5 if rate_hz <= 100.0 else 3.5, Color(colors["text"], 0.88 * alpha))
+		draw_line(Vector2(point.x, plot.end.y), point, Color(colors["text"], 0.10 * alpha), 1.0, true)
 		sample_time += draw_interval
 	# The video treats a 30 fps frame interval as 33 ms. Keep the second frame
 	# visible at the plot boundary so the final sampling frame can hand off
@@ -669,8 +757,8 @@ func _draw_sampling_points(
 		var endpoint := _force_point(
 			plot, max_time_sec, endpoint_force, max_time_sec, max_force_n
 		)
-		draw_circle(endpoint, 5.5, Color(colors["text"], 0.88))
-		draw_line(Vector2(endpoint.x, plot.end.y), endpoint, Color(colors["text"], 0.10), 1.0, true)
+		draw_circle(endpoint, 5.5, Color(colors["text"], 0.88 * alpha))
+		draw_line(Vector2(endpoint.x, plot.end.y), endpoint, Color(colors["text"], 0.10 * alpha), 1.0, true)
 
 
 func _draw_impact_sampling_miss(cold_open: bool) -> void:
@@ -678,6 +766,13 @@ func _draw_impact_sampling_miss(cold_open: bool) -> void:
 	var p := _beat_progress()
 	var plot := Rect2(190, 210, 1540, 570) if cold_open else Rect2(230, 230, 1460, 560)
 	_draw_force_axes(plot, 33.0, 1700.0, 0.76)
+	if not cold_open:
+		var gap_reveal := smoothstep(0.18, 0.42, p)
+		var gap_left := _force_point(plot, 0.012, 0.0, 0.033, 1700.0).x
+		var gap_right := _force_point(plot, 0.020, 0.0, 0.033, 1700.0).x
+		draw_rect(Rect2(gap_left, plot.position.y, gap_right - gap_left, plot.size.y), Color(colors["accent"], 0.055 * gap_reveal), true)
+		draw_line(Vector2(gap_left, plot.position.y), Vector2(gap_left, plot.end.y), Color(colors["accent"], 0.32 * gap_reveal), 2.0, true)
+		draw_line(Vector2(gap_right, plot.position.y), Vector2(gap_right, plot.end.y), Color(colors["accent"], 0.32 * gap_reveal), 2.0, true)
 	_draw_force_profile(plot, 8.0, 0.008, 0.033, 1700.0, colors_by_id["hard"], smoothstep(0.12, 0.42, p) if cold_open else 1.0, 0.12, 0.012)
 	var endpoint_reveal := 1.0 if cold_open else smoothstep(0.06, 0.24, p)
 	var endpoint_radius := 8.0 if cold_open else lerpf(5.5, 8.0, endpoint_reveal)
@@ -687,14 +782,388 @@ func _draw_impact_sampling_miss(cold_open: bool) -> void:
 		draw_string(VideoTypography.data(), point + Vector2(-42, -22), "0 N", HORIZONTAL_ALIGNMENT_CENTER, 84, 27, Color(colors["text"], 0.90 * endpoint_reveal))
 	if not cold_open:
 		var source_copy_alpha := 1.0 - smoothstep(0.04, 0.24, p)
-		draw_string(VideoTypography.bold(), Vector2(430, 890), "采样 30 Hz", HORIZONTAL_ALIGNMENT_LEFT, -1, 36, Color(colors["text"], 0.94 * source_copy_alpha))
-		draw_string(VideoTypography.data(), Vector2(1080, 890), "测得峰值  0 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["accent"], 0.96 * source_copy_alpha))
+		draw_string(VideoTypography.bold(), Vector2(430, 860), "采样 30 Hz", HORIZONTAL_ALIGNMENT_LEFT, -1, 36, Color(colors["text"], 0.94 * source_copy_alpha))
+		draw_string(VideoTypography.data(), Vector2(1080, 860), "测得峰值  0 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["accent"], 0.96 * source_copy_alpha))
 	var peak_position := _force_point(plot, 0.016, float(_impact_metrics("hard")["peak_force_n"]), 0.033, 1700.0)
 	var peak_alpha := smoothstep(0.42, 0.68, p)
 	draw_circle(peak_position, 7.0, Color(colors["accent"], peak_alpha))
 	draw_string(VideoTypography.data(), peak_position + Vector2(18, -18), "1570 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors["accent"], peak_alpha))
 	var copy := "真正的峰值，藏在两帧之间" if cold_open else "碰撞没变，采样点错过了峰值"
 	draw_string(VideoTypography.bold(), Vector2(470, 895), copy, HORIZONTAL_ALIGNMENT_CENTER, 980, 39, Color(colors["text"], smoothstep(0.58, 0.82, p)))
+
+
+func _hook_elapsed() -> float:
+	return maxf(0.0, video_time_sec - float(current_beat.get("at", video_time_sec)))
+
+
+func _draw_hook_collision_stage(stage: Rect2, progress: float, scanlines: bool = false) -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
+	var p := clampf(progress, 0.0, 1.0)
+	draw_rect(stage, Color(colors["surface"], 0.72), true)
+	draw_rect(stage, Color(colors["divider"], 0.52), false, 2.0)
+	var wall_x := stage.end.x - 105.0
+	var center_y := stage.get_center().y
+	var approach := smoothstep(0.02, 0.50, p)
+	var rebound := smoothstep(0.64, 0.98, p)
+	var contact := 0.0
+	if p >= 0.48 and p <= 0.68:
+		contact = sin(inverse_lerp(0.48, 0.68, p) * PI)
+	var ball_x := lerpf(stage.position.x + 105.0, wall_x - 48.0, approach)
+	ball_x += contact * 7.0 - rebound * 145.0
+	_draw_wall(wall_x, stage.position.y + 65.0, stage.end.y - 65.0, false, contact)
+	_draw_deformed_impact_ball(
+		Vector2(ball_x, center_y), colors_by_id["hard"], 48.0, contact * 0.34
+	)
+	if contact > 0.02:
+		for ring_index in range(3):
+			var ring_progress := clampf(contact - ring_index * 0.14, 0.0, 1.0)
+			draw_arc(
+				Vector2(wall_x - 8.0, center_y),
+				36.0 + ring_index * 34.0 + 28.0 * ring_progress,
+				-PI * 0.5, PI * 0.5, 28,
+				Color(colors["accent"], 0.46 * ring_progress), 4.0, true
+			)
+	if scanlines:
+		for y in range(int(stage.position.y + 8.0), int(stage.end.y), 14):
+			draw_line(
+				Vector2(stage.position.x, y), Vector2(stage.end.x, y),
+				Color(colors["background"], 0.20), 1.0
+			)
+
+
+func _draw_fivefold_collision(
+	stage: Rect2,
+	progress: float,
+	soft: bool,
+	label: String,
+	peak_force_n: float,
+	alpha: float = 1.0
+) -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
+	var p := clampf(progress, 0.0, 1.0)
+	var wall_x := stage.end.x - 155.0
+	var center_y := stage.get_center().y + 10.0
+	var impact_start := 0.52
+	var contact_end := 0.78 if soft else 0.66
+	var approach := smoothstep(0.02, impact_start, p)
+	var rebound := smoothstep(contact_end, 0.98, p)
+	var compression := 0.0
+	if p >= impact_start and p <= contact_end:
+		compression = sin(inverse_lerp(impact_start, contact_end, p) * PI)
+	var start_x := stage.position.x + 145.0
+	var contact_x := wall_x - 62.0
+	var penetration := 42.0 * compression if soft else 5.0 * compression
+	var ball_x := lerpf(start_x, contact_x, approach) + penetration
+	ball_x -= rebound * (135.0 if soft else 205.0)
+	var shake := Vector2.ZERO
+	if not soft and compression > 0.04:
+		shake = Vector2(sin(p * 311.0), cos(p * 257.0)) * 9.0 * compression
+	draw_set_transform(shake)
+	draw_rect(stage, Color(colors["surface"], 0.70 * alpha), true)
+	draw_rect(stage, Color(colors["divider"], 0.50 * alpha), false, 2.0)
+	for trail_index in range(5, 0, -1):
+		var trail_offset := 22.0 * float(trail_index) * (1.0 - rebound)
+		draw_circle(
+			Vector2(ball_x - trail_offset, center_y),
+			50.0 - float(trail_index) * 4.5,
+			Color(colors_by_id["soft" if soft else "hard"], 0.025 * float(6 - trail_index) * alpha)
+		)
+	_draw_wall(wall_x, stage.position.y + 64.0, stage.end.y - 64.0, soft, compression)
+	_draw_deformed_impact_ball(
+		Vector2(ball_x, center_y),
+		colors_by_id["soft" if soft else "hard"],
+		62.0,
+		compression * (0.60 if soft else 0.42)
+	)
+	if compression > 0.02:
+		var impact_color: Color = colors_by_id["soft" if soft else "hard"]
+		for ring_index in range(3):
+			var ring_radius := 55.0 + ring_index * 44.0 + compression * 28.0
+			draw_arc(
+				Vector2(wall_x - 6.0, center_y), ring_radius,
+				-PI * 0.48, PI * 0.48, 32,
+				Color(impact_color, (0.34 if soft else 0.62) * compression * alpha),
+				4.0 if soft else 7.0, true
+			)
+	draw_set_transform(Vector2.ZERO)
+	draw_string(
+		VideoTypography.bold(), stage.position + Vector2(40, 66), label,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["text"], 0.90 * alpha)
+	)
+	var number_reveal := smoothstep(impact_start - 0.02, impact_start + 0.09, p)
+	var number_scale := 1.0 + 0.18 * sin(clampf(number_reveal, 0.0, 1.0) * PI)
+	draw_set_transform(stage.position + Vector2(48, 170), 0.0, Vector2.ONE * number_scale)
+	draw_string(
+		VideoTypography.bold(), Vector2.ZERO,
+		"%.0f N" % peak_force_n,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 72,
+		Color(colors_by_id["soft" if soft else "hard"], number_reveal * alpha)
+	)
+	draw_set_transform(Vector2.ZERO)
+
+
+func _draw_hook_fivefold() -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
+	# The complete hook occupies the 14-second cold-open beat. Keeping one
+	# local choreography clock makes the collision timing easy to preview at
+	# half length while allowing the spoken conditions to breathe in episode.
+	var t := _hook_elapsed() * 0.5
+	var full_stage := Rect2(145, 145, 1630, 720)
+	if t < 1.18:
+		_draw_fivefold_collision(full_stage, t / 1.08, false, "钢板", 1570.0)
+		draw_string(VideoTypography.data(), Vector2(610, 930), "同一颗球  ·  m = 1 kg", HORIZONTAL_ALIGNMENT_CENTER, 700, 30, Color(colors["text"], 0.90))
+		var flash := smoothstep(0.53, 0.57, t / 1.08) * (1.0 - smoothstep(0.57, 0.66, t / 1.08))
+		draw_rect(Rect2(Vector2.ZERO, Vector2(1920, 1080)), Color(colors["text"], 0.14 * flash), true)
+		return
+	if t < 2.42:
+		var soft_t := (t - 1.18) / 1.12
+		_draw_fivefold_collision(full_stage, soft_t, true, "软垫", 314.0)
+		draw_string(VideoTypography.data(), Vector2(490, 930), "同一质量  ·  撞前 5 m/s  ·  反弹 3 m/s", HORIZONTAL_ALIGNMENT_CENTER, 940, 30, Color(colors["text"], 0.90))
+		return
+
+	var compare_reveal := smoothstep(2.42, 2.75, t)
+	var stage_exit := smoothstep(4.55, 5.15, t)
+	var left_stage := Rect2(90 - 1040.0 * stage_exit, 205, 820, 500)
+	var right_stage := Rect2(1010 + 1040.0 * stage_exit, 205, 820, 500)
+	if stage_exit < 0.995:
+		_draw_fivefold_collision(left_stage, 0.59, false, "钢板", 1570.0, compare_reveal)
+		_draw_fivefold_collision(right_stage, 0.65, true, "软垫", 314.0, compare_reveal)
+	var first_line := smoothstep(2.68, 3.05, t) * (1.0 - smoothstep(4.55, 4.95, t))
+	draw_string(
+		VideoTypography.data(), Vector2(410, 120), "m = 1 kg  ·  撞前 5 m/s  ·  反弹 3 m/s",
+		HORIZONTAL_ALIGNMENT_CENTER, 1100, 40, Color(colors["text"], first_line)
+	)
+	var second_line := smoothstep(3.28, 3.72, t) * (1.0 - smoothstep(4.55, 4.95, t))
+	draw_string(
+		VideoTypography.bold(), Vector2(390, 820), "钢板的峰值力，是软垫的五倍",
+		HORIZONTAL_ALIGNMENT_CENTER, 1140, 52, Color(colors["text"], second_line)
+	)
+
+	var curve_reveal := smoothstep(4.70, 5.45, t)
+	if curve_reveal > 0.001:
+		var plot := Rect2(300, 235, 1320, 500)
+		_draw_force_axes(plot, 45.0, 1700.0, curve_reveal)
+		_draw_force_profile(
+			plot, 8.0, 0.008, 0.045, 1700.0,
+			colors_by_id["hard"], curve_reveal, 0.18 * curve_reveal
+		)
+		_draw_force_profile(
+			plot, 8.0, 0.040, 0.045, 1700.0,
+			colors_by_id["soft"], curve_reveal, 0.15 * curve_reveal
+		)
+		var hard_peak := _force_point(plot, 0.004, 1570.0, 0.045, 1700.0)
+		var soft_peak := _force_point(plot, 0.020, 314.0, 0.045, 1700.0)
+		draw_string(
+			VideoTypography.data(), hard_peak + Vector2(24, -12), "1570 N",
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors_by_id["hard"], curve_reveal)
+		)
+		draw_string(
+			VideoTypography.data(), soft_peak + Vector2(24, -12), "314 N",
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors_by_id["soft"], curve_reveal)
+		)
+	var payoff := smoothstep(5.55, 6.15, t)
+	draw_string(
+		VideoTypography.bold(), Vector2(560, 900), "这五倍，究竟差在哪儿？",
+		HORIZONTAL_ALIGNMENT_CENTER, 800, 52, Color(colors["text"], payoff)
+	)
+
+
+func _draw_hook_time_gap() -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
+	var t := _hook_elapsed()
+	if t < 1.25:
+		_draw_hook_collision_stage(Rect2(250, 185, 1420, 650), t / 1.25)
+		draw_string(
+			VideoTypography.bold(), Vector2(510, 930), "一次碰撞，只持续 8 ms",
+			HORIZONTAL_ALIGNMENT_CENTER, 900, 42, Color(colors["text"], 0.96)
+		)
+		return
+	var frame_reveal := smoothstep(1.25, 1.75, t)
+	var dive := smoothstep(2.55, 3.55, t)
+	var left_frame := Rect2(95.0 - 220.0 * dive, 210, 735, 500)
+	var right_frame := Rect2(1090.0 + 220.0 * dive, 210, 735, 500)
+	for frame_data in [
+		{"rect": left_frame, "label": "第 1 帧", "ball_x": 0.66},
+		{"rect": right_frame, "label": "第 2 帧", "ball_x": 0.34},
+	]:
+		var frame: Rect2 = frame_data["rect"]
+		draw_rect(frame, Color(colors["surface"], 0.72 * frame_reveal), true)
+		draw_rect(frame, Color(colors["divider"], 0.58 * frame_reveal), false, 3.0)
+		var wall_x := frame.position.x + frame.size.x * 0.76
+		_draw_wall(wall_x, frame.position.y + 95, frame.end.y - 70, false)
+		_draw_impact_ball(
+			Vector2(frame.position.x + frame.size.x * float(frame_data["ball_x"]), frame.get_center().y),
+			colors_by_id["hard"], 38.0
+		)
+		draw_string(
+			VideoTypography.data(), frame.position + Vector2(24, 48), String(frame_data["label"]),
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 27, Color(colors["muted"], frame_reveal)
+		)
+	var gap_alpha := smoothstep(2.10, 3.20, t)
+	draw_rect(Rect2(835, 175, 250, 570), Color(colors["accent"], 0.035 * gap_alpha), true)
+	draw_line(Vector2(850, 175), Vector2(850, 745), Color(colors["accent"], 0.62 * gap_alpha), 3.0)
+	draw_line(Vector2(1070, 175), Vector2(1070, 745), Color(colors["accent"], 0.62 * gap_alpha), 3.0)
+	draw_string(
+		VideoTypography.bold(), Vector2(760, 125), "两帧之间  33 ms",
+		HORIZONTAL_ALIGNMENT_CENTER, 400, 36, Color(colors["text"], gap_alpha)
+	)
+	var plot := Rect2(310, 250, 1300, 480)
+	var curve_alpha := smoothstep(3.20, 4.55, t)
+	if curve_alpha > 0.001:
+		_draw_force_axes(plot, 33.0, 1700.0, curve_alpha)
+		_draw_force_profile(
+			plot, 8.0, 0.008, 0.033, 1700.0,
+			Color(colors["accent"], curve_alpha), curve_alpha, 0.18 * curve_alpha, 0.012
+		)
+		var peak := _force_point(plot, 0.016, 1570.0, 0.033, 1700.0)
+		draw_circle(peak, 8.0, Color(colors["accent"], curve_alpha))
+		draw_string(
+			VideoTypography.data(), peak + Vector2(20, -18), "1570 N",
+			HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["accent"], curve_alpha)
+		)
+	var payoff := smoothstep(4.65, 5.45, t)
+	draw_string(
+		VideoTypography.bold(), Vector2(470, 885), "完整的冲击，藏在两帧之间",
+		HORIZONTAL_ALIGNMENT_CENTER, 980, 44, Color(colors["text"], payoff)
+	)
+
+
+func _draw_hook_system_error() -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
+	var t := _hook_elapsed()
+	var shell := Rect2(85, 115, 1750, 790)
+	draw_rect(shell, Color(colors["surface"], 0.76), true)
+	draw_rect(shell, Color(colors["divider"], 0.62), false, 3.0)
+	draw_string(VideoTypography.data(), Vector2(125, 165), "IMPACT LAB / LIVE", HORIZONTAL_ALIGNMENT_LEFT, -1, 27, Color(colors["muted"], 0.90))
+	var collision_progress := clampf(t / 1.35, 0.0, 1.0)
+	_draw_hook_collision_stage(Rect2(125, 210, 760, 520), collision_progress, true)
+	var plot := Rect2(1035, 260, 680, 400)
+	_draw_force_axes(plot, 33.0, 1700.0, 0.72)
+	var stage_index := clampi(int(maxf(0.0, t - 2.20) / 0.82), 0, 3)
+	var rates := [30.0, 100.0, 1000.0, 10000.0]
+	var rate: float = rates[stage_index]
+	var scan_progress := smoothstep(1.75, 5.55, t)
+	if scan_progress > 0.001:
+		_draw_force_profile(plot, 8.0, 0.008, 0.033, 1700.0, colors_by_id["hard"], scan_progress, 0.10, 0.012)
+		_draw_sampling_points(plot, rate, 0.012, 0.008, 0.033, 1700.0)
+	var error_alpha := smoothstep(1.05, 1.35, t) * (1.0 - smoothstep(4.85, 5.35, t))
+	draw_string(
+		VideoTypography.data(), Vector2(1080, 190), "PEAK FORCE",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 28, Color(colors["muted"], 0.86)
+	)
+	draw_string(
+		VideoTypography.bold(), Vector2(1080, 785), "0 N",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 58, Color("#FF5A5F", error_alpha)
+	)
+	draw_string(
+		VideoTypography.data(), Vector2(1275, 785), "DATA / VIDEO CONFLICT",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color("#FF5A5F", error_alpha * (0.55 + 0.45 * sin(t * 10.0)))
+	)
+	var solved := smoothstep(5.05, 5.65, t)
+	draw_string(
+		VideoTypography.bold(), Vector2(1080, 785), "1570 N",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 58, Color(colors["accent"], solved)
+	)
+	draw_string(
+		VideoTypography.data(), Vector2(1275, 785), "SAMPLE RATE  %.0f Hz" % rate,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color(colors["highlight"], 0.92 * scan_progress)
+	)
+	draw_string(
+		VideoTypography.bold(), Vector2(390, 845),
+		"画面撞上了，数据为什么是 0 N？" if solved < 0.5 else "测得足够快，尖峰才会出现",
+		HORIZONTAL_ALIGNMENT_CENTER, 1140, 42, Color(colors["text"], 0.96)
+	)
+
+
+func _draw_hook_curve_transform() -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
+	var t := _hook_elapsed()
+	var morph := smoothstep(1.15, 5.40, t)
+	var duration := lerpf(0.008, 0.040, morph)
+	var peak := PI * 8.0 / (2.0 * duration)
+	var plot := Rect2(250, 220, 1420, 550)
+	_draw_force_axes(plot, 45.0, 1700.0)
+	_draw_force_profile(plot, 8.0, duration, 0.045, 1700.0, colors["accent"], 1.0, 0.24)
+	var left_x := plot.position.x
+	var right_x := plot.position.x + plot.size.x * duration / 0.045
+	for clamp_x in [left_x, right_x]:
+		draw_rect(Rect2(float(clamp_x) - 18, plot.end.y - 48, 36, 96), Color(colors["text"], 0.78), true)
+		draw_rect(Rect2(float(clamp_x) - 28, plot.end.y - 62, 56, 18), Color(colors["accent"], 0.82), true)
+	var handle_y := 845.0
+	draw_line(Vector2(left_x, plot.end.y + 18), Vector2(left_x, handle_y - 28), Color(colors["divider"], 0.54), 2.0)
+	draw_line(Vector2(right_x, plot.end.y + 18), Vector2(right_x, handle_y - 28), Color(colors["divider"], 0.54), 2.0)
+	draw_string(
+		VideoTypography.data(), Vector2(280, 875), "接触时间  %.0f ms" % (duration * 1000.0),
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(colors["text"], 0.94)
+	)
+	draw_string(
+		VideoTypography.data(), Vector2(1170, 875), "峰值  %.0f N" % peak,
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(colors["accent"], 0.96)
+	)
+	draw_string(
+		VideoTypography.bold(), Vector2(610, 130), "同一块面积，被拉宽五倍",
+		HORIZONTAL_ALIGNMENT_CENTER, 700, 44, Color(colors["text"], smoothstep(0.20, 0.85, t))
+	)
+	var area_alpha := 0.72 + 0.28 * sin(t * 4.0)
+	draw_string(
+		VideoTypography.bold(), Vector2(680, 875), "面积始终是 8 N·s",
+		HORIZONTAL_ALIGNMENT_CENTER, 560, 37, Color(colors["highlight"], area_alpha)
+	)
+	var payoff := smoothstep(5.50, 6.30, t)
+	draw_string(
+		VideoTypography.bold(), Vector2(560, 965), "时间变长，峰值下降",
+		HORIZONTAL_ALIGNMENT_CENTER, 800, 42, Color(colors["text"], payoff)
+	)
+
+
+func _draw_hook_forensics() -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
+	var t := _hook_elapsed()
+	var monitor := Rect2(120, 125, 1680, 760)
+	draw_rect(monitor, Color("#07100D", 0.88), true)
+	draw_rect(monitor, Color(colors["divider"], 0.68), false, 4.0)
+	draw_circle(Vector2(165, 165), 7.0, Color("#FF4D4D", 0.90))
+	draw_string(VideoTypography.data(), Vector2(185, 174), "REC  CAM-03", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color(colors["text"], 0.84))
+	draw_string(VideoTypography.data(), Vector2(1450, 174), "30 FPS  /  00:00:00", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color(colors["muted"], 0.84))
+	if t < 1.35:
+		_draw_hook_collision_stage(Rect2(200, 220, 1520, 540), t / 1.35, true)
+	else:
+		var reveal := smoothstep(1.35, 1.85, t)
+		var card_a := Rect2(220, 250, 600, 400)
+		var card_b := Rect2(1100, 250, 600, 400)
+		for card_data in [
+			{"rect": card_a, "name": "证据 A / 碰撞前", "ball": 0.58},
+			{"rect": card_b, "name": "证据 B / 碰撞后", "ball": 0.34},
+		]:
+			var card: Rect2 = card_data["rect"]
+			draw_rect(card, Color(colors["surface"], 0.72 * reveal), true)
+			draw_rect(card, Color(colors["text"], 0.30 * reveal), false, 2.0)
+			var wall_x := card.end.x - 110.0
+			_draw_wall(wall_x, card.position.y + 90, card.end.y - 55, false)
+			_draw_impact_ball(Vector2(card.position.x + card.size.x * float(card_data["ball"]), card.get_center().y), colors_by_id["hard"], 36.0)
+			draw_string(VideoTypography.data(), card.position + Vector2(24, 44), String(card_data["name"]), HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color(colors["text"], reveal))
+		var rail := Rect2(330, 725, 1260, 4)
+		draw_rect(rail, Color(colors["divider"], 0.66), true)
+		draw_circle(Vector2(420, 727), 8.0, Color(colors["text"], 0.92))
+		draw_circle(Vector2(1500, 727), 8.0, Color(colors["text"], 0.92))
+		draw_string(VideoTypography.data(), Vector2(780, 785), "两张证据相隔 33 ms", HORIZONTAL_ALIGNMENT_CENTER, 360, 28, Color(colors["muted"], 0.90))
+		var search := smoothstep(2.25, 4.10, t)
+		var lens_center := Vector2(lerpf(650.0, 1270.0, search), 500)
+		var lens_alpha := smoothstep(2.0, 2.35, t)
+		draw_circle(lens_center, 126.0, Color(colors["background"], 0.82 * lens_alpha))
+		draw_arc(lens_center, 126.0, 0, TAU, 64, Color(colors["accent"], 0.92 * lens_alpha), 7.0, true)
+		draw_line(lens_center + Vector2(86, 92), lens_center + Vector2(185, 195), Color(colors["accent"], 0.82 * lens_alpha), 14.0, true)
+		if search > 0.38:
+			var micro := smoothstep(0.38, 0.68, search)
+			_draw_deformed_impact_ball(lens_center - Vector2(18, 0), colors_by_id["hard"], 38.0, 0.28 * micro)
+			draw_line(lens_center + Vector2(26, -72), lens_center + Vector2(26, 72), Color(colors["text"], 0.72 * micro), 7.0, true)
+		var found := smoothstep(4.20, 4.85, t)
+		draw_string(VideoTypography.bold(), Vector2(590, 220), "碰撞找到了：8 ms / 1570 N", HORIZONTAL_ALIGNMENT_CENTER, 740, 46, Color(colors["accent"], found))
+		draw_rect(Rect2(690, 820, 540, 82), Color(colors["accent"], 0.10 * found), true)
+		draw_rect(Rect2(690, 820, 540, 82), Color(colors["accent"], 0.82 * found), false, 4.0)
+		draw_string(VideoTypography.bold(), Vector2(710, 875), "EVIDENCE FOUND", HORIZONTAL_ALIGNMENT_CENTER, 500, 39, Color(colors["accent"], found))
+	for y in range(140, 875, 12):
+		draw_line(Vector2(120, y), Vector2(1800, y), Color("#000000", 0.10), 1.0)
 
 
 func _draw_curve_slingshot_stinger() -> void:
@@ -716,6 +1185,9 @@ func _draw_curve_slingshot_stinger() -> void:
 	var ball_position := pocket
 	if launch > 0.001:
 		ball_position = pocket.lerp(center + Vector2(440, -25), launch)
+		for trail_index in range(1, 4):
+			var trail_position := pocket.lerp(center + Vector2(440, -25), clampf(launch - trail_index * 0.08, 0.0, 1.0))
+			draw_circle(trail_position, 22.0 - trail_index * 4.0, Color(accent, 0.16 - trail_index * 0.035))
 	draw_circle(ball_position, 25, Color(accent, 0.98))
 	if launch > 0.25:
 		var ring := smoothstep(0.30, 0.72, launch)
@@ -731,6 +1203,12 @@ func _draw_curve_slingshot_stinger() -> void:
 func _draw_impact_title_field() -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
 	var p := _beat_progress()
+	var title_reveal := smoothstep(0.05, 0.42, p)
+	draw_string(
+		VideoTypography.bold(), Vector2(360, 500), "碰撞力为什么不是一个数？",
+		HORIZONTAL_ALIGNMENT_CENTER, 1200, 66,
+		Color(colors["text"], title_reveal)
+	)
 	var y := 620.0
 	draw_line(Vector2(650, y), Vector2(1270, y), Color(colors["accent"], smoothstep(0.20, 0.65, p)), 4.0, true)
 	for index in range(5):
@@ -740,7 +1218,9 @@ func _draw_impact_title_field() -> void:
 
 func _draw_damage_boundary() -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
-	var pulse := 0.5 + 0.5 * sin(_beat_progress() * TAU * 2.0)
+	var p := _beat_progress()
+	var press := smoothstep(0.10, 0.42, p)
+	var spread := smoothstep(0.36, 0.72, p)
 	var panels := [Rect2(150, 240, 730, 520), Rect2(1040, 240, 730, 520)]
 	for panel in panels:
 		draw_rect(panel, Color(colors["surface"], 0.78), true)
@@ -749,14 +1229,16 @@ func _draw_damage_boundary() -> void:
 	draw_string(VideoTypography.data(), Vector2(1140, 300), "相同总力 F", HORIZONTAL_ALIGNMENT_CENTER, 530, 30, Color(colors["accent"], 0.90))
 	for index in range(7):
 		var x := 335.0 + float(index) * 60.0
-		_draw_arrow(Vector2(x, 345), Vector2(x, 455), Color(colors["accent"], 0.72), 3.5)
-	_draw_arrow(Vector2(1405, 345), Vector2(1405, 455), Color(colors["accent"], 0.98), 7.0)
+		_draw_arrow(Vector2(x, 345 + 26.0 * press), Vector2(x, 455 + 18.0 * press), Color(colors["accent"], 0.72), 3.5)
+	_draw_arrow(Vector2(1405, 345 + 26.0 * press), Vector2(1405, 455 + 18.0 * press), Color(colors["accent"], 0.98), 7.0)
 	draw_rect(Rect2(300, 470, 430, 65), Color(colors["highlight"], 0.30), true)
 	draw_rect(Rect2(1390, 470, 30, 65), Color(colors["highlight"], 0.82), true)
 	draw_rect(Rect2(260, 535, 510, 90), Color(colors["muted"], 0.18), true)
 	draw_rect(Rect2(1150, 535, 510, 90), Color(colors["muted"], 0.18), true)
 	for radius in [44.0, 72.0, 104.0]:
-		draw_arc(Vector2(1405, 535), radius + pulse * 5.0, PI, TAU, 32, Color(colors["accent"], 0.20 / (radius / 44.0)), 3.0, true)
+		draw_arc(Vector2(1405, 535), radius + spread * 12.0, PI, TAU, 32, Color(colors["accent"], spread * 0.24 / (radius / 44.0)), 3.0, true)
+	for radius in [70.0, 140.0, 210.0]:
+		draw_arc(Vector2(515, 535), radius * spread, PI, TAU, 32, Color(colors["highlight"], 0.12 * spread), 4.0, true)
 	draw_string(VideoTypography.data(), Vector2(300, 580), "接触面积 A 大", HORIZONTAL_ALIGNMENT_CENTER, 430, 28, Color(colors["highlight"], 0.90))
 	draw_string(VideoTypography.data(), Vector2(1190, 580), "接触面积 A 小", HORIZONTAL_ALIGNMENT_CENTER, 430, 28, Color(colors["accent"], 0.96))
 	draw_string(VideoTypography.medium(), Vector2(150, 700), "相同的力 · 分布在较大面积", HORIZONTAL_ALIGNMENT_CENTER, 730, 30, Color(colors["text"], 0.90))
@@ -766,13 +1248,21 @@ func _draw_damage_boundary() -> void:
 
 func _draw_impact_takeaway() -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
+	var p := _beat_progress()
 	var plot := Rect2(260, 230, 1400, 560)
 	_draw_force_axes(plot, 45, 1700)
-	_draw_force_profile(plot, 8.0, 0.008, 0.045, 1700, colors_by_id["hard"], 1.0, 0.12)
-	_draw_force_profile(plot, 8.0, 0.040, 0.045, 1700, colors_by_id["soft"], 1.0, 0.12)
-	draw_string(VideoTypography.data(), Vector2(850, 300), "钢板  8 ms  ·  1570 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 29, Color(colors_by_id["hard"], 0.96))
-	draw_string(VideoTypography.data(), Vector2(1000, 640), "软垫  40 ms  ·  314 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 29, Color(colors_by_id["soft"], 0.96))
-	draw_string(VideoTypography.bold(), Vector2(530, 895), "面积相同 · 峰值不同", HORIZONTAL_ALIGNMENT_CENTER, 860, 42, Color(colors["text"], 0.96))
+	var hard_reveal := smoothstep(0.03, 0.24, p)
+	var morph := smoothstep(0.28, 0.70, p)
+	var final_reveal := smoothstep(0.72, 0.90, p)
+	var morph_duration := lerpf(0.008, 0.040, morph)
+	var morph_color: Color = colors_by_id["hard"].lerp(colors_by_id["soft"], morph)
+	_draw_force_profile(plot, 8.0, morph_duration, 0.045, 1700, morph_color, hard_reveal, 0.18)
+	if final_reveal > 0.001:
+		_draw_force_profile(plot, 8.0, 0.008, 0.045, 1700, colors_by_id["hard"], final_reveal, 0.08)
+		_draw_force_profile(plot, 8.0, 0.040, 0.045, 1700, colors_by_id["soft"], final_reveal, 0.08)
+	draw_string(VideoTypography.data(), Vector2(850, 300), "钢板  8 ms  ·  1570 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 29, Color(colors_by_id["hard"], maxf(hard_reveal * (1.0 - morph), final_reveal)))
+	draw_string(VideoTypography.data(), Vector2(1000, 640), "软垫  40 ms  ·  314 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 29, Color(colors_by_id["soft"], maxf(morph, final_reveal)))
+	draw_string(VideoTypography.bold(), Vector2(530, 895), "面积相同 · 峰值不同", HORIZONTAL_ALIGNMENT_CENTER, 860, 42, Color(colors["text"], final_reveal))
 
 
 func _draw_explanation_module() -> void:
