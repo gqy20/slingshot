@@ -286,7 +286,7 @@ func _build_ui() -> void:
 	add_child(explain_panel)
 	formula_renderer = FormulaRenderer.new()
 	formula_renderer.position = Vector2(60, 18)
-	formula_renderer.size = Vector2(980, 400)
+	formula_renderer.size = Vector2(980, 450)
 	formula_renderer.visible = false
 	explain_panel.add_child(formula_renderer)
 
@@ -324,7 +324,7 @@ func _build_ui() -> void:
 	subtitle_panel = subtitle_result["panel"]
 	subtitle_style = subtitle_result["style"]
 	add_child(subtitle_panel)
-	subtitle_label = _label(Vector2(20, 2), Vector2(1500, 64), VideoTypography.SUBTITLE, Color("#F2F0E9"))
+	subtitle_label = _label(Vector2(20, 0), Vector2(1500, 90), VideoTypography.SUBTITLE, Color("#F2F0E9"))
 	subtitle_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	subtitle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

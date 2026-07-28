@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "id": "s01e04-impact-force-curve",
+  "series": "物理实验室",
+  "season": 1,
+  "episode": 4,
+  "title": "碰撞力为什么不是一个数？",
+  "question": "同样的速度变化，为什么硬接触的峰值力可以高出五倍？",
+  "display_hook": "碰撞力，不止一个数字",
+  "base_preset": "res://presets/t003-impact-base.json",
+  "theme": "res://content/themes/laboratory.json",
+  "video": {"width": 3840, "height": 2160, "fps": 30},
+  "narration": {
+    "script": "res://content/narration/s01e04-impact-force-curve.txt",
+    "subtitle_script": "res://content/subtitles/s01e04-impact-force-curve.srt",
+    "model": "speech-2.8-hd",
+    "voice": "Chinese (Mandarin)_Sincere_Adult",
+    "language": "Chinese",
+    "speed": 1.08,
+    "volume": 1.0,
+    "pitch": 0,
+    "subtitle_type": "sentence",
+    "pronunciations": [
+      "峰值/(feng1)(zhi2)",
+      "冲量/(chong1)(liang4)",
+      "阻尼器/(zu3)(ni2)(qi4)"
+    ]
+  },
+  "simulation": {
+    "model": "impact_pulse",
+    "duration_sec": 1.0,
+    "tick_rate": 240,
+    "pulse_sample_rate_hz": 10000
+  },
+  "story": {
+    "question_sec": 33.0,
+    "explain_sec": 56.0,
+    "setup_sec": 38.0,
+    "flight_sec": 58.0,
+    "compare_sec": 35.0,
+    "primary_metric": "peak_force_n",
+    "metric_label": "峰值力",
+    "metric_unit": "N",
+    "secondary_metric": "impulse_ns",
+    "secondary_label": "冲量",
+    "secondary_unit": "N·s",
+    "identity_label": "碰撞曲线实验",
+    "show_episode_code": false,
+    "brand": {
+      "show_outro": true,
+      "outro_at_sec": 265.5,
+      "outro_takeaway": "一声撞击背后，是一整条曲线。"
+    },
+    "control_label": "同一颗球 · 同一入射速度 · 同一反弹速度",
+    "show_target": false,
+    "goal": "min",
+    "conclusion": "冲量约束曲线面积；接触过程决定曲线形状。"
+    ,"explanation": {
+      "kind": "relation",
+      "module": "impact_impulse",
+      "show_supporting_copy": true,
+      "asset_dir": "res://assets/generated/formulas/s01e04-impact-force-curve",
+      "steps": [
+        {
+          "concept": "先看动量改变了多少",
+          "equation": "|Δp| = m|v₂-v₁| = 8 N·s",
+          "typst": "abs(Delta bold(p)) = m abs(bold(v)_2 - bold(v)_1) = 8 space upright(N dot s)",
+          "caption": "这里只比较动量变化的大小，方向由坐标约定决定"
+        },
+        {
+          "concept": "曲线下面积就是冲量",
+          "equation": "J = ∫ₜ₀ᵗ¹ Fₙ(t)dt = |Δp|",
+          "typst": "J = integral_(t_0)^(t_1) F_n(t) dif t = abs(Delta bold(p))",
+          "caption": "两次碰撞速度变化相同，所以曲线面积相同"
+        },
+        {
+          "concept": "半正弦模型把时长换成峰值",
+          "equation": "Fₘₐₓ = πJ / (2Δt)",
+          "typst": "F_(\"max\") = frac(pi J, 2 Delta t)",
+          "caption": "接触时间拉长五倍，峰值降为原来的五分之一"
+        }
+      ],
+      "assumptions": ["半正弦接触力", "只比较力的大小", "冲量固定为 8 N·s"]
+    }
+  },
+  "beats": [
+    {"id":"cold-open","label":"消失的峰值","phase":"QUESTION","at":0,"duration":14,"shot":"contrast","mode":"immersive","camera_action":"establish","camera_reason":"直接展示完整曲线与30帧采样之间的矛盾，让反常结果先于解释出现","intent":"show-peak-hidden-between-frames","primary_subject":"hard-force-curve","layers":["annotations","identity","subtitle"],"overlay":"impact-sampling-cold-open","visual_sequence":"sampling-cold-open","sfx":"impact-hard","chapter":true},
+    {"id":"brand-stinger","label":"曲线弹弓片头","phase":"QUESTION","at":14,"duration":2,"shot":"hero","mode":"immersive","camera_action":"hold","camera_reason":"沿用冷开场曲线快速完成项目识别","intent":"transform-force-curve-into-brand","primary_subject":"curve-slingshot","layers":["annotations"],"overlay":"curve-slingshot-stinger","sfx":"brand-stinger"},
+    {"id":"episode-title","label":"本期标题","phase":"QUESTION","at":16,"duration":3,"shot":"hero","mode":"immersive","camera_action":"hold","camera_reason":"项目动画释放后立即锁定本期问题","intent":"state-episode-thesis","primary_subject":"episode-title","layers":["headline","subtitle"],"headline":"碰撞力根本不是一个数","overlay":"impact-title"},
+    {"id":"dual-impact-intro","label":"钢板与软垫","phase":"QUESTION","at":19,"duration":14,"shot":"contrast","mode":"immersive","camera_action":"reframe","camera_reason":"用同球同速的左右对照建立实验，而不提前解释冲量","intent":"compare-hard-and-soft-contact","primary_subject":"hard-and-soft-impact","layers":["subjects","subtitle"],"overlay":"impact-dual","sfx":"impact-soft"},
+
+    {"id":"hard-contact","label":"钢板尖峰","phase":"EXPLAIN","at":33,"duration":16,"shot":"relation","mode":"measurement","camera_action":"reframe","camera_reason":"将硬接触形变与窄高曲线逐帧绑定","intent":"build-hard-force-profile","primary_subject":"hard-contact","layers":["annotations","subtitle"],"overlay":"impact-hard-profile","chapter":true},
+    {"id":"soft-contact","label":"软垫宽峰","phase":"EXPLAIN","at":49,"duration":15,"shot":"relation","mode":"measurement","camera_action":"hold","camera_reason":"保持坐标与球不变，只突出更深、更久、更矮的差别","intent":"build-soft-force-profile","primary_subject":"soft-contact","layers":["annotations","subtitle"],"overlay":"impact-soft-profile"},
+    {"id":"momentum-change","label":"相同动量变化","phase":"EXPLAIN","at":64,"duration":13,"shot":"relation","mode":"measurement","camera_action":"hold","camera_reason":"用速度箭头直接得到8牛秒，不先展示积分公式","intent":"derive-shared-impulse-from-velocity","primary_subject":"momentum-arrows","layers":["annotations","subtitle"],"overlay":"impact-momentum"},
+    {"id":"equal-area","label":"面积完全相同","phase":"EXPLAIN","at":77,"duration":12,"shot":"relation","mode":"measurement","camera_action":"hold","camera_reason":"让两块曲线面积脱离坐标并重叠，先以视觉证明相同冲量","intent":"show-equal-impulse-area","primary_subject":"equal-area-shapes","layers":["annotations","subtitle"],"overlay":"impact-equal-area"},
+
+    {"id":"momentum-formula","label":"动量变化量","phase":"SETUP","at":89,"duration":5,"shot":"formula","mode":"measurement","camera_action":"reframe","camera_reason":"先统一动量变化量的符号与大小","intent":"define-momentum-change-magnitude","primary_subject":"momentum-equation","layers":["annotations","formula","subtitle"],"overlay":"impact-formula","formula_step":0,"formula_reveal":0.12,"chapter":true},
+    {"id":"impulse-formula","label":"给面积命名","phase":"SETUP","at":94,"duration":5,"shot":"formula","mode":"measurement","camera_action":"hold","camera_reason":"观众已看到面积相同，此时公式只负责命名视觉关系","intent":"name-impulse-integral","primary_subject":"impulse-equation","layers":["annotations","formula","subtitle"],"overlay":"impact-formula","formula_step":1,"formula_reveal":0.08},
+    {"id":"peak-formula","label":"峰值与时长","phase":"SETUP","at":99,"duration":5,"shot":"formula","mode":"measurement","camera_action":"hold","camera_reason":"把半正弦假设下的峰值关系写清楚","intent":"relate-duration-to-peak-force","primary_subject":"peak-equation","layers":["annotations","formula","subtitle"],"overlay":"impact-formula","formula_step":2,"formula_reveal":0.08},
+    {"id":"stretch-area","label":"同面积拉宽五倍","phase":"SETUP","at":104,"duration":23,"shot":"comparison","mode":"measurement","camera_action":"hold","camera_reason":"把同一块面积连续拉宽，直接揭示8毫秒与40毫秒的五倍峰值差","intent":"transform-duration-into-peak","primary_subject":"stretching-force-area","layers":["annotations","subtitle"],"overlay":"impact-area-stretch","visual_sequence":"area-stretch","sfx":"result"},
+
+    {"id":"applications","label":"缓冲装置","phase":"FLIGHT","at":127,"duration":15,"shot":"wide-contrast","mode":"immersive","camera_action":"reframe","camera_reason":"用三个熟悉对象快速落地延长接触时间的意义","intent":"connect-duration-to-protection","primary_subject":"protection-examples","layers":["subjects","annotations","subtitle"],"overlay":"impact-applications","chapter":true},
+    {"id":"contact-model","label":"接触模型","phase":"FLIGHT","at":142,"duration":10,"shot":"relation","mode":"measurement","camera_action":"hold","camera_reason":"用一次球—端板—弹簧阻尼运动快速说明曲线形状来源","intent":"show-model-behind-curve","primary_subject":"spring-damper-contact","layers":["annotations","subtitle"],"overlay":"impact-contact-model"},
+    {"id":"sampling-build","label":"采样点逐渐变稀","phase":"FLIGHT","at":152,"duration":16,"shot":"ranking","mode":"measurement","camera_action":"hold","camera_reason":"保持高频参考曲线固定，只逐步减少测量点","intent":"compare-sampling-rates","primary_subject":"sampled-force-curve","layers":["annotations","subtitle"],"overlay":"impact-sampling","visual_sequence":"sampling-build"},
+    {"id":"sampling-miss","label":"30帧漏掉峰值","phase":"FLIGHT","at":168,"duration":17,"shot":"contrast","mode":"immersive","camera_action":"hold","camera_reason":"延续30 Hz采样末帧，在同一坐标中补全两处零值采样点与被漏掉的峰值","intent":"resolve-hidden-peak","primary_subject":"missing-sampled-peak","layers":["annotations","subtitle"],"overlay":"impact-sampling-miss","sfx":"sample-reveal"},
+
+    {"id":"damage-boundary","label":"峰值不是破坏的全部","phase":"COMPARE","at":185,"duration":15,"shot":"comparison","mode":"measurement","camera_action":"reframe","camera_reason":"用相同力在不同面积上的分布说明科学边界，不展开材料课程","intent":"separate-force-from-damage","primary_subject":"force-area-comparison","layers":["annotations","subtitle"],"overlay":"impact-damage-boundary","chapter":true},
+    {"id":"takeaway","label":"回到两条曲线","phase":"COMPARE","at":200,"duration":20,"shot":"takeaway","mode":"measurement","camera_action":"hold","camera_reason":"让软硬曲线重回同一坐标，用面积相同、峰值不同收束全片","intent":"resolve-impact-force-question","primary_subject":"equal-area-final","layers":["annotations","subtitle"],"overlay":"impact-takeaway","sfx":"result"}
+  ],
+  "variants": [
+    {"id":"hard","label":"钢板 · 8 ms","color":"#FF8A3D","overrides":{"physics.contact_duration_sec":0.008,"physics.max_penetration_m":0.002}},
+    {"id":"soft","label":"软垫 · 40 ms","color":"#72A08D","overrides":{"physics.contact_duration_sec":0.040,"physics.max_penetration_m":0.035}}
+  ]
+}

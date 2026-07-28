@@ -37,6 +37,10 @@ foreach ($beat in @($config.beats)) {
         'release' { $filter += ";anoisesrc=color=pink:r=48000:d=0.72:a=0.10,highpass=f=420,lowpass=f=6200,afade=t=in:st=0:d=0.03,afade=t=out:st=0.18:d=0.54,adelay=${delay}:all=1[$label]" }
         'landing' { $filter += ";anoisesrc=color=brown:r=48000:d=0.42:a=0.13,highpass=f=70,lowpass=f=900,afade=t=out:st=0.06:d=0.36,adelay=${delay}:all=1[$label]" }
         'result' { $filter += ";sine=f=660:r=48000:d=0.78,volume=0.075,tremolo=f=5:d=0.65,afade=t=out:st=0.34:d=0.44,adelay=${delay}:all=1[$label]" }
+        'impact-hard' { $filter += ";anoisesrc=color=white:r=48000:d=0.16:a=0.13,highpass=f=1800,lowpass=f=9000,afade=t=out:st=0.015:d=0.145,adelay=${delay}:all=1[$label]" }
+        'impact-soft' { $filter += ";anoisesrc=color=brown:r=48000:d=0.52:a=0.11,highpass=f=70,lowpass=f=760,afade=t=in:st=0:d=0.025,afade=t=out:st=0.10:d=0.42,adelay=${delay}:all=1[$label]" }
+        'brand-stinger' { $filter += ";sine=f=392:r=48000:d=0.68,volume=0.08,afade=t=out:st=0.20:d=0.48,adelay=${delay}:all=1[$label]" }
+        'sample-reveal' { $filter += ";sine=f=880:r=48000:d=0.34,volume=0.055,tremolo=f=9:d=0.20,afade=t=out:st=0.10:d=0.24,adelay=${delay}:all=1[$label]" }
         default { throw "Unsupported sound cue: $($sfxProperty.Value)" }
     }
     $mixInputs += "[$label]"
@@ -60,4 +64,3 @@ $lines = @(
 )
 Write-SlingshotUtf8 $manifest (($lines -join "`n") + "`n")
 Write-Host "sound-design: $stem cues=$cueCount duration=${actual}s"
-

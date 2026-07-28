@@ -12,7 +12,7 @@ const SETUP_COPY_RECT := Rect2(260.0, 126.0, 1400.0, 54.0)
 const EXPLAIN_RECT := Rect2(900.0, 205.0, 960.0, 500.0)
 const RESULT_RECT := Rect2(160.0, 120.0, 1600.0, 760.0)
 const RESULT_RAIL_RECT := Rect2(300.0, 92.0, 1320.0, 104.0)
-const SUBTITLE_RECT := Rect2(190.0, 970.0, 1540.0, 70.0)
+const SUBTITLE_RECT := Rect2(190.0, 940.0, 1540.0, 90.0)
 
 
 static func plot_rect_for_phase(phase: String, mode: String = "measurement") -> Rect2:

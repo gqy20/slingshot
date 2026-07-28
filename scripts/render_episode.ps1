@@ -35,6 +35,7 @@ if ($PreviewStartSeconds -lt 0) { throw 'PreviewStartSeconds cannot be negative.
 
 $narrationProperty = $config.PSObject.Properties['narration']
 $hasNarration = $null -ne $narrationProperty -and $null -ne $narrationProperty.Value -and -not $SkipNarration
+$subtitleSrt = $null
 if ($hasNarration -and $PreviewStartSeconds -gt 0) {
     throw 'PreviewStartSeconds currently requires -SkipNarration because audio and subtitle offsets must remain exact.'
 }
@@ -51,7 +52,19 @@ if ($hasNarration) {
     & (Join-Path $PSScriptRoot 'build_sound_design.ps1') -Episode $episodePath
     $soundDesignAudio = Join-Path $script:RenderRoot "audio\$episodeName\sound-design.wav"
     if (-not (Test-Path $soundDesignAudio)) { throw 'Sound design generation failed.' }
+} elseif ($null -ne $narrationProperty -and $null -ne $narrationProperty.Value) {
+    $editorialSubtitle = [string]$config.narration.subtitle_script
+    if (-not [string]::IsNullOrWhiteSpace($editorialSubtitle)) {
+        if (-not $editorialSubtitle.StartsWith('res://') -or $editorialSubtitle.Contains('..')) {
+            throw "Unsafe narration.subtitle_script: $editorialSubtitle"
+        }
+        $subtitleSrt = Join-Path $script:ProjectRoot $editorialSubtitle.Substring(6).Replace('/', '\')
+        if (-not (Test-Path -LiteralPath $subtitleSrt)) {
+            throw "Editorial subtitle asset missing: $subtitleSrt"
+        }
+    }
 }
+$hasSubtitles = -not [string]::IsNullOrWhiteSpace([string]$subtitleSrt)
 
 $outputDir = if ($Width -eq 1920) { Join-Path $script:RenderRoot 'previews' } else { Join-Path $script:RenderRoot 'final' }
 if (-not $Output) { $Output = Join-Path $outputDir "$episodeName.mp4" }
@@ -155,7 +168,7 @@ try {
         '--frame-end', [string]$frameEnd, '--sidecar', $sidecarPath)
     $ffmpegInputArgs = @('-y', '-loglevel', 'error', '-framerate', [string]$fps,
         '-i', (Join-Path $frames 'frame%08d.png'))
-    if ($hasNarration) {
+    if ($hasSubtitles) {
         $renderArgs += @('--subtitles', $subtitleSrt, '--external-subtitles')
     }
     $renderBatch = Join-Path $tempRoot 'render.cmd'
@@ -195,25 +208,37 @@ try {
         throw 'Frame merge or sidecar generation failed.'
     }
 
-    if ($hasNarration) {
+    $videoFilter = $null
+    if ($hasSubtitles) {
         $subtitleAss = Join-Path $tempRoot 'subtitles.ass'
         & $ffmpeg -y -loglevel error -i $subtitleSrt $subtitleAss
         if ($LASTEXITCODE -ne 0) { throw 'Subtitle conversion failed.' }
         $assText = Get-Content -Raw -Encoding UTF8 $subtitleAss
         $assText = $assText -replace '(?m)^PlayResX:.*$', 'PlayResX: 1920'
         $assText = $assText -replace '(?m)^PlayResY:.*$', 'PlayResY: 1080'
-        $style = 'Style: Default,Sarasa Gothic SC,26,&H00E9F0F2,&H00E9F0F2,&HC0050608,&H00050608,-1,0,0,0,100,100,0,0,1,0,1,2,190,190,48,1'
+        $style = 'Style: Default,Sarasa Gothic SC,36,&H00E9F0F2,&H00E9F0F2,&H60050608,&H00050608,-1,0,0,0,100,100,0,0,1,2,0,2,190,190,60,1'
         $assText = $assText -replace '(?m)^Style: Default,.*$', $style
         Write-SlingshotUtf8 $subtitleAss $assText
         $assFilterPath = $subtitleAss.Replace('\', '/').Replace(':', '\:').Replace("'", "\'")
         $fontFilterPath = (Join-Path $script:ProjectRoot 'assets\fonts').Replace('\', '/').Replace(':', '\:').Replace("'", "\'")
-        $filter = "[0:v]subtitles=filename='$assFilterPath':fontsdir='$fontFilterPath'[vout];" +
+        $subtitleClock = if ($previewStart -gt 0) {
+            "setpts=PTS+$previewStart/TB,subtitles=filename='$assFilterPath':fontsdir='$fontFilterPath',setpts=PTS-STARTPTS"
+        } else {
+            "subtitles=filename='$assFilterPath':fontsdir='$fontFilterPath'"
+        }
+        $videoFilter = "[0:v]$subtitleClock[vout]"
+    }
+    if ($hasNarration) {
+        $filter = $(if ($videoFilter) { "$videoFilter;" } else { '' }) +
             '[2:a]volume=0.40[sfx];[sfx][1:a]sidechaincompress=threshold=0.015:ratio=8:attack=15:release=300[sfxduck];' +
             '[1:a][sfxduck]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.78:level=false[premaster];' +
             '[premaster]loudnorm=I=-16:TP=-1:LRA=7[aout]'
         $ffmpegInputArgs += @('-i', $narrationAudio, '-i', $soundDesignAudio,
             '-t', [string]$duration, '-filter_complex', $filter,
-            '-map', '[vout]', '-map', '[aout]')
+            '-map', $(if ($videoFilter) { '[vout]' } else { '0:v' }), '-map', '[aout]')
+    } elseif ($videoFilter) {
+        $ffmpegInputArgs += @('-t', [string]$duration, '-filter_complex', $videoFilter,
+            '-map', '[vout]')
     } else {
         $ffmpegInputArgs += @('-t', [string]$duration)
     }
@@ -234,9 +259,10 @@ try {
         if (Test-Path $videoTemp) { Remove-Item -LiteralPath $videoTemp -Force }
         $codecArgs = if ($candidate -eq 'h264_nvenc') {
             @('-c:v', 'h264_nvenc', '-preset', 'p6', '-tune', 'hq', '-rc', 'vbr',
-                '-cq', '19', '-b:v', '0', '-pix_fmt', 'yuv420p')
+                '-cq', '19', '-b:v', '0', '-pix_fmt', 'yuv420p', '-fps_mode', 'cfr', '-r', [string]$fps)
         } else {
-            @('-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p')
+            @('-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p',
+                '-fps_mode', 'cfr', '-r', [string]$fps)
         }
         $outputArgs = if ($hasNarration) {
             @('-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-ac', '1',
@@ -284,6 +310,7 @@ try {
         "video_encoder_request=$VideoEncoder",
         'render_sharding=serial_windows',
         'deterministic_seeded=true',
+        "subtitles=$(if ($hasSubtitles) { 'burned_in' } else { 'none' })",
         $(if ($hasNarration) { 'audio_mix=voice_plus_ducked_beat_sfx' } else { 'audio=none' })
     ) -join "`n"
     $manifestPath = [IO.Path]::ChangeExtension($outputPath, '.manifest.txt')

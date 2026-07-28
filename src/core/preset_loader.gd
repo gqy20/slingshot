@@ -19,6 +19,9 @@ const OPTIONAL_PHYSICS_DEFAULTS := {
 	"projectile_radius_m": 0.05,
 	"wind_x_mps": 0.0,
 	"wind_y_mps": 0.0,
+	"rebound_speed_mps": 0.0,
+	"contact_duration_sec": 0.008,
+	"max_penetration_m": 0.002,
 }
 const COLOR_KEYS := ["bird_color", "accent_color", "target_color"]
 const COORDINATE_KEYS := ["launch_position_m", "target_position_m"]
@@ -90,6 +93,12 @@ static func validate_dict(raw: Dictionary) -> Dictionary:
 			return _failure("physics.%s must not be negative" % key, warnings)
 	if physics["projectile_radius_m"] <= 0.0:
 		return _failure("physics.projectile_radius_m must be positive", warnings)
+	if physics["rebound_speed_mps"] < 0.0:
+		return _failure("physics.rebound_speed_mps must not be negative", warnings)
+	if physics["contact_duration_sec"] <= 0.0:
+		return _failure("physics.contact_duration_sec must be positive", warnings)
+	if physics["max_penetration_m"] <= 0.0:
+		return _failure("physics.max_penetration_m must be positive", warnings)
 
 	var scene_value: Variant = raw.get("scene")
 	if not scene_value is Dictionary:

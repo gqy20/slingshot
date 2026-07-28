@@ -3,6 +3,7 @@ extends SceneTree
 const TEST_CASES := [
 	preload("res://tests/test_shot_model.gd"),
 	preload("res://tests/test_projectile_drag_solver.gd"),
+	preload("res://tests/test_impact_pulse_solver.gd"),
 	preload("res://tests/test_preset_loader.gd"),
 	preload("res://tests/test_simulation_nodes.gd"),
 	preload("res://tests/test_episode_loader.gd"),

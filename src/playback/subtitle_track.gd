@@ -55,7 +55,7 @@ static func text_at(cues: Array, video_time_sec: float) -> String:
 static func display_text_at(
 	cues: Array,
 	video_time_sec: float,
-	max_characters: int = 36
+	max_characters: int = 34
 ) -> String:
 	for cue_value in cues:
 		if not cue_value is Dictionary:
@@ -125,7 +125,7 @@ static func split_long_cues(cues: Array, max_characters: int = 88) -> Array:
 	return result
 
 
-static func split_display_cues(cues: Array, max_characters: int = 36) -> Array:
+static func split_display_cues(cues: Array, max_characters: int = 34) -> Array:
 	var result: Array = []
 	for cue_value in cues:
 		if not cue_value is Dictionary:

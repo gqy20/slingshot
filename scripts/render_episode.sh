@@ -328,7 +328,7 @@ if [[ "$HAS_NARRATION" == true ]]; then
 	sed -i \
 		-e 's/^PlayResX:.*/PlayResX: 1920/' \
 		-e 's/^PlayResY:.*/PlayResY: 1080/' \
-		-e 's|^Style: Default,.*|Style: Default,Sarasa Gothic SC,26,\&H00E9F0F2,\&H00E9F0F2,\&HC0050608,\&H00050608,-1,0,0,0,100,100,0,0,1,0,1,2,190,190,48,1|' \
+		-e 's|^Style: Default,.*|Style: Default,Sarasa Gothic SC,36,\&H00E9F0F2,\&H00E9F0F2,\&H60050608,\&H00050608,-1,0,0,0,100,100,0,0,1,2,0,2,190,190,60,1|' \
 		"$SUBTITLE_ASS"
 	SUBTITLE_FILTER="subtitles=filename='$SUBTITLE_ASS':fontsdir='$PROJECT_ROOT/assets/fonts'"
 	"$FFMPEG_BIN" -y -loglevel error \

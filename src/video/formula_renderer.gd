@@ -83,30 +83,30 @@ func _build_ui() -> void:
 	if is_instance_valid(formula_label):
 		return
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	eyebrow_label = _label(Vector2(40, 6), Vector2(900, 40), VideoTypography.FORMULA_META)
+	eyebrow_label = _label(Vector2(40, 4), Vector2(900, 40), VideoTypography.FORMULA_META)
 	add_child(eyebrow_label)
-	concept_label = _label(Vector2(40, 50), Vector2(900, 62), VideoTypography.FORMULA_STEP)
+	concept_label = _label(Vector2(40, 52), Vector2(900, 62), VideoTypography.FORMULA_STEP)
 	concept_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	concept_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(concept_label)
 	formula_texture = TextureRect.new()
-	formula_texture.position = Vector2(40, 122)
-	formula_texture.size = Vector2(900, 180)
+	formula_texture.position = Vector2(40, 142)
+	formula_texture.size = Vector2(900, 172)
 	formula_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	formula_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	formula_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	formula_texture.visible = false
 	add_child(formula_texture)
-	formula_label = _label(Vector2(40, 130), Vector2(900, 94), VideoTypography.FORMULA_MAIN)
+	formula_label = _label(Vector2(40, 142), Vector2(900, 172), VideoTypography.FORMULA_MAIN)
 	formula_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	formula_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(formula_label)
-	caption_label = _label(Vector2(100, 304), Vector2(780, 46), VideoTypography.BODY)
+	caption_label = _label(Vector2(100, 342), Vector2(780, 46), VideoTypography.BODY)
 	caption_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caption_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	caption_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(caption_label)
-	assumptions_label = _label(Vector2(52, 352), Vector2(876, 40), VideoTypography.FORMULA_META)
+	assumptions_label = _label(Vector2(52, 410), Vector2(876, 40), VideoTypography.FORMULA_META)
 	assumptions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	assumptions_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(assumptions_label)

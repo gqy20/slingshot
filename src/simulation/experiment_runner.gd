@@ -7,6 +7,7 @@ const SimulationWorld = preload("res://src/simulation/simulation_world.gd")
 const RunRecord = preload("res://src/core/run_record.gd")
 const ShotModel = preload("res://src/core/shot_model.gd")
 const ProjectileSolver = preload("res://src/simulation/projectile_drag_solver.gd")
+const ImpactPulseSolver = preload("res://src/simulation/impact_pulse_solver.gd")
 
 var episode: Dictionary = {}
 var output_path := ""
@@ -32,6 +33,9 @@ func start(normalized_episode: Dictionary, record_path: String) -> void:
 	Engine.physics_ticks_per_second = int(episode["simulation"]["tick_rate"])
 	if String(episode["simulation"].get("model", "rigidbody")) == "projectile_drag":
 		call_deferred("_simulate_projectile_drag_episode")
+		return
+	if String(episode["simulation"].get("model", "rigidbody")) == "impact_pulse":
+		call_deferred("_simulate_impact_pulse_episode")
 		return
 	variant_index = -1
 	_start_next_variant()
@@ -66,6 +70,61 @@ func _simulate_projectile_drag_episode() -> void:
 	print("[episode:simulate] record=%s variants=%d" % [output_path, records.size()])
 	completed.emit(bundle)
 	get_tree().quit(0)
+
+
+func _simulate_impact_pulse_episode() -> void:
+	var tick_rate := int(episode["simulation"]["tick_rate"])
+	var duration := float(episode["simulation"]["duration_sec"])
+	var sample_rate := int(episode["simulation"].get("pulse_sample_rate_hz", 10000))
+	records = []
+	for variant_value in episode["variants"]:
+		var variant: Dictionary = variant_value
+		var record := ImpactPulseSolver.simulate(
+			variant["preset"], tick_rate, duration, sample_rate
+		)
+		record["variant_id"] = variant["id"]
+		record["label"] = variant["label"]
+		record["color_html"] = variant["color_html"]
+		records.append(record)
+		print(
+			"[episode:simulate] complete=%s impulse=%.3f peak=%.3f"
+			% [
+				variant["id"],
+				float(record["metrics"]["impulse_ns"]),
+				float(record["metrics"]["peak_force_n"]),
+			]
+		)
+	var extras := {"impact_measurement": _impact_measurement_extras(records)}
+	var bundle := RunRecord.make_bundle(episode, records, extras)
+	var result := RunRecord.write_json(output_path, bundle)
+	if result != OK:
+		push_error("failed to write run record: %s" % error_string(result))
+		get_tree().quit(3)
+		return
+	print("[episode:simulate] record=%s variants=%d" % [output_path, records.size()])
+	completed.emit(bundle)
+	get_tree().quit(0)
+
+
+func _impact_measurement_extras(impact_records: Array) -> Dictionary:
+	if impact_records.is_empty():
+		return {}
+	var hard: Dictionary = impact_records[0]
+	var curve: Array = hard.get("force_curve", [])
+	var contact_start := 0.012
+	var rates := [10000.0, 1000.0, 100.0, 30.0]
+	var sampled: Array = []
+	for rate in rates:
+		sampled.append({
+			"rate_hz": rate,
+			"peak_force_n": ImpactPulseSolver.sampled_peak(
+				curve, contact_start, rate, 0.0
+			),
+		})
+	return {
+		"contact_start_sec": contact_start,
+		"sampled_peaks": sampled,
+	}
 
 
 func _projectile_angle_scans(tick_rate: int, duration: float) -> Dictionary:
