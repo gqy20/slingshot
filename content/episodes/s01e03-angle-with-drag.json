@@ -17,9 +17,9 @@
   "narration": {
     "script": "res://content/narration/s01e03-angle-with-drag.txt",
     "model": "speech-2.8-hd",
-    "voice": "Chinese (Mandarin)_Reliable_Executive",
+    "voice": "Chinese (Mandarin)_Sincere_Adult",
     "language": "Chinese",
-    "speed": 1.0,
+    "speed": 1.08,
     "volume": 1.0,
     "pitch": 0,
     "subtitle_type": "sentence",
@@ -54,6 +54,12 @@
     "secondary_label": "阻力耗散",
     "secondary_unit": "J",
     "identity_label": "空气阻力实验",
+    "show_episode_code": false,
+    "brand": {
+      "show_outro": true,
+      "outro_at_sec": 295.55,
+      "outro_takeaway": "条件说清楚，角度才有答案。"
+    },
     "control_label": "同一物体 · 同一初速度 · 只改变角度",
     "show_target": false,
     "goal": "max",
@@ -63,13 +69,14 @@
     "explanation": {
       "kind": "relation",
       "module": "drag_effect",
+      "show_supporting_copy": false,
       "asset_dir": "res://assets/generated/formulas/s01e03-angle-with-drag",
       "steps": [
         {
           "concept": "理想条件下，45°确实最远",
           "equation": "R = (v₀² / g) · sin(2θ)",
-          "typst": "R = frac(v_0^2, g) dot sin(2 theta)",
-          "caption": "同速、同高落地、没有空气阻力"
+          "typst": "R = frac(v_(sscript(0))^(sscript(2)), g) dot sin(2 theta)",
+          "caption": "v₀ 表示发射时的初速度 · 同高落地 · 没有空气阻力"
         },
         {
           "concept": "空气阻力始终反对相对运动",
@@ -88,26 +95,28 @@
     }
   },
   "beats": [
-    {"id":"cold-open","label":"45°不再获胜","phase":"QUESTION","at":0,"duration":10,"shot":"contrast","mode":"immersive","camera_action":"establish","camera_reason":"建立45°与空气中更优角度的同场冲突","intent":"contrast-vacuum-and-drag-optimum","primary_subject":"angle-45-and-angle-40","layers":["world","subjects","headline","identity","subtitle"],"focus":"angle-45","focus_secondary":"angle-40","focus_label":"45°","focus_secondary_label":"空气中更远","headline":"45°，还是最远吗？","overlay":"contrast-teaser","sfx":"cold-open","chapter":true},
-    {"id":"same-launch","label":"同一个球，同一初速度","phase":"QUESTION","at":10,"duration":10,"shot":"contrast","mode":"immersive","camera_action":"hold","camera_reason":"主体和证据没有变化，只补充比较条件","intent":"hold-shared-launch-conditions","primary_subject":"angle-45-and-angle-40","layers":["world","subjects","headline","subtitle"],"focus":"angle-45","focus_secondary":"angle-40","headline":"同一个球 · 同一初速度","overlay":"contrast-teaser"},
-    {"id":"question","label":"45°的条件是什么","phase":"QUESTION","at":20,"duration":10,"shot":"contrast","mode":"immersive","camera_action":"hold","camera_reason":"继续停留在同一组轨迹上提出完整问题","intent":"ask-conditions-behind-45","primary_subject":"angle-45-and-angle-40","layers":["world","subjects","headline","subtitle"],"focus":"angle-45","focus_secondary":"angle-40","headline":"它在什么条件下才对？","overlay":"display-hook"},
+    {"id":"cold-open","label":"直接提出角度问题","phase":"QUESTION","at":0,"duration":10,"shot":"contrast","mode":"immersive","camera_action":"establish","camera_reason":"从零建立同球同速的比较，让观众先判断40°和45°谁更远","intent":"ask-angle-range-question","primary_subject":"angle-40-and-angle-45","layers":["world","subjects","headline","identity","subtitle"],"focus":"angle-40","focus_secondary":"angle-45","headline":"40°和45°，哪个飞得更远？","overlay":"drag-angle-upset","visual_sequence":"opening-upset","sfx":"cold-open","chapter":true},
+    {"id":"same-launch","label":"展示20厘米的反常差异","phase":"QUESTION","at":10,"duration":8,"shot":"contrast","mode":"immersive","camera_action":"hold","camera_reason":"在条件不变的前提下展示两个精确落点，让反常来自数据本身","intent":"show-controlled-range-difference","primary_subject":"angle-40-and-angle-45","layers":["world","subjects","headline","subtitle"],"focus":"angle-40","focus_secondary":"angle-45","headline":"40°反而多飞了20厘米","overlay":"drag-angle-upset","visual_sequence":"opening-upset"},
+    {"id":"textbook-question","label":"交代45°的理想条件","phase":"QUESTION","at":18,"duration":5,"shot":"wide-contrast","mode":"immersive","camera_action":"reframe","camera_reason":"先说明45°来自无空气、同高落地的理想模型，不把结论当作无来源的常识","intent":"establish-ideal-45-degree-condition","primary_subject":"ideal-angle-45","layers":["world","subjects","headline","subtitle"],"focus":"angle-45","headline":"45°，来自理想模型","overlay":"ideal-45"},
+    {"id":"ideal-balance","label":"解释45°为何成立","phase":"QUESTION","at":23,"duration":5,"shot":"wide-contrast","mode":"immersive","camera_action":"hold","camera_reason":"旁白仍在解释理想条件时只保留理想轨迹，避免空气阻力提前进入画面","intent":"explain-why-45-degrees-is-ideal","primary_subject":"ideal-angle-45","layers":["world","subjects","headline","subtitle"],"focus":"angle-45","headline":"速度与时间，刚好平衡","overlay":"ideal-45"},
+    {"id":"missing-condition","label":"追问结果为何反转","phase":"QUESTION","at":28,"duration":2,"shot":"wide-contrast","mode":"immersive","camera_action":"hold","camera_reason":"在旁白提出反转问题时才让空气中的轨迹进入，与理想45°形成直接对照","intent":"ask-why-air-reverses-result","primary_subject":"vacuum-and-air-angle-45","layers":["world","subjects","headline","subtitle"],"focus":"angle-45","headline":"为什么反过来了？","overlay":"same-angle-models"},
 
-    {"id":"ideal-baseline","label":"理想模型","phase":"EXPLAIN","at":30,"duration":31,"shot":"relation","mode":"measurement","camera_action":"reframe","camera_reason":"让开场轨迹连续收束为理想模型证据","intent":"establish-vacuum-baseline","primary_subject":"angle-45","layers":["world","annotations","formula","subtitle"],"focus":"angle-45","overlay":"ideal-reference","handoff":"trajectory-to-model","formula_step":0,"formula_reveal":0.22,"chapter":true},
+    {"id":"ideal-baseline","label":"理想模型","phase":"EXPLAIN","at":30,"duration":31,"shot":"relation","mode":"measurement","camera_action":"reframe","camera_reason":"让开场轨迹连续收束为理想模型证据","intent":"establish-vacuum-baseline","primary_subject":"angle-45","layers":["world","annotations","formula","subtitle"],"focus":"angle-45","overlay":"ideal-reference","handoff":"trajectory-to-model","transition_style":"morph","transition_duration":1.1,"formula_step":0,"formula_reveal":0.22,"chapter":true},
     {"id":"restore-air","label":"把空气放回来","phase":"EXPLAIN","at":61,"duration":28,"shot":"relation","mode":"measurement","camera_action":"hold","camera_reason":"保持同一轨迹几何，仅加入与速度绑定的阻力证据","intent":"introduce-quadratic-drag","primary_subject":"angle-45","layers":["world","annotations","formula","subtitle"],"focus":"angle-45","overlay":"drag-force","formula_step":1,"formula_reveal":0.44},
     {"id":"no-closed-answer","label":"答案需要重新计算","phase":"EXPLAIN","at":89,"duration":24,"shot":"relation","mode":"measurement","camera_action":"hold","camera_reason":"沿用同一比较构图，把注意力从公式移到参数竞争","intent":"replace-memorized-answer-with-search","primary_subject":"angle-family","layers":["world","annotations","formula","subtitle"],"focus":"angle-45","overlay":"angle-family","formula_step":2,"formula_reveal":0.40},
 
-    {"id":"controls","label":"固定物体与初速度","phase":"SETUP","at":113,"duration":11,"shot":"setup","mode":"measurement","camera_action":"reframe","camera_reason":"让搜索公式淡出为实验前提，同时放大共同发射点","intent":"show-drag-experiment-controls","primary_subject":"seven-launch-angles","layers":["world","trajectories","headline","subtitle"],"headline":"同一物体 · 同一初速度","overlay":"controls","handoff":"formula-to-controls","handoff_formula_step":2,"chapter":true},
+    {"id":"controls","label":"固定物体与初速度","phase":"SETUP","at":113,"duration":11,"shot":"setup","mode":"measurement","camera_action":"reframe","camera_reason":"让搜索公式淡出为实验前提，同时放大共同发射点","intent":"show-drag-experiment-controls","primary_subject":"seven-launch-angles","layers":["world","trajectories","headline","subtitle"],"headline":"同一物体 · 同一初速度","overlay":"controls","handoff":"formula-to-controls","transition_style":"morph","transition_duration":1.15,"handoff_formula_step":2,"chapter":true},
     {"id":"angle-set","label":"只改变角度","phase":"SETUP","at":124,"duration":12,"shot":"setup","mode":"measurement","camera_action":"hold","camera_reason":"实验组没有变化，只依次强调角度范围","intent":"preview-representative-angles","primary_subject":"angle-40","layers":["world","trajectories","subtitle"],"focus":"angle-40","overlay":"protractor"},
 
-    {"id":"launch","label":"同时释放","phase":"FLIGHT","at":136,"duration":7,"shot":"launch","mode":"immersive","camera_action":"reframe","camera_reason":"保留角度扇形作为发射依据，再进入真实飞行","intent":"observe-shared-release","primary_subject":"projectiles","layers":["world","subjects","trajectories","subtitle"],"focus":"angle-40","handoff":"angles-to-launch","sfx":"release","chapter":true},
+    {"id":"launch","label":"同时释放","phase":"FLIGHT","at":136,"duration":7,"shot":"launch","mode":"immersive","camera_action":"reframe","camera_reason":"保留角度扇形作为发射依据，再进入真实飞行","intent":"observe-shared-release","primary_subject":"projectiles","layers":["world","subjects","trajectories","subtitle"],"focus":"angle-40","handoff":"angles-to-launch","transition_style":"snap","transition_duration":0.7,"sfx":"release","chapter":true},
     {"id":"drag-flight","label":"阻力随速度变化","phase":"FLIGHT","at":143,"duration":14,"shot":"follow","mode":"immersive","camera_action":"track","camera_reason":"跟随一条代表轨迹，让阻力箭头与真实速度同步","intent":"observe-drag-over-flight","primary_subject":"angle-40","layers":["world","subjects","trajectories","annotations","subtitle"],"focus":"angle-40","overlay":"drag-force"},
-    {"id":"landings","label":"落点开始提前","phase":"FLIGHT","at":157,"duration":7,"shot":"landing","mode":"immersive","camera_action":"reframe","camera_reason":"拉回全景以同时容纳所有首次落点","intent":"compare-drag-landings","primary_subject":"all-landings","layers":["world","subjects","trajectories","subtitle"],"focus":"angle-40","sfx":"landing"},
+    {"id":"landings","label":"局部放大落点差异","phase":"FLIGHT","at":157,"duration":7,"shot":"landing","mode":"immersive","camera_action":"reframe","camera_reason":"全景保留真实轨迹比例，同时用明确标注的局部视图展开拥挤落点","intent":"compare-drag-landings-with-honest-magnification","primary_subject":"angle-30-to-angle-45-landings","layers":["world","subjects","trajectories","annotations","subtitle"],"focus":"angle-40","overlay":"landing-magnifier","sfx":"landing"},
 
-    {"id":"scan-curve","label":"逐度扫描","phase":"COMPARE","at":164,"duration":29,"shot":"ranking","mode":"measurement","camera_action":"reframe","camera_reason":"让七个落点连续变成角度—射程采样点","intent":"reveal-angle-range-scan","primary_subject":"range-curve","layers":["annotations","subtitle"],"overlay":"range-curve","handoff":"landings-to-chart","visual_sequence":"range-scan","chapter":true},
+    {"id":"scan-curve","label":"逐度扫描","phase":"COMPARE","at":164,"duration":29,"shot":"ranking","mode":"measurement","camera_action":"reframe","camera_reason":"让七个落点连续变成角度—射程采样点","intent":"reveal-angle-range-scan","primary_subject":"range-curve","layers":["annotations","subtitle"],"overlay":"range-curve","handoff":"landings-to-chart","transition_style":"morph","transition_duration":1.3,"visual_sequence":"range-scan","chapter":true},
     {"id":"curve-peaks","label":"峰值向左移动","phase":"COMPARE","at":193,"duration":27,"shot":"ranking","mode":"measurement","camera_action":"hold","camera_reason":"曲线数据没有变化，只比较两个峰值位置","intent":"compare-vacuum-and-air-peaks","primary_subject":"range-curve-peaks","layers":["annotations","subtitle"],"overlay":"range-curve","visual_sequence":"range-scan"},
-    {"id":"parameter-shift","label":"弹道系数改变峰值","phase":"COMPARE","at":220,"duration":24,"shot":"ranking","mode":"measurement","camera_action":"hold","camera_reason":"坐标系保持不动，只加入阻力相对变弱的新数据曲线","intent":"show-ballistic-coefficient-shift","primary_subject":"parameter-range-curves","layers":["annotations","subtitle"],"overlay":"parameter-curve","visual_sequence":"parameter-scan"},
-    {"id":"model-boundary","label":"答案随参数移动","phase":"COMPARE","at":244,"duration":27,"shot":"comparison","mode":"immersive","camera_action":"reframe","camera_reason":"让参数曲线淡出为两条代表轨迹，继续解释模型边界","intent":"state-parameter-dependence","primary_subject":"angle-40-and-angle-45","layers":["world","subjects","trajectories","subtitle"],"focus":"angle-40","focus_secondary":"angle-45","focus_label":"当前条件 40°","focus_secondary_label":"同一条件 45°","overlay":"model-boundary","handoff":"chart-to-trajectories"},
-    {"id":"takeaway","label":"最佳角度属于条件","phase":"COMPARE","at":271,"duration":29,"shot":"takeaway","mode":"measurement","camera_action":"reframe","camera_reason":"逐步退去辅助轨迹，再收束到40°落点和条件结论","intent":"state-conditional-optimum","primary_subject":"best-drag-angle","layers":["world","subjects","trajectories","results","subtitle"],"focus":"angle-40","overlay":"assumptions","result_reveal":0.16,"conclusion_display":"45°：理想模型的精确答案","sfx":"result"}
+    {"id":"parameter-shift","label":"换一个球，峰值还会移动","phase":"COMPARE","at":220,"duration":29,"shot":"ranking","mode":"measurement","camera_action":"hold","camera_reason":"坐标系保持不动，让观众看到参数改变如何继续移动峰值","intent":"show-ballistic-coefficient-shift","primary_subject":"parameter-range-curves","layers":["annotations","subtitle"],"overlay":"parameter-curve","visual_sequence":"parameter-scan"},
+    {"id":"model-boundary","label":"40°也不是万能答案","phase":"COMPARE","at":249,"duration":27,"shot":"comparison","mode":"immersive","camera_action":"reframe","camera_reason":"让参数曲线淡出为两条代表轨迹，一起检查模型没有包含的条件","intent":"state-parameter-dependence","primary_subject":"angle-40-and-angle-45","layers":["world","subjects","trajectories","subtitle"],"focus":"angle-40","focus_secondary":"angle-45","focus_label":"当前条件 40°","focus_secondary_label":"同一条件 45°","overlay":"model-boundary","handoff":"chart-to-trajectories","transition_style":"morph","transition_duration":1.2},
+    {"id":"takeaway","label":"回到这颗球","phase":"COMPARE","at":276,"duration":24,"shot":"takeaway","mode":"measurement","camera_action":"reframe","camera_reason":"回到开场的同一颗球，用三组具体结果收束，而不是再给一句抽象口号","intent":"resolve-opening-upset","primary_subject":"best-drag-angle","layers":["world","subjects","trajectories","results","subtitle"],"focus":"angle-40","overlay":"assumptions","result_reveal":0.16,"conclusion_display":"这颗球有空气：40° · 真空：45°","sfx":"result"}
   ],
   "variants": [
     {"id":"angle-30","label":"30°","color":"#557B96","overrides":{"physics.launch_angle_deg":30}},

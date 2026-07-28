@@ -6,6 +6,7 @@ const VideoTypography = preload("res://src/video/video_typography.gd")
 var explanation: Dictionary = {}
 var colors: Dictionary = {}
 var step_index := -1
+var show_supporting_copy := true
 var eyebrow_label: Label
 var concept_label: Label
 var formula_texture: TextureRect
@@ -21,6 +22,7 @@ func _ready() -> void:
 func configure(value: Dictionary, theme_colors: Dictionary) -> void:
 	explanation = value
 	colors = theme_colors
+	show_supporting_copy = bool(explanation.get("show_supporting_copy", true))
 	if not is_instance_valid(formula_label):
 		_build_ui()
 	eyebrow_label.add_theme_color_override("font_color", colors["accent"])
@@ -45,6 +47,8 @@ func set_step(value: int) -> void:
 		formula_label.text = ""
 		formula_label.visible = true
 		caption_label.text = ""
+		caption_label.visible = false
+		assumptions_label.visible = false
 		queue_redraw()
 		return
 	step_index = clampi(value, 0, steps.size() - 1)
@@ -58,7 +62,8 @@ func set_step(value: int) -> void:
 	formula_texture.visible = formula_texture.texture != null
 	formula_label.visible = not formula_texture.visible
 	caption_label.text = String(step.get("caption", ""))
-	assumptions_label.visible = step_index == steps.size() - 1
+	caption_label.visible = show_supporting_copy
+	assumptions_label.visible = show_supporting_copy and step_index == steps.size() - 1
 	queue_redraw()
 
 
@@ -85,8 +90,8 @@ func _build_ui() -> void:
 	concept_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(concept_label)
 	formula_texture = TextureRect.new()
-	formula_texture.position = Vector2(40, 126)
-	formula_texture.size = Vector2(900, 110)
+	formula_texture.position = Vector2(40, 122)
+	formula_texture.size = Vector2(900, 180)
 	formula_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	formula_texture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	formula_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -96,12 +101,12 @@ func _build_ui() -> void:
 	formula_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	formula_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(formula_label)
-	caption_label = _label(Vector2(100, 252), Vector2(780, 64), VideoTypography.BODY)
+	caption_label = _label(Vector2(100, 304), Vector2(780, 46), VideoTypography.BODY)
 	caption_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	caption_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	caption_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	add_child(caption_label)
-	assumptions_label = _label(Vector2(52, 334), Vector2(876, 50), VideoTypography.FORMULA_META)
+	assumptions_label = _label(Vector2(52, 352), Vector2(876, 40), VideoTypography.FORMULA_META)
 	assumptions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	assumptions_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	add_child(assumptions_label)

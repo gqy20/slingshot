@@ -74,8 +74,11 @@ func run(t) -> void:
 			episode["story"]["explanation"]["module"] == "drag_effect",
 			"T001 uses a data-bound drag explanation"
 		)
-		var scan_beat: Dictionary = episode["beats"][11]
-		var peak_beat: Dictionary = episode["beats"][12]
+		var beats_by_id := {}
+		for beat in episode["beats"]:
+			beats_by_id[String(beat["id"])] = beat
+		var scan_beat: Dictionary = beats_by_id["scan-curve"]
+		var peak_beat: Dictionary = beats_by_id["curve-peaks"]
 		t.check(
 			scan_beat["visual_sequence"] == peak_beat["visual_sequence"]
 			and not String(scan_beat["visual_sequence"]).is_empty(),
@@ -86,22 +89,22 @@ func run(t) -> void:
 			"copy-only peak comparison keeps the camera still"
 		)
 		t.check(
-			episode["beats"][13]["overlay"] == "parameter-curve",
+			beats_by_id["parameter-shift"]["overlay"] == "parameter-curve",
 			"T001 gives the parameter-dependence paragraph new visual evidence"
 		)
 		t.check(
-			episode["beats"][3]["handoff"] == "trajectory-to-model",
+			beats_by_id["ideal-baseline"]["handoff"] == "trajectory-to-model",
 			"T001 preserves the opening trajectory-to-model handoff"
 		)
 		t.check(
-			episode["beats"][11]["handoff"] == "landings-to-chart",
+			beats_by_id["scan-curve"]["handoff"] == "landings-to-chart",
 			"T001 preserves the data-bound landing-to-chart handoff"
 		)
 		t.check(
-			episode["beats"][14]["handoff"] == "chart-to-trajectories",
+			beats_by_id["model-boundary"]["handoff"] == "chart-to-trajectories",
 			"T001 preserves the chart-to-trajectory conclusion handoff"
 		)
 		t.check_close(
-			float(episode["beats"][15]["result_reveal"]), 0.16, 0.0001,
+			float(beats_by_id["takeaway"]["result_reveal"]), 0.16, 0.0001,
 			"T001 stages the final result instead of revealing it at the cut"
 		)

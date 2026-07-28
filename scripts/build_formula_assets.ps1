@@ -55,7 +55,7 @@ try {
         $manifestLines = @(
             "episode=$($config.id)",
             'typst_version=0.15.1',
-            'template_version=2',
+            'template_version=4',
             'math_font=New Computer Modern Math',
             'format=svg',
             'background=transparent'
@@ -64,7 +64,7 @@ try {
         for ($index = 0; $index -lt $steps.Count; $index++) {
             $number = $index + 1
             $name = 'step-{0:d2}' -f $number
-            $sourceHashText = "typst_version=0.15.1`ntemplate_version=2`nfill=$color`nsource=$($steps[$index].typst)"
+            $sourceHashText = "typst_version=0.15.1`ntemplate_version=4`nfill=$color`nsource=$($steps[$index].typst)"
             $sha = [System.Security.Cryptography.SHA256]::Create()
             try {
                 $bytes = [Text.Encoding]::UTF8.GetBytes($sourceHashText)
@@ -82,7 +82,7 @@ try {
                 $typPath = Join-Path $tempRoot "$($config.id)-$name.typ"
                 $compiledPath = Join-Path $tempRoot "$($config.id)-$name.svg"
                 $typSource = @"
-#set page(width: 1800pt, height: 192pt, margin: 0pt, fill: none)
+#set page(width: 1200pt, height: 240pt, margin: 0pt, fill: none)
 #set text(fill: rgb("$color"), size: 96pt)
 #show math.equation: set text(font: "New Computer Modern Math")
 #align(center + horizon)[$ $($steps[$index].typst) $]

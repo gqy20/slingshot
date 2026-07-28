@@ -4,6 +4,8 @@ extends RefCounted
 const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 
 const TRANSITION_DURATION_SEC := 0.8
+const MIN_TRANSITION_DURATION_SEC := 0.2
+const MAX_TRANSITION_DURATION_SEC := 2.0
 
 
 static func desired_state(
@@ -27,8 +29,13 @@ static func desired_state(
 	}
 
 
-static func interpolate(previous: Dictionary, current: Dictionary, progress: float) -> Dictionary:
-	var eased := smoothstep(0.0, 1.0, clampf(progress, 0.0, 1.0))
+static func interpolate(
+	previous: Dictionary,
+	current: Dictionary,
+	progress: float,
+	style: String = "glide"
+) -> Dictionary:
+	var eased := ease_progress(progress, style)
 	return {
 		"scale": lerpf(float(previous["scale"]), float(current["scale"]), eased),
 		"offset": Vector2(previous["offset"]).lerp(Vector2(current["offset"]), eased),
@@ -44,14 +51,44 @@ static func transition_progress(beat: Dictionary, video_time_sec: float) -> floa
 		return 1.0
 	return clampf(
 		(video_time_sec - float(beat.get("at", video_time_sec)))
-		/ TRANSITION_DURATION_SEC,
+		/ transition_duration(beat),
 		0.0,
 		1.0
 	)
 
 
+static func transition_duration(beat: Dictionary) -> float:
+	return clampf(
+		float(beat.get("transition_duration", TRANSITION_DURATION_SEC)),
+		MIN_TRANSITION_DURATION_SEC,
+		MAX_TRANSITION_DURATION_SEC
+	)
+
+
+static func transition_style(beat: Dictionary) -> String:
+	return String(beat.get("transition_style", "glide"))
+
+
+static func transition_eased_progress(beat: Dictionary, video_time_sec: float) -> float:
+	return ease_progress(transition_progress(beat, video_time_sec), transition_style(beat))
+
+
+static func ease_progress(progress: float, style: String = "glide") -> float:
+	var value := clampf(progress, 0.0, 1.0)
+	match style:
+		"snap":
+			return 1.0 - pow(1.0 - value, 3.0)
+		"dissolve":
+			return smoothstep(0.0, 1.0, value)
+		"morph":
+			return value * value * value * (value * (value * 6.0 - 15.0) + 10.0)
+		_:
+			return smoothstep(0.0, 1.0, value)
+
+
 static func zoom_for_shot(shot: String) -> float:
 	return {
+		"wide-contrast": 0.64,
 		"contrast": 1.04,
 		"controls": 1.0,
 		"hero": 1.06,

@@ -12,6 +12,7 @@ const ALLOWED_SIMULATION_MODELS := ["rigidbody", "projectile_drag"]
 const ALLOWED_BEAT_PHASES := ["QUESTION", "EXPLAIN", "SETUP", "FLIGHT", "COMPARE"]
 const ALLOWED_SHOT_MODES := ["immersive", "measurement"]
 const ALLOWED_CAMERA_ACTIONS := ["establish", "hold", "reframe", "track"]
+const ALLOWED_TRANSITION_STYLES := ["glide", "snap", "morph", "dissolve"]
 const ALLOWED_HANDOFFS := [
 	"",
 	"trajectory-to-model",
@@ -230,6 +231,18 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 		var handoff := String(raw.get("handoff", "")).strip_edges()
 		if handoff not in ALLOWED_HANDOFFS:
 			return _failure("beats[%d].handoff is invalid: %s" % [index, handoff])
+		var transition_style := String(raw.get("transition_style", "glide")).strip_edges()
+		if transition_style not in ALLOWED_TRANSITION_STYLES:
+			return _failure(
+				"beats[%d].transition_style must be one of %s"
+				% [index, ALLOWED_TRANSITION_STYLES]
+			)
+		var transition_duration_value: Variant = raw.get("transition_duration", 0.8)
+		if not _positive_finite(transition_duration_value):
+			return _failure("beats[%d].transition_duration must be positive" % index)
+		var transition_duration := float(transition_duration_value)
+		if transition_duration < 0.2 or transition_duration > 2.0:
+			return _failure("beats[%d].transition_duration must be between 0.2 and 2.0" % index)
 		var result_reveal_value: Variant = raw.get("result_reveal", 0.0)
 		if not _is_number(result_reveal_value):
 			return _failure("beats[%d].result_reveal must be numeric" % index)
@@ -260,6 +273,8 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 			"visual_sequence": String(raw.get("visual_sequence", "")),
 			"handoff": handoff,
 			"handoff_formula_step": int(raw.get("handoff_formula_step", -1)),
+			"transition_style": transition_style,
+			"transition_duration": transition_duration,
 			"result_reveal": clampf(float(result_reveal_value), 0.0, 0.9),
 			"conclusion_display": String(raw.get("conclusion_display", "")).strip_edges(),
 		})
@@ -447,6 +462,7 @@ static func _normalize_explanation(value: Variant) -> Dictionary:
 			"asset_dir": asset_dir,
 			"steps": steps,
 			"assumptions": assumptions,
+			"show_supporting_copy": bool(value.get("show_supporting_copy", true)),
 		},
 	}
 

@@ -5,7 +5,10 @@ param(
     [int]$Width = 0,
     [int]$Height = 0,
     [switch]$SkipNarration,
-    [int]$CaptureRepeat = 2
+    [int]$CaptureRepeat = 1,
+    [ValidateSet('auto', 'nvenc', 'libx264')][string]$VideoEncoder = 'auto',
+    [double]$PreviewSeconds = 0,
+    [double]$PreviewStartSeconds = 0
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -27,9 +30,14 @@ if ($fps -notin @(30, 60)) { throw "Video FPS must be 30 or 60; got $fps" }
 if ("$sourceWidth,$sourceHeight" -ne '3840,2160') { throw 'Episode source resolution must be 3840x2160.' }
 if ("$Width,$Height" -notin @('3840,2160', '1920,1080')) { throw 'Render resolution must be 3840x2160 or 1920x1080.' }
 if ($CaptureRepeat -lt 1) { throw 'CaptureRepeat must be positive.' }
+if ($PreviewSeconds -lt 0) { throw 'PreviewSeconds cannot be negative.' }
+if ($PreviewStartSeconds -lt 0) { throw 'PreviewStartSeconds cannot be negative.' }
 
 $narrationProperty = $config.PSObject.Properties['narration']
 $hasNarration = $null -ne $narrationProperty -and $null -ne $narrationProperty.Value -and -not $SkipNarration
+if ($hasNarration -and $PreviewStartSeconds -gt 0) {
+    throw 'PreviewStartSeconds currently requires -SkipNarration because audio and subtitle offsets must remain exact.'
+}
 if ($hasNarration) {
     $narrationDir = Join-Path $script:RenderRoot "narration\$episodeName"
     $narrationSource = Join-Path $narrationDir 'narration.mp3'
@@ -67,8 +75,17 @@ Initialize-SlingshotGodotEnvironment
 if ($LASTEXITCODE -ne 0) { throw 'Formula asset build failed.' }
 Invoke-SlingshotNative $godot --headless --import --path $script:ProjectRoot
 
-$duration = Get-SlingshotEpisodeDuration $config
+$episodeDuration = Get-SlingshotEpisodeDuration $config
+$previewStart = [Math]::Min($PreviewStartSeconds, $episodeDuration)
+$duration = if ($PreviewSeconds -gt 0) {
+    [Math]::Min($PreviewSeconds, $episodeDuration - $previewStart)
+} else {
+    $episodeDuration - $previewStart
+}
+$frameStart = [int][Math]::Floor($previewStart * $fps + 0.5)
 $totalFrames = [int][Math]::Floor($duration * $fps + 0.5)
+if ($totalFrames -lt 1) { throw 'Preview range does not contain any frames.' }
+$frameEnd = $frameStart + $totalFrames
 $tempRoot = Join-Path $script:RenderRoot ('.episode-tmp-' + [Guid]::NewGuid().ToString('N'))
 $rawFrames = Join-Path $tempRoot 'raw-frames'
 $frames = Join-Path $tempRoot 'frames'
@@ -134,8 +151,10 @@ try {
         '--write-movie', $moviePath, '--fixed-fps', [string]($fps * $CaptureRepeat),
         '--disable-vsync', 'res://episode.tscn', '--', '--episode', $episodePath,
         '--play-record', $recordPath, '--render-width', [string]$Width, '--render-height',
-        [string]$Height, '--capture-repeat', [string]$CaptureRepeat, '--frame-start', '0',
-        '--frame-end', [string]$totalFrames, '--sidecar', $sidecarPath)
+        [string]$Height, '--capture-repeat', [string]$CaptureRepeat, '--frame-start', [string]$frameStart,
+        '--frame-end', [string]$frameEnd, '--sidecar', $sidecarPath)
+    $ffmpegInputArgs = @('-y', '-loglevel', 'error', '-framerate', [string]$fps,
+        '-i', (Join-Path $frames 'frame%08d.png'))
     if ($hasNarration) {
         $renderArgs += @('--subtitles', $subtitleSrt, '--external-subtitles')
     }
@@ -190,19 +209,51 @@ try {
         $fontFilterPath = (Join-Path $script:ProjectRoot 'assets\fonts').Replace('\', '/').Replace(':', '\:').Replace("'", "\'")
         $filter = "[0:v]subtitles=filename='$assFilterPath':fontsdir='$fontFilterPath'[vout];" +
             '[2:a]volume=0.40[sfx];[sfx][1:a]sidechaincompress=threshold=0.015:ratio=8:attack=15:release=300[sfxduck];' +
-            '[1:a][sfxduck]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.78:level=false[aout]'
-        & $ffmpeg -y -loglevel error -framerate $fps `
-            -i (Join-Path $frames 'frame%08d.png') -i $narrationAudio -i $soundDesignAudio `
-            -t $duration -filter_complex $filter -map '[vout]' -map '[aout]' `
-            -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p `
-            -c:a aac -b:a 192k -movflags +faststart $videoTemp
+            '[1:a][sfxduck]amix=inputs=2:duration=longest:normalize=0,alimiter=limit=0.78:level=false[premaster];' +
+            '[premaster]loudnorm=I=-16:TP=-1:LRA=7[aout]'
+        $ffmpegInputArgs += @('-i', $narrationAudio, '-i', $soundDesignAudio,
+            '-t', [string]$duration, '-filter_complex', $filter,
+            '-map', '[vout]', '-map', '[aout]')
     } else {
-        & $ffmpeg -y -loglevel error -framerate $fps `
-            -i (Join-Path $frames 'frame%08d.png') -t $duration `
-            -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p `
-            -movflags +faststart -an $videoTemp
+        $ffmpegInputArgs += @('-t', [string]$duration)
     }
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $videoTemp)) {
+
+    $encoderList = (& $ffmpeg -hide_banner -encoders 2>&1) -join "`n"
+    $nvencAvailable = $encoderList -match '(?m)^\s*V\S*\s+h264_nvenc\s'
+    $encoderCandidates = switch ($VideoEncoder) {
+        'auto' { if ($nvencAvailable) { @('h264_nvenc', 'libx264') } else { @('libx264') }; break }
+        'nvenc' {
+            if (-not $nvencAvailable) { throw 'h264_nvenc is not available in this FFmpeg build.' }
+            @('h264_nvenc')
+            break
+        }
+        'libx264' { @('libx264'); break }
+    }
+    $selectedEncoder = $null
+    foreach ($candidate in $encoderCandidates) {
+        if (Test-Path $videoTemp) { Remove-Item -LiteralPath $videoTemp -Force }
+        $codecArgs = if ($candidate -eq 'h264_nvenc') {
+            @('-c:v', 'h264_nvenc', '-preset', 'p6', '-tune', 'hq', '-rc', 'vbr',
+                '-cq', '19', '-b:v', '0', '-pix_fmt', 'yuv420p')
+        } else {
+            @('-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p')
+        }
+        $outputArgs = if ($hasNarration) {
+            @('-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-ac', '1',
+                '-movflags', '+faststart', $videoTemp)
+        } else {
+            @('-movflags', '+faststart', '-an', $videoTemp)
+        }
+        & $ffmpeg @ffmpegInputArgs @codecArgs @outputArgs
+        if ($LASTEXITCODE -eq 0 -and (Test-Path $videoTemp)) {
+            $selectedEncoder = $candidate
+            break
+        }
+        if ($VideoEncoder -eq 'auto' -and $candidate -eq 'h264_nvenc') {
+            Write-Warning 'NVENC encoding failed; retrying with libx264.'
+        }
+    }
+    if (-not $selectedEncoder -or -not (Test-Path $videoTemp)) {
         throw 'FFmpeg video encoding failed.'
     }
 
@@ -222,11 +273,15 @@ try {
         "video_sha256=$(Get-SlingshotSha256 $videoTemp)",
         "video_stream=$probe",
         "video_duration_sec=$actualDuration",
+        "episode_duration_sec=$episodeDuration",
+        "preview_seconds=$PreviewSeconds",
         "engine=$((& $godot --version | Select-Object -First 1))",
         'renderer=mobile_vulkan_windows',
         "render_resolution=${Width}x${Height}",
         'render_workers=1',
         "capture_repeat=$CaptureRepeat",
+        "video_encoder=$selectedEncoder",
+        "video_encoder_request=$VideoEncoder",
         'render_sharding=serial_windows',
         'deterministic_seeded=true',
         $(if ($hasNarration) { 'audio_mix=voice_plus_ducked_beat_sfx' } else { 'audio=none' })

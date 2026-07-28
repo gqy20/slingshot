@@ -72,6 +72,10 @@ Windows PowerShell：
 .\scripts\render_episode.ps1 content\episodes\smoke.json renders\smoke\episode-smoke.mp4 -SkipNarration
 ```
 
+Windows 默认使用单次稳定帧捕获，并在可用时自动选择 NVIDIA NVENC；可用
+`-CaptureRepeat 2` 恢复双次捕获，或用 `-VideoEncoder libx264` 强制 CPU 编码。
+制作阶段可用 `-PreviewSeconds 30` 只渲染开头 30 秒样片。
+
 新建同系列 Episode 不需要复制现有 14 个 Beat。脚手架会生成单集配置、讲稿占位稿，并使用标准节拍模板自动补齐镜头、图层、意图、镜头理由和连续时间：
 
 ```bash

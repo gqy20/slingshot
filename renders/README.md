@@ -5,6 +5,7 @@ Generated media is not committed. Every output category has one stable home:
 ```text
 renders/
 ├── final/                         publish-ready episode bundles
+├── publishing/<episode>/<site>/  self-contained upload packages
 ├── frames/<episode>/              individually extracted review frames
 │   └── dense-2fps/                 2 samples/second plus index and manifest
 ├── contact-sheets/<episode>/      seven-beat and other tiled reviews
@@ -22,6 +23,7 @@ renders/
 Naming rules:
 
 - final bundle: `<episode>.mp4`, `<episode>.json`, `<episode>.manifest.txt`
+- publishing package: `video.mp4`, `cover.png`, `publish-copy.md`, release manifest, checksums, and `extras/`
 - frame: `<episode>--<milliseconds>ms--<label>.png`
 - contact sheet: `<episode>--<review-kind>.png` with a matching `.txt`
 - preview bundle: `<episode>.mp4`, `<episode>.json`, `<episode>.manifest.txt`;
@@ -35,3 +37,7 @@ PNG, WAV, and MP4 files.
 Use `scripts/review_dense.sh <episode.mp4>` for the required 2 fps review. A
 120-second episode produces 240 full-resolution samples, one TSV row per
 sample, and 10 contact-sheet pages.
+
+Use `scripts/package_episode_release.ps1` after the final render, cover export,
+and publishing copy are ready. The package copies canonical inputs instead of
+moving them, so rendering and source-document paths remain stable.
