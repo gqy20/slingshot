@@ -83,7 +83,7 @@ Worker，渲染器会在最接近均分点的分镜边界切片；后续 Worker 
 实时渲染窗口时可显式传入 `-ShowRenderWindow`。Godot 的真正 `--headless` 使用 Dummy
 渲染器，无法为 Movie Writer 提供这套 Canvas/Vulkan 画面，因此不用于视频捕获阶段。
 
-完整单集渲染默认启用分镜帧缓存。缓存指纹包含物理 RunRecord、除 `beats` 外的课程公共
+完整单集渲染默认启用分镜帧缓存。缓存指纹包含物理 RunRecord、除 `beats` 和后期旁白配置外的课程公共
 配置、单条 Beat 配置、渲染尺寸、FPS，以及场景、视觉源码、预设、主题、字体和公式资源。
 冷缓存仍由两个均衡 Worker 捕获，完成后按 Beat 存入 `renders/cache/<episode>/picture-frames`；
 再次渲染时直接复用未变化 Beat，只为失效范围启动 Godot。Manifest 会记录

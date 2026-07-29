@@ -10,6 +10,27 @@
   "base_preset": "res://presets/t004-track-race-base.json",
   "theme": "res://content/themes/laboratory.json",
   "video": {"width": 3840, "height": 2160, "fps": 30},
+  "narration": {
+    "script": "res://content/narration/s01e05-shortest-is-not-fastest.txt",
+    "subtitle_script": "res://content/subtitles/s01e05-shortest-is-not-fastest.srt",
+    "model": "speech-2.8-hd",
+    "voice": "Chinese (Mandarin)_Warm_Bestie",
+    "language": "Chinese",
+    "speed": 1.2,
+    "volume": 1.0,
+    "pitch": 0,
+    "timing_mode": "beats",
+    "emotion_profile": [
+      "surprised", "fluent", "fluent", "fluent", "fluent", "calm", "fluent",
+      "surprised", "fluent", "surprised", "happy", "surprised", "fluent", "calm"
+    ],
+    "subtitle_type": "sentence",
+    "pronunciations": [
+      "摆线/(bai3)(xian4)",
+      "圆弧/(yuan2)(hu2)",
+      "摩擦/(mo2)(ca1)"
+    ]
+  },
   "simulation": {
     "model": "track_race",
     "duration_sec": 3.0,

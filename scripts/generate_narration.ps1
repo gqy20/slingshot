@@ -33,6 +33,12 @@ foreach ($episodeInput in $Episode) {
     $subtitles = Join-Path $outputDir 'narration.srt'
     $normalized = Join-Path $outputDir 'narration-normalized.wav'
     $manifest = Join-Path $outputDir 'narration.manifest.txt'
+    $timingMode = if ($narration.PSObject.Properties['timing_mode']) {
+        [string]$narration.timing_mode
+    } else {
+        'continuous'
+    }
+    $beatTimingLines = @()
 
     if (-not $Reuse) {
         $tempDir = New-SlingshotRenderTempDirectory -Kind 'narration' -EpisodeId $stem
@@ -43,19 +49,79 @@ foreach ($episodeInput in $Episode) {
             $speed = if ($narration.PSObject.Properties['speed']) { [string]$narration.speed } else { '1.0' }
             $volume = if ($narration.PSObject.Properties['volume']) { [string]$narration.volume } else { '1.0' }
             $pitch = if ($narration.PSObject.Properties['pitch']) { [string]$narration.pitch } else { '0' }
-            $arguments = @('speech', 'synthesize', '--text-file', $textPath, '--model', $model,
-                '--voice', [string]$narration.voice, '--speed', $speed, '--volume', $volume,
-                '--pitch', $pitch, '--language', $language, '--format', 'mp3', '--sample-rate',
-                '32000', '--bitrate', '128000', '--channels', '1', '--subtitles', '--out',
-                $tempAudio, '--non-interactive', '--quiet', '--output', 'json')
-            if ($narration.PSObject.Properties['pronunciations']) {
-                foreach ($pronunciation in @($narration.pronunciations)) {
-                    $arguments += @('--pronunciation', [string]$pronunciation)
-                }
-            }
-            & $mmx @arguments
-            if ($LASTEXITCODE -ne 0) { throw "mmx narration generation failed for $stem" }
             $tempSrt = Join-Path $tempDir 'narration.srt'
+            if ($timingMode -eq 'beats') {
+                $paragraphs = @([regex]::Split(
+                    (Get-Content -Raw -Encoding UTF8 $textPath).Trim(),
+                    '\r?\n\s*\r?\n'
+                ) | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+                $beats = @($config.beats)
+                if ($paragraphs.Count -ne $beats.Count) {
+                    throw "Beat-timed narration requires one paragraph per beat; got $($paragraphs.Count) paragraphs and $($beats.Count) beats for $stem"
+                }
+                $concatLines = @()
+                for ($index = 0; $index -lt $beats.Count; $index++) {
+                    $segmentText = Join-Path $tempDir ('beat-{0:d2}.txt' -f $index)
+                    $segmentMp3 = Join-Path $tempDir ('beat-{0:d2}.mp3' -f $index)
+                    $segmentWav = Join-Path $tempDir ('beat-{0:d2}.wav' -f $index)
+                    Write-SlingshotUtf8 $segmentText $paragraphs[$index]
+                    $arguments = @('speech', 'synthesize', '--text-file', $segmentText, '--model', $model,
+                        '--voice', [string]$narration.voice, '--speed', $speed, '--volume', $volume,
+                        '--pitch', $pitch, '--language', $language, '--format', 'mp3', '--sample-rate',
+                        '32000', '--bitrate', '128000', '--channels', '1', '--out', $segmentMp3,
+                        '--non-interactive', '--quiet', '--output', 'json')
+                    if ($narration.PSObject.Properties['pronunciations']) {
+                        foreach ($pronunciation in @($narration.pronunciations)) {
+                            $arguments += @('--pronunciation', [string]$pronunciation)
+                        }
+                    }
+                    & $mmx @arguments
+                    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $segmentMp3)) {
+                        throw "mmx beat narration generation failed for $stem beat $($beats[$index].id)"
+                    }
+                    $segmentDuration = [double]((& $ffprobe -v error -show_entries format=duration `
+                        -of default=nw=1:nk=1 $segmentMp3).Trim())
+                    $beatDuration = [double]$beats[$index].duration
+                    if ($segmentDuration -gt $beatDuration - 0.1) {
+                        throw "Narration beat $($beats[$index].id) is ${segmentDuration}s but only ${beatDuration}s is available"
+                    }
+                    & $ffmpeg -y -loglevel error -i $segmentMp3 -af apad -t $beatDuration `
+                        -ar 32000 -ac 1 -c:a pcm_s16le $segmentWav
+                    if ($LASTEXITCODE -ne 0) { throw "Failed to pad narration beat $($beats[$index].id)" }
+                    $concatPath = $segmentWav.Replace('\', '/')
+                    $concatLines += "file '$concatPath'"
+                    $beatTimingLines += "beat_$($beats[$index].id)_speech_sec=$segmentDuration"
+                    $beatTimingLines += "beat_$($beats[$index].id)_slot_sec=$beatDuration"
+                }
+                $concatFile = Join-Path $tempDir 'beats.concat.txt'
+                Write-SlingshotUtf8 $concatFile (($concatLines -join "`n") + "`n")
+                & $ffmpeg -y -loglevel error -f concat -safe 0 -i $concatFile `
+                    -c:a libmp3lame -b:a 128k -ar 32000 -ac 1 $tempAudio
+                if ($LASTEXITCODE -ne 0) { throw "Failed to concatenate beat narration for $stem" }
+                $subtitleProperty = $narration.PSObject.Properties['subtitle_script']
+                if ($null -eq $subtitleProperty) {
+                    throw "Beat-timed narration requires narration.subtitle_script for $stem"
+                }
+                $subtitleResource = [string]$subtitleProperty.Value
+                if (-not $subtitleResource.StartsWith('res://') -or $subtitleResource.Contains('..')) {
+                    throw "Unsafe narration.subtitle_script: $subtitleResource"
+                }
+                $editorialSrt = Join-Path $script:ProjectRoot $subtitleResource.Substring(6).Replace('/', '\')
+                Copy-Item -LiteralPath $editorialSrt -Destination $tempSrt
+            } else {
+                $arguments = @('speech', 'synthesize', '--text-file', $textPath, '--model', $model,
+                    '--voice', [string]$narration.voice, '--speed', $speed, '--volume', $volume,
+                    '--pitch', $pitch, '--language', $language, '--format', 'mp3', '--sample-rate',
+                    '32000', '--bitrate', '128000', '--channels', '1', '--subtitles', '--out',
+                    $tempAudio, '--non-interactive', '--quiet', '--output', 'json')
+                if ($narration.PSObject.Properties['pronunciations']) {
+                    foreach ($pronunciation in @($narration.pronunciations)) {
+                        $arguments += @('--pronunciation', [string]$pronunciation)
+                    }
+                }
+                & $mmx @arguments
+                if ($LASTEXITCODE -ne 0) { throw "mmx narration generation failed for $stem" }
+            }
             if (-not (Test-Path $tempAudio) -or -not (Test-Path $tempSrt)) {
                 throw "mmx did not produce MP3 and SRT for $stem"
             }
@@ -90,9 +156,10 @@ foreach ($episodeInput in $Episode) {
         "subtitles_sha256=$(Get-SlingshotSha256 $subtitles)",
         "audio_duration_sec=$duration",
         "video_duration_sec=$videoDuration",
+        "timing_mode=$timingMode",
         "mmx_cli=$((& $mmx --version | Select-Object -First 1))",
         'audio_standard=-16_LUFS_-1.5_dBTP_48kHz_mono_PCM24'
-    )
+    ) + $beatTimingLines
     Write-SlingshotUtf8 $manifest (($lines -join "`n") + "`n")
     Write-Host "narration: $stem audio=${duration}s video=${videoDuration}s"
 }

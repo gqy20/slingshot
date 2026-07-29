@@ -181,10 +181,12 @@ try {
     }
 
     if ($frameCacheEnabled) {
-        $commonEpisode = $config | Select-Object * -ExcludeProperty beats
+        # Narration and subtitles are mixed after picture capture, so editorial
+        # audio changes must not invalidate otherwise identical Beat frames.
+        $commonEpisode = $config | Select-Object * -ExcludeProperty beats, narration
         $sourceFingerprint = Get-SlingshotRenderSourceFingerprint -ProjectRoot $script:ProjectRoot
         $commonCacheText = @(
-            'picture-cache-schema=1',
+            'picture-cache-schema=2',
             "episode=$($commonEpisode | ConvertTo-Json -Depth 40 -Compress)",
             "record=$(Get-SlingshotSha256 $recordPath)",
             "source=$sourceFingerprint",
