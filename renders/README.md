@@ -4,31 +4,32 @@ Generated media is not committed. Every output category has one stable home:
 
 ```text
 renders/
-├── final/                         publish-ready episode bundles
-├── publishing/<episode>/<site>/  self-contained upload packages
-├── frames/<episode>/              individually extracted review frames
-│   └── dense-2fps/                 2 samples/second plus index and manifest
-├── contact-sheets/<episode>/      seven-beat and other tiled reviews
-│   └── dense-2fps/                 24 samples/page, 12 seconds/page
-├── previews/                      non-final visual experiments
-├── smoke/                         framework and smoke-test artifacts
-├── narration/<episode>/           speech, subtitles, loudness, provenance
-├── audio/<episode>/               deterministic beat SFX and provenance
-└── archive/
-    ├── releases/<version>/         recoverable superseded episode bundles
-    ├── validation/                 equivalence and pipeline evidence
-    └── legacy/                     historical outputs without full provenance
+├── work/<id>/
+│   ├── previews/                  non-final visual experiments
+│   └── review/                    extracted frames, sheets, and reports
+├── masters/<id>/
+│   ├── picture-clean-4k.mp4       subtitle-free picture master
+│   ├── program-master-4k.mp4      current approved program master
+│   ├── audio/                     narration and sound-design stems
+│   └── subtitles/                 optional separated subtitle masters
+├── deliveries/<id>/<platform>/   self-contained upload packages
+├── archive/<id>/                  recoverable superseded milestones
+└── cache/                         temporary captures and Godot cache
 ```
 
 Naming rules:
 
-- final bundle: `<episode>.mp4`, `<episode>.json`, `<episode>.manifest.txt`
-- publishing package: `video.mp4`, `cover.png`, `publish-copy.md`, release manifest, checksums, and `extras/`
-- frame: `<episode>--<milliseconds>ms--<label>.png`
-- contact sheet: `<episode>--<review-kind>.png` with a matching `.txt`
-- preview bundle: `<episode>.mp4`, `<episode>.json`, `<episode>.manifest.txt`;
-  every review render replaces the same three files
-- dense sample: `<episode>--<milliseconds>ms--sample.png`
+- current master: `masters/<id>/program-master-4k.mp4`
+- clean picture master: `masters/<id>/picture-clean-4k.mp4`
+- publishing package: `deliveries/<id>/<platform>/video.mp4`, `cover.png`,
+  `publish-copy.md`, release manifest, checksums, and `extras/`
+- preview bundle: `work/<id>/previews/episode-preview.mp4` plus sidecars
+- review frame: `work/<id>/review/frames/<id>--<milliseconds>ms--<label>.png`
+- dense sample: `work/<id>/review/frames/dense-2fps/<id>--<milliseconds>ms--sample.png`
+
+All default paths are derived from the Episode JSON `id`. Adding a new course
+number automatically creates a separate `work`, `masters`, `deliveries`, and
+`archive` namespace.
 
 Use `scripts/extract_frame.sh` instead of writing one-off frame names. The
 `.gdignore` marker prevents Godot from creating `.import` files for generated

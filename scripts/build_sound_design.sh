@@ -18,7 +18,7 @@ done
 
 episode_abs="$(realpath "$1")"
 stem="$(basename "${episode_abs%.json}")"
-output_dir="$RENDER_AUDIO_DIR/$stem"
+output_dir="$(episode_audio_dir "$stem")"
 output_audio="$output_dir/sound-design.wav"
 output_manifest="$output_dir/sound-design.manifest.txt"
 duration="$(jq -r '[.story.question_sec, (.story.explain_sec // 0), .story.setup_sec, .story.flight_sec, .story.compare_sec] | add' "$episode_abs")"

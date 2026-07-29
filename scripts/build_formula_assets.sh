@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REQUIRED_TYPST_VERSION="0.15.1"
-TEMPLATE_VERSION="2"
+TEMPLATE_VERSION="5"
 CHECK_ONLY=0
 EPISODES=()
 
@@ -113,10 +113,17 @@ for episode_input in "${EPISODES[@]}"; do
     printf -v step_name 'step-%02d' "$step_number"
     typst_source="$(jq -er ".story.explanation.steps[$step_index].typst" "$episode_abs")"
     fallback_text="$(jq -er ".story.explanation.steps[$step_index].equation" "$episode_abs")"
+    formula_font_size="$(jq -er ".story.explanation.steps[$step_index].formula_font_size_pt // 96" "$episode_abs")"
+    if [[ ! "$formula_font_size" =~ ^[0-9]+$ ]] || ((formula_font_size < 48 || formula_font_size > 120)); then
+      printf 'formula-assets: formula_font_size_pt must be between 48 and 120: %s/%s\n' \
+        "$episode_id" "$step_name" >&2
+      exit 1
+    fi
     source_hash="$({
       printf 'typst_version=%s\n' "$REQUIRED_TYPST_VERSION"
       printf 'template_version=%s\n' "$TEMPLATE_VERSION"
       printf 'fill=%s\n' "$formula_color"
+      printf 'font_size_pt=%s\n' "$formula_font_size"
       printf 'source=%s\n' "$typst_source"
     } | sha256sum | awk '{print $1}')"
     output_svg="$output_dir/$step_name.svg"
@@ -134,10 +141,10 @@ for episode_input in "${EPISODES[@]}"; do
       source_file="$formula_tmp/$episode_id-$step_name.typ"
       compiled_svg="$formula_tmp/$episode_id-$step_name.svg"
       {
-        # The UI consumes a 900x96 logical rectangle. Rasterizing the SVG at
-        # twice that size keeps the imported texture sharp in native 4K.
-        printf '#set page(width: 1800pt, height: 192pt, margin: 0pt, fill: none)\n'
-        printf '#set text(fill: rgb("%s"), size: 96pt)\n' "$formula_color"
+        # Keep the same page aspect and sizing contract as the PowerShell build.
+        # Per-step font sizing prevents long equations from being clipped.
+        printf '#set page(width: 1200pt, height: 240pt, margin: 0pt, fill: none)\n'
+        printf '#set text(fill: rgb("%s"), size: %spt)\n' "$formula_color" "$formula_font_size"
         printf '#show math.equation: set text(font: "New Computer Modern Math")\n'
         printf '#align(center + horizon)[$ %s $]\n' "$typst_source"
       } >"$source_file"

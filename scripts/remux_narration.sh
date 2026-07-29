@@ -21,16 +21,16 @@ stem="$(basename "${episode_abs%.json}")"
 if [[ $# -eq 2 ]]; then
   video_abs="$(realpath "$2")"
 else
-  video_abs="$RENDER_FINAL_DIR/$stem.mp4"
+  video_abs="$(episode_master_dir "$stem")/program-master-4k.mp4"
 fi
-source_audio="$RENDER_NARRATION_DIR/$stem/narration.mp3"
+source_audio="$(episode_audio_dir "$stem")/narration.mp3"
 "$SCRIPT_DIR/verify_narration_sync.sh" "$episode_abs"
 "$SCRIPT_DIR/normalize_narration.sh" "$episode_abs"
 "$SCRIPT_DIR/build_sound_design.sh" "$episode_abs"
-audio="$RENDER_NARRATION_DIR/$stem/narration-normalized.wav"
-sound_design="$RENDER_AUDIO_DIR/$stem/sound-design.wav"
-loudness_report="$RENDER_NARRATION_DIR/$stem/narration-loudness.json"
-subtitles="$RENDER_NARRATION_DIR/$stem/narration.srt"
+audio="$(episode_audio_dir "$stem")/narration-normalized.wav"
+sound_design="$(episode_audio_dir "$stem")/sound-design.wav"
+loudness_report="$(episode_audio_dir "$stem")/narration-loudness.json"
+subtitles="$(episode_audio_dir "$stem")/narration.srt"
 manifest="${video_abs%.mp4}.manifest.txt"
 for required_file in "$episode_abs" "$video_abs" "$source_audio" "$audio" \
   "$sound_design" "$loudness_report" "$subtitles" "$manifest"; do

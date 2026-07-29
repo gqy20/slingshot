@@ -159,6 +159,35 @@ static func split_display_cues(cues: Array, max_characters: int = 34) -> Array:
 	return result
 
 
+static func normalize_si_units(text: String) -> String:
+	var normalized := text
+	# TTS subtitle services may spell short values with Chinese numerals.
+	# Normalize the common spoken forms before applying numeric SI rules.
+	var spoken_values := {
+		"每秒五米": "5 m/s",
+		"每秒三米": "3 m/s",
+		"八毫秒": "8 ms",
+		"四十毫秒": "40 ms",
+	}
+	for source in spoken_values:
+		normalized = normalized.replace(source, spoken_values[source])
+	var replacements := [
+		["(\\d+(?:\\.\\d+)?)\\s*千克米每秒", "$1 kg·m/s"],
+		["每秒\\s*(\\d+(?:\\.\\d+)?)\\s*米", "$1 m/s"],
+		["(\\d+(?:\\.\\d+)?)\\s*牛秒", "$1 N·s"],
+		["(\\d+(?:\\.\\d+)?)\\s*牛顿", "$1 N"],
+		["(\\d+(?:\\.\\d+)?)\\s*千克", "$1 kg"],
+		["(\\d+(?:\\.\\d+)?)\\s*毫秒", "$1 ms"],
+		["(\\d+(?:\\.\\d+)?)\\s*赫兹", "$1 Hz"],
+		["(\\d+(?:\\.\\d+)?)\\s*焦耳", "$1 J"],
+	]
+	for replacement in replacements:
+		var expression := RegEx.new()
+		expression.compile(String(replacement[0]))
+		normalized = expression.sub(normalized, String(replacement[1]), true)
+	return normalized
+
+
 static func prepare_burn_in_cues(cues: Array, minimum_gap_sec: float = 0.02) -> Array:
 	var result: Array = []
 	for cue_value in cues:

@@ -8,6 +8,8 @@ param(
     [switch]$SkipSubtitles,
     [int]$CaptureRepeat = 1,
     [ValidateSet('auto', 'nvenc', 'libx264')][string]$VideoEncoder = 'auto',
+    [ValidateRange(24, 64)][int]$SubtitleFontSize = 42,
+    [ValidateRange(30, 160)][int]$SubtitleBottomMargin = 68,
     [double]$PreviewSeconds = 0,
     [double]$PreviewStartSeconds = 0
 )
@@ -16,7 +18,8 @@ param(
 
 $episodePath = (Resolve-Path -LiteralPath $Episode).Path
 $config = Get-Content -Raw -Encoding UTF8 $episodePath | ConvertFrom-Json
-$episodeName = [IO.Path]::GetFileNameWithoutExtension($episodePath)
+$episodeName = [string]$config.id
+$episodePaths = Get-SlingshotEpisodePaths $episodeName
 $fps = [int]$config.video.fps
 $sourceWidth = [int]$config.video.width
 $sourceHeight = [int]$config.video.height
@@ -41,7 +44,7 @@ if ($hasNarration -and $PreviewStartSeconds -gt 0) {
     throw 'PreviewStartSeconds currently requires -SkipNarration because audio and subtitle offsets must remain exact.'
 }
 if ($hasNarration) {
-    $narrationDir = Join-Path $script:RenderRoot "narration\$episodeName"
+    $narrationDir = $episodePaths.MasterAudio
     $narrationSource = Join-Path $narrationDir 'narration.mp3'
     $narrationAudio = Join-Path $narrationDir 'narration-normalized.wav'
     $generatedSubtitleSrt = Join-Path $narrationDir 'narration.srt'
@@ -52,7 +55,7 @@ if ($hasNarration) {
         }
     }
     & (Join-Path $PSScriptRoot 'build_sound_design.ps1') -Episode $episodePath
-    $soundDesignAudio = Join-Path $script:RenderRoot "audio\$episodeName\sound-design.wav"
+    $soundDesignAudio = Join-Path $episodePaths.MasterAudio 'sound-design.wav'
     if (-not (Test-Path $soundDesignAudio)) { throw 'Sound design generation failed.' }
 }
 if ($null -ne $narrationProperty -and $null -ne $narrationProperty.Value) {
@@ -70,8 +73,12 @@ if ($null -ne $narrationProperty -and $null -ne $narrationProperty.Value) {
 if ($SkipSubtitles) { $subtitleSrt = $null }
 $hasSubtitles = -not [string]::IsNullOrWhiteSpace([string]$subtitleSrt)
 
-$outputDir = if ($Width -eq 1920) { Join-Path $script:RenderRoot 'previews' } else { Join-Path $script:RenderRoot 'final' }
-if (-not $Output) { $Output = Join-Path $outputDir "$episodeName.mp4" }
+$defaultOutput = if ($Width -eq 1920) {
+    Join-Path $episodePaths.Previews 'episode-preview.mp4'
+} else {
+    $episodePaths.ProgramMaster
+}
+if (-not $Output) { $Output = $defaultOutput }
 if ([IO.Path]::GetExtension($Output) -ne '.mp4') { throw 'Output path must end in .mp4.' }
 $outputPath = if ([IO.Path]::IsPathRooted($Output)) {
     [IO.Path]::GetFullPath($Output)
@@ -82,8 +89,10 @@ $outputDir = Split-Path -Parent $outputPath
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
 $godot = Get-SlingshotGodot
-$godotProcess = $godot -replace '_console\.exe$', '.exe'
-if (-not (Test-Path -LiteralPath $godotProcess)) { $godotProcess = $godot }
+# The console executable remains attached to the caller, which makes -Wait and
+# exit-code handling reliable in automated renders. The GUI executable may
+# detach immediately and leave the encoding pipeline without its frame producer.
+$godotProcess = $godot
 $ffmpeg = Find-SlingshotTool -Name 'ffmpeg'
 $ffprobe = Find-SlingshotTool -Name 'ffprobe'
 Initialize-SlingshotGodotEnvironment
@@ -103,12 +112,13 @@ $frameStart = [int][Math]::Floor($previewStart * $fps + 0.5)
 $totalFrames = [int][Math]::Floor($duration * $fps + 0.5)
 if ($totalFrames -lt 1) { throw 'Preview range does not contain any frames.' }
 $frameEnd = $frameStart + $totalFrames
-$tempRoot = Join-Path $script:RenderRoot ('.episode-tmp-' + [Guid]::NewGuid().ToString('N'))
+$tempRoot = New-SlingshotRenderTempDirectory -Kind 'episode' -EpisodeId $episodeName
 $rawFrames = Join-Path $tempRoot 'raw-frames'
 $frames = Join-Path $tempRoot 'frames'
 $recordPath = Join-Path $tempRoot 'run-record.json'
 $sidecarPath = Join-Path $tempRoot 'output.json'
 $videoTemp = Join-Path $tempRoot 'output.mp4'
+$cleanVideoTemp = Join-Path $tempRoot 'clean-master.mp4'
 $simulationLog = Join-Path $tempRoot 'simulation.log'
 $renderLog = Join-Path $tempRoot 'render.log'
 $projectView = Join-Path $tempRoot 'project'
@@ -138,13 +148,10 @@ try {
     $simulationArgs = @('--headless', '--path', $script:ProjectRoot, '--fixed-fps', '120',
         '--disable-vsync', 'res://episode.tscn', '--', '--episode', $episodePath,
         '--simulate-record', $recordPath)
-    $simulationBatch = Join-Path $tempRoot 'simulate.cmd'
-    $simulationCommand = 'start "" /wait /b "' + $godotProcess + '" ' + (($simulationArgs | ForEach-Object {
-        '"' + ([string]$_).Replace('"', '""') + '"'
-    }) -join ' ') + ' >"' + $simulationLog + '" 2>"' + $simulationErrorLog + '"'
-    Write-SlingshotUtf8 $simulationBatch ("@echo off`r`n$simulationCommand`r`nexit /b %errorlevel%`r`n")
-    & $env:ComSpec /d /c $simulationBatch
-    $simulationExitCode = $LASTEXITCODE
+    $simulationProcess = Start-Process -FilePath $godotProcess -ArgumentList $simulationArgs `
+        -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $simulationLog `
+        -RedirectStandardError $simulationErrorLog
+    $simulationExitCode = $simulationProcess.ExitCode
     if (Test-Path $simulationErrorLog) {
         Add-Content -LiteralPath $simulationLog -Value (Get-Content -Raw $simulationErrorLog)
     }
@@ -175,13 +182,10 @@ try {
     if ($hasSubtitles) {
         $renderArgs += @('--subtitles', $subtitleSrt, '--external-subtitles')
     }
-    $renderBatch = Join-Path $tempRoot 'render.cmd'
-    $renderCommand = 'start "" /wait /b "' + $godotProcess + '" ' + (($renderArgs | ForEach-Object {
-        '"' + ([string]$_).Replace('"', '""') + '"'
-    }) -join ' ') + ' >"' + $renderLog + '" 2>"' + $renderErrorLog + '"'
-    Write-SlingshotUtf8 $renderBatch ("@echo off`r`n$renderCommand`r`nexit /b %errorlevel%`r`n")
-    & $env:ComSpec /d /c $renderBatch
-    $renderExitCode = $LASTEXITCODE
+    $renderProcess = Start-Process -FilePath $godotProcess -ArgumentList $renderArgs `
+        -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $renderLog `
+        -RedirectStandardError $renderErrorLog
+    $renderExitCode = $renderProcess.ExitCode
     if (Test-Path $renderErrorLog) {
         Add-Content -LiteralPath $renderLog -Value (Get-Content -Raw $renderErrorLog)
     }
@@ -220,7 +224,7 @@ try {
         $assText = Get-Content -Raw -Encoding UTF8 $subtitleAss
         $assText = $assText -replace '(?m)^PlayResX:.*$', 'PlayResX: 1920'
         $assText = $assText -replace '(?m)^PlayResY:.*$', 'PlayResY: 1080'
-        $style = 'Style: Default,Sarasa Gothic SC,36,&H00E9F0F2,&H00E9F0F2,&H60050608,&H00050608,-1,0,0,0,100,100,0,0,1,2,0,2,190,190,60,1'
+        $style = "Style: Default,Sarasa Gothic SC,$SubtitleFontSize,&H00E9F0F2,&H00E9F0F2,&H60050608,&H00050608,-1,0,0,0,100,100,0,0,1,2,0,2,190,190,$SubtitleBottomMargin,1"
         $assText = $assText -replace '(?m)^Style: Default,.*$', $style
         Write-SlingshotUtf8 $subtitleAss $assText
         $assFilterPath = $subtitleAss.Replace('\', '/').Replace(':', '\:').Replace("'", "\'")
@@ -296,6 +300,42 @@ try {
         throw "Unexpected video duration: $actualDuration (expected $duration)"
     }
 
+    # Preserve a high-quality, subtitle-free picture master for full 4K renders.
+    # Future subtitle, narration, SFX, and BGM changes can then be produced without
+    # rerunning Godot's frame capture.
+    $preserveCleanMaster = $hasSubtitles -and $Width -eq 3840 -and `
+        $PreviewSeconds -le 0 -and $PreviewStartSeconds -le 0
+    $cleanMasterPath = $null
+    $cleanMasterSha = $null
+    $cleanProbe = $null
+    if ($preserveCleanMaster) {
+        $cleanMasterPath = $episodePaths.PictureCleanMaster
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $cleanMasterPath) | Out-Null
+        $cleanCodecArgs = if ($selectedEncoder -eq 'h264_nvenc') {
+            @('-c:v', 'h264_nvenc', '-preset', 'p6', '-tune', 'hq', '-rc', 'vbr',
+                '-cq', '16', '-b:v', '0', '-pix_fmt', 'yuv420p', '-fps_mode', 'cfr', '-r', [string]$fps)
+        } else {
+            @('-c:v', 'libx264', '-preset', 'medium', '-crf', '14', '-pix_fmt', 'yuv420p',
+                '-fps_mode', 'cfr', '-r', [string]$fps)
+        }
+        & $ffmpeg -y -loglevel error -framerate $fps -i (Join-Path $frames 'frame%08d.png') `
+            -t $duration @cleanCodecArgs -movflags +faststart -an $cleanVideoTemp
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path $cleanVideoTemp)) {
+            throw 'Subtitle-free clean master encoding failed.'
+        }
+        $cleanProbe = (& $ffprobe -v error -select_streams v:0 `
+            -show_entries stream=codec_name,width,height,avg_frame_rate -of csv=p=0 $cleanVideoTemp).Trim()
+        if ($cleanProbe -ne "h264,$Width,$Height,$fps/1") {
+            throw "Unexpected clean master metadata: $cleanProbe"
+        }
+        $cleanDuration = [double]((& $ffprobe -v error -show_entries format=duration `
+            -of default=nw=1:nk=1 $cleanVideoTemp).Trim())
+        if ([Math]::Abs($cleanDuration - $duration) -gt 0.05) {
+            throw "Unexpected clean master duration: $cleanDuration (expected $duration)"
+        }
+        $cleanMasterSha = Get-SlingshotSha256 $cleanVideoTemp
+    }
+
     $manifest = @(
         "episode=$([IO.Path]::GetFileName($episodePath))",
         "episode_sha256=$(Get-SlingshotSha256 $episodePath)",
@@ -315,17 +355,31 @@ try {
         'render_sharding=serial_windows',
         'deterministic_seeded=true',
         "subtitles=$(if ($hasSubtitles) { 'burned_in' } else { 'none' })",
+        "subtitle_font_size=$SubtitleFontSize",
+        "subtitle_bottom_margin=$SubtitleBottomMargin",
+        "clean_master=$(if ($preserveCleanMaster) { [IO.Path]::GetFileName($cleanMasterPath) } else { 'not_created' })",
+        "clean_master_sha256=$(if ($cleanMasterSha) { $cleanMasterSha } else { 'none' })",
+        "clean_master_stream=$(if ($cleanProbe) { $cleanProbe } else { 'none' })",
+        "clean_master_subtitles=none",
+        "clean_master_audio=none",
+        "clean_master_purpose=subtitle_audio_bgm_reburn_without_godot",
         $(if ($hasNarration) { 'audio_mix=voice_plus_ducked_beat_sfx' } else { 'audio=none' })
     ) -join "`n"
     $manifestPath = [IO.Path]::ChangeExtension($outputPath, '.manifest.txt')
     $outputSidecar = [IO.Path]::ChangeExtension($outputPath, '.json')
     Move-Item -Force $videoTemp $outputPath
+    if ($preserveCleanMaster) {
+        Move-Item -Force $cleanVideoTemp $cleanMasterPath
+    }
     Move-Item -Force $sidecarPath $outputSidecar
     Write-SlingshotUtf8 $manifestPath ($manifest + "`n")
     $succeeded = $true
     Write-Host "episode-render: completed $outputPath"
     Write-Host "episode-render: analysis $outputSidecar"
     Write-Host "episode-render: manifest $manifestPath"
+    if ($preserveCleanMaster) {
+        Write-Host "episode-render: clean master $cleanMasterPath"
+    }
 } finally {
     if ($succeeded -and (Test-Path $tempRoot)) {
         Remove-Item -LiteralPath $tempRoot -Recurse -Force

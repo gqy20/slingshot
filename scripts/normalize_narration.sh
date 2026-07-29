@@ -18,7 +18,7 @@ done
 
 episode_abs="$(realpath "$1")"
 stem="$(basename "${episode_abs%.json}")"
-output_dir="$RENDER_NARRATION_DIR/$stem"
+output_dir="$(episode_audio_dir "$stem")"
 source_audio="$output_dir/narration.mp3"
 normalized_audio="$output_dir/narration-normalized.wav"
 report="$output_dir/narration-loudness.json"

@@ -14,8 +14,13 @@ func _initialize() -> void:
 		printerr(loaded["error"])
 		quit(2)
 		return
+	var normalized_cues: Array = []
+	for cue_value in loaded["cues"]:
+		var cue: Dictionary = cue_value.duplicate(true)
+		cue["text"] = SubtitleTrack.normalize_si_units(String(cue["text"]))
+		normalized_cues.append(cue)
 	var cues := SubtitleTrack.prepare_burn_in_cues(
-		SubtitleTrack.split_display_cues(loaded["cues"])
+		SubtitleTrack.split_display_cues(normalized_cues)
 	)
 	var layout := SubtitleTrack.validate_layout(cues)
 	if not layout["ok"]:

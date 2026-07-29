@@ -9,15 +9,16 @@ Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'common.ps1')
 
 $projectRoot = $script:ProjectRoot
-$finalRoot = Join-Path $projectRoot 'renders/final'
-$publishingRoot = Join-Path $projectRoot ("renders/publishing/{0}" -f $EpisodeId)
+$episodePaths = Get-SlingshotEpisodePaths $EpisodeId
+$finalRoot = $episodePaths.Masters
+$publishingRoot = $episodePaths.Deliveries
 $coverRoot = Join-Path $publishingRoot 'cover'
 $packageRoot = Join-Path $publishingRoot $Platform
 $extrasRoot = Join-Path $packageRoot 'extras'
 
-$sourceVideo = Join-Path $finalRoot ("{0}.mp4" -f $EpisodeId)
-$sourceSidecar = Join-Path $finalRoot ("{0}.json" -f $EpisodeId)
-$sourceVideoManifest = Join-Path $finalRoot ("{0}.manifest.txt" -f $EpisodeId)
+$sourceVideo = Join-Path $finalRoot 'program-master-4k.mp4'
+$sourceSidecar = Join-Path $finalRoot 'program-master-4k.json'
+$sourceVideoManifest = Join-Path $finalRoot 'program-master-4k.manifest.txt'
 $sourceCover = Join-Path $coverRoot ("s01e03-cover-bilibili-1146x717.png")
 $sourceCoverMaster = Join-Path $coverRoot 's01e03-cover-master-2292x1434.png'
 $sourceCoverSocial = Join-Path $coverRoot 's01e03-cover-social-1920x1080.png'
@@ -98,7 +99,7 @@ foreach ($name in $extraCopies.Keys) {
     Copy-Item -LiteralPath $extraCopies[$name] -Destination (Join-Path $extrasRoot $name) -Force
 }
 
-$packageRelativeRoot = "renders/publishing/$EpisodeId/$Platform"
+$packageRelativeRoot = "renders/deliveries/$EpisodeId/$Platform"
 $supportingFiles = @($extraCopies.Keys | ForEach-Object { "$packageRelativeRoot/extras/$_" })
 $examplesRoot = Join-Path $packageRoot 'examples'
 if (Test-Path -LiteralPath $examplesRoot -PathType Container) {

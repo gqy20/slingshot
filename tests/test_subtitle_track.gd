@@ -114,3 +114,13 @@ func run(t) -> void:
 		])["ok"],
 		"subtitle layout rejects more than two explicit lines"
 	)
+	t.check(
+		SubtitleTrack.normalize_si_units("1千克小球在8毫秒内产生1570牛顿峰值")
+		== "1 kg小球在8 ms内产生1570 N峰值",
+		"subtitle units normalize to SI symbols"
+	)
+	t.check(
+		SubtitleTrack.normalize_si_units("每秒五米，冲量8牛秒，采样30赫兹")
+		== "5 m/s，冲量8 N·s，采样30 Hz",
+		"spoken subtitle units normalize without changing narration audio"
+	)

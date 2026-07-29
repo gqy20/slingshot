@@ -1,5 +1,5 @@
 param(
-    [string]$OutputDir = 'renders/publishing/s01e03-angle-with-drag/cover'
+    [string]$OutputDir = 'renders/deliveries/s01e03-angle-with-drag/cover'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -279,7 +279,7 @@ try {
     $manifest = [ordered]@{
         schema_version = 1
         episode_id = 's01e03-angle-with-drag'
-        source_sidecar = 'renders/final/s01e03-angle-with-drag.json'
+        source_sidecar = 'renders/masters/s01e03-angle-with-drag/program-master-4k.json'
         source_preset = 'presets/t001-drag-base.json'
         headline = ($headlineAngle + $headlineCopy)
         identity = ($identityMain + (Get-UnicodeText ' \u00b7 ') + $identitySecondary)

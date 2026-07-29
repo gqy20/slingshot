@@ -39,9 +39,9 @@ if ! awk -v time="$TIME_SEC" -v duration="$DURATION" \
   exit 2
 fi
 
-STEM="$(basename "${VIDEO_ABS%.mp4}")"
+STEM="$(episode_id_from_video "$VIDEO_ABS")"
 TIME_MS="$(awk -v time="$TIME_SEC" 'BEGIN { printf "%09d", int(time * 1000 + 0.5) }')"
-OUTPUT_DIR="$RENDER_FRAMES_DIR/$STEM"
+OUTPUT_DIR="$(episode_review_dir "$STEM")/frames"
 OUTPUT_PNG="$OUTPUT_DIR/${STEM}--${TIME_MS}ms--${LABEL}.png"
 mkdir -p "$OUTPUT_DIR"
 

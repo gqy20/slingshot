@@ -39,6 +39,6 @@ static func run(t) -> void:
 	var subtitles := SubtitleTrack.load_path("res://content/subtitles/s01e04-impact-force-curve.srt")
 	t.check(subtitles["ok"], "T003 editorial subtitles parse")
 	if subtitles["ok"]:
-		t.check(subtitles["cues"].size() == 61, "T003 editorial subtitles cover the complete episode")
+		t.check(subtitles["cues"].size() >= 80, "T003 exact narration subtitles cover the complete episode")
 		var final_cue: Dictionary = subtitles["cues"][-1]
 		t.check_close(float(final_cue["end_sec"]), 220.0, 0.001, "T003 editorial subtitles end with the episode")

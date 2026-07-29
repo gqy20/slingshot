@@ -63,6 +63,8 @@ TOTAL_FRAMES="$(awk -v duration="$VIDEO_DURATION" -v fps="$FPS" \
 RENDER_WORKERS="${EPISODE_RENDER_WORKERS:-1}"
 MIN_FRAMES_PER_SHARD="${EPISODE_SHARD_MIN_FRAMES:-300}"
 CAPTURE_REPEAT="${EPISODE_CAPTURE_REPEAT:-2}"
+SUBTITLE_FONT_SIZE="${EPISODE_SUBTITLE_FONT_SIZE:-42}"
+SUBTITLE_BOTTOM_MARGIN="${EPISODE_SUBTITLE_BOTTOM_MARGIN:-68}"
 if [[ ! "$RENDER_WORKERS" =~ ^[1-9][0-9]*$ ]]; then
   printf 'episode-render: EPISODE_RENDER_WORKERS must be a positive integer\n' >&2
   exit 2
@@ -111,9 +113,9 @@ if [[ $# -eq 2 ]]; then
   OUTPUT_INPUT="$2"
 else
 	if [[ "$WIDTH,$HEIGHT" == '1920,1080' ]]; then
-		OUTPUT_INPUT="$RENDER_PREVIEWS_DIR/${episode_name}.mp4"
+		OUTPUT_INPUT="$(episode_preview_dir "$episode_name")/episode-preview.mp4"
 	else
-		OUTPUT_INPUT="$RENDER_FINAL_DIR/${episode_name}.mp4"
+		OUTPUT_INPUT="$(episode_master_dir "$episode_name")/program-master-4k.mp4"
 	fi
 fi
 if [[ "$OUTPUT_INPUT" != *.mp4 ]]; then
@@ -125,16 +127,10 @@ OUTPUT_DIR="$(dirname "$OUTPUT_INPUT")"
 mkdir -p "$OUTPUT_DIR"
 OUTPUT_DIR_ABS="$(cd "$OUTPUT_DIR" && pwd)"
 OUTPUT_MP4="$OUTPUT_DIR_ABS/$(basename "$OUTPUT_INPUT")"
-if [[ "$WIDTH,$HEIGHT" == '1920,1080' \
-	&& "$OUTPUT_DIR_ABS" == "$RENDER_PREVIEWS_DIR" \
-	&& "$(basename "$OUTPUT_MP4")" != "${episode_name}.mp4" ]]; then
-	printf 'episode-render: preview filename is fixed: %s/%s.mp4\n' \
-		"$RENDER_PREVIEWS_DIR" "$episode_name" >&2
-	exit 2
-fi
 OUTPUT_JSON="${OUTPUT_MP4%.mp4}.json"
 OUTPUT_MANIFEST="${OUTPUT_MP4%.mp4}.manifest.txt"
-NARRATION_DIR="$RENDER_NARRATION_DIR/$episode_name"
+OUTPUT_CLEAN_MASTER="$(episode_master_dir "$episode_name")/picture-clean-4k.mp4"
+NARRATION_DIR="$(episode_audio_dir "$episode_name")"
 NARRATION_SOURCE="$NARRATION_DIR/narration.mp3"
 NARRATION_AUDIO="${NARRATION_AUDIO:-$NARRATION_DIR/narration-normalized.wav}"
 LOUDNESS_REPORT="$NARRATION_DIR/narration-loudness.json"
@@ -147,7 +143,11 @@ if [[ -n "$EDITORIAL_SUBTITLE" ]]; then
 	fi
 	SUBTITLE_SRT="$PROJECT_ROOT/${EDITORIAL_SUBTITLE#res://}"
 fi
-SOUND_DESIGN_AUDIO="$RENDER_AUDIO_DIR/$episode_name/sound-design.wav"
+if [[ ! "$SUBTITLE_FONT_SIZE" =~ ^[1-9][0-9]*$ || ! "$SUBTITLE_BOTTOM_MARGIN" =~ ^[1-9][0-9]*$ ]]; then
+	printf 'episode-render: subtitle font size and bottom margin must be positive integers\n' >&2
+	exit 2
+fi
+SOUND_DESIGN_AUDIO="$(episode_audio_dir "$episode_name")/sound-design.wav"
 HAS_NARRATION="$(jq -r '(.narration // {}) | length > 0' "$EPISODE_ABS")"
 if [[ "${EPISODE_SKIP_NARRATION:-0}" == 1 ]]; then
 	HAS_NARRATION=false
@@ -180,6 +180,7 @@ PROJECT_VIEW="$RENDER_TMP/project"
 SIMULATION_LOG="$RENDER_TMP/simulation.log"
 RECORD_TMP="$RENDER_TMP/run-record.json"
 MP4_TMP="$RENDER_TMP/output.mp4"
+CLEAN_MASTER_TMP="$RENDER_TMP/clean-master.mp4"
 JSON_TMP="$RENDER_TMP/output.json"
 MANIFEST_TMP="$RENDER_TMP/manifest.txt"
 SUBTITLE_RENDER_SRT="$RENDER_TMP/subtitles-render.srt"
@@ -336,7 +337,7 @@ if [[ "$HAS_NARRATION" == true ]]; then
 	sed -i \
 		-e 's/^PlayResX:.*/PlayResX: 1920/' \
 		-e 's/^PlayResY:.*/PlayResY: 1080/' \
-		-e 's|^Style: Default,.*|Style: Default,Sarasa Gothic SC,36,\&H00E9F0F2,\&H00E9F0F2,\&H60050608,\&H00050608,-1,0,0,0,100,100,0,0,1,2,0,2,190,190,60,1|' \
+		-e "s|^Style: Default,.*|Style: Default,Sarasa Gothic SC,$SUBTITLE_FONT_SIZE,\&H00E9F0F2,\&H00E9F0F2,\&H60050608,\&H00050608,-1,0,0,0,100,100,0,0,1,2,0,2,190,190,$SUBTITLE_BOTTOM_MARGIN,1|" \
 		"$SUBTITLE_ASS"
 	SUBTITLE_FILTER="subtitles=filename='$SUBTITLE_ASS':fontsdir='$PROJECT_ROOT/assets/fonts'"
 	"$FFMPEG_BIN" -y -loglevel error \
@@ -369,6 +370,38 @@ if ! awk -v actual="$output_duration" -v expected="$VIDEO_DURATION" \
   printf 'episode-render: unexpected duration: %s (expected %s)\n' \
     "$output_duration" "$VIDEO_DURATION" >&2
   exit 1
+fi
+
+# A full 4K release render also keeps a high-quality, subtitle-free picture
+# master. Subtitle styling, copy, narration, SFX, and BGM can then be revised
+# without running Godot frame capture again.
+preserve_clean_master=false
+clean_master_sha=none
+clean_master_probe=none
+if [[ "$HAS_NARRATION" == true && "$WIDTH,$HEIGHT" == '3840,2160' ]]; then
+  preserve_clean_master=true
+  "$FFMPEG_BIN" -y -loglevel error \
+    -framerate "$FPS" -i "$FRAME_DIR/frame%08d.png" \
+    -t "$VIDEO_DURATION" \
+    -c:v libx264 -preset medium -crf 14 -pix_fmt yuv420p \
+    -movflags +faststart -an "$CLEAN_MASTER_TMP"
+  clean_master_probe="$(ffprobe -v error -select_streams v:0 \
+    -show_entries stream=codec_name,width,height,avg_frame_rate \
+    -of csv=p=0 "$CLEAN_MASTER_TMP")"
+  if [[ "$clean_master_probe" != "h264,$WIDTH,$HEIGHT,$FPS/1" ]]; then
+    printf 'episode-render: unexpected clean master metadata: %s\n' \
+      "$clean_master_probe" >&2
+    exit 1
+  fi
+  clean_master_duration="$(ffprobe -v error -show_entries format=duration \
+    -of default=nw=1:nk=1 "$CLEAN_MASTER_TMP")"
+  if ! awk -v actual="$clean_master_duration" -v expected="$VIDEO_DURATION" \
+    'BEGIN { delta = actual - expected; if (delta < 0) delta = -delta; exit !(delta <= 0.05) }'; then
+    printf 'episode-render: unexpected clean master duration: %s (expected %s)\n' \
+      "$clean_master_duration" "$VIDEO_DURATION" >&2
+    exit 1
+  fi
+  clean_master_sha="$(sha256sum "$CLEAN_MASTER_TMP" | awk '{print $1}')"
 fi
 if [[ "$HAS_NARRATION" == true ]]; then
   audio_codec="$(
@@ -412,7 +445,15 @@ godot_version="$("$GODOT_BIN" --version | head -1)"
 		printf 'audio_delivery_measured_tp=%s\n' "$(jq -r '.measured_tp' <<<"$delivery_audio_json")"
 		printf 'subtitle_text_exact=true\n'
 		printf 'subtitle_renderer=ffmpeg_libass\n'
+		printf 'subtitle_font_size=%s\n' "$SUBTITLE_FONT_SIZE"
+		printf 'subtitle_bottom_margin=%s\n' "$SUBTITLE_BOTTOM_MARGIN"
 	fi
+	printf 'clean_master=%s\n' "$(if [[ "$preserve_clean_master" == true ]]; then basename "$OUTPUT_CLEAN_MASTER"; else printf 'not_created'; fi)"
+	printf 'clean_master_sha256=%s\n' "$clean_master_sha"
+	printf 'clean_master_stream=%s\n' "$clean_master_probe"
+	printf 'clean_master_subtitles=none\n'
+	printf 'clean_master_audio=none\n'
+	printf 'clean_master_purpose=subtitle_audio_bgm_reburn_without_godot\n'
   printf 'engine=%s\n' "$godot_version"
 	printf 'renderer=mobile_vulkan\n'
 	printf 'render_resolution=%sx%s\n' "$WIDTH" "$HEIGHT"
@@ -428,6 +469,9 @@ godot_version="$("$GODOT_BIN" --version | head -1)"
 } >"$MANIFEST_TMP"
 
 mv "$MP4_TMP" "$OUTPUT_MP4"
+if [[ "$preserve_clean_master" == true ]]; then
+  mv "$CLEAN_MASTER_TMP" "$OUTPUT_CLEAN_MASTER"
+fi
 mv "$JSON_TMP" "$OUTPUT_JSON"
 mv "$MANIFEST_TMP" "$OUTPUT_MANIFEST"
 render_succeeded=1
@@ -435,3 +479,6 @@ render_succeeded=1
 printf 'episode-render: completed %s\n' "$OUTPUT_MP4"
 printf 'episode-render: analysis %s\n' "$OUTPUT_JSON"
 printf 'episode-render: manifest %s\n' "$OUTPUT_MANIFEST"
+if [[ "$preserve_clean_master" == true ]]; then
+  printf 'episode-render: clean master %s\n' "$OUTPUT_CLEAN_MASTER"
+fi

@@ -161,28 +161,28 @@ scripts/render_batch.sh --jobs 2 content/episodes/s01e01-angle-sweep.json conten
 
 `EPISODE_RENDER_WORKERS` 大于 1 时会被安全地收敛为 1；`RENDER_MAX_WORKERS` 只控制整批任务的并发上限。每个渲染任务会创建隔离的临时项目视图，用 `override.cfg` 在 Movie Maker 初始化前设置真实帧缓冲尺寸，因此 1080p 不再暗中生成 4K PNG，4K 也不经过低分辨率放大。
 
-批量脚本会按实际分辨率路由输出：4K 写入 `renders/final/<episode>.mp4`，1080p 固定写入 `renders/previews/<episode>.mp4`。同一集的每次审片都会原位替换这三个稳定文件：`.mp4`、`.json` 和 `.manifest.txt`，不再产生带版本后缀的预览。
+批量脚本按 Episode JSON 的 `id` 自动路由输出：4K 写入 `renders/masters/<id>/program-master-4k.mp4`，同时保留 `picture-clean-4k.mp4`；1080p 写入 `renders/work/<id>/previews/episode-preview.mp4`。更换课程编号时不需要修改脚本路径。
 
 结构审查可用 `EPISODE_RENDER_WIDTH=1920 EPISODE_RENDER_HEIGHT=1080` 输出 1080p；在最终 MMX 旁白尚未生成时，可附加 `EPISODE_SKIP_NARRATION=1` 生成无声预览。正式交付仍使用 Episode 声明的 3840×2160。
 
 生成 Question、Explain、Setup、Launch、Mid-flight、Landing、Compare 七节拍审查表：
 
 ```bash
-scripts/review_episode.sh renders/final/s01e01-angle-sweep.mp4
-scripts/extract_frame.sh renders/final/s01e01-angle-sweep.mp4 23 long-subtitle
+scripts/review_episode.sh renders/masters/s01e01-angle-sweep/program-master-4k.mp4
+scripts/extract_frame.sh renders/masters/s01e01-angle-sweep/program-master-4k.mp4 23 long-subtitle
 ```
 
 正式视觉审查固定为每秒 2 帧；120 秒视频生成 240 张原尺寸样本和 10 页联络表：
 
 ```bash
-scripts/review_dense.sh renders/previews/s01e01-angle-sweep.mp4
-scripts/review_dense.sh renders/previews/s01e02-stretch-sweep.mp4
+scripts/review_dense.sh renders/work/s01e01-angle-sweep/previews/episode-preview.mp4
+scripts/review_dense.sh renders/work/s01e02-stretch-sweep/previews/episode-preview.mp4
 ```
 
 `index.tsv` 将每个 500 ms 样本关联到原视频帧号、Beat、镜头模式、唯一意图和主视觉对象。30 FPS 成片每 15 帧取 1 帧，采样率为 6.67%，同时保证 100% Beat 覆盖。
 
 联络表默认写入 `renders/contact-sheets/<episode>/`；单帧统一写入
-`renders/frames/<episode>/<episode>--<milliseconds>ms--<label>.png`。完整规则见
+`renders/work/<id>/review/frames/<id>--<milliseconds>ms--<label>.png`。完整规则见
 [`renders/README.md`](renders/README.md)。
 
 ## 测试

@@ -76,7 +76,7 @@ godot --headless --path . --script res://tests/run_tests.gd
 EPISODE_RENDER_WIDTH=1920 EPISODE_RENDER_HEIGHT=1080 \
   scripts/render_episode.sh content/episodes/s01e03-angle-demo.json
 
-scripts/review_dense.sh renders/previews/s01e03-angle-demo.mp4
+scripts/review_dense.sh renders/work/s01e03-angle-demo/previews/episode-preview.mp4
 ```
 
-预览始终覆盖 `renders/previews/<id>.mp4`、`.json` 和 `.manifest.txt`。确认结构、字幕和关键帧后，再按 Episode 声明的 3840×2160 生成正式交付。
+预览始终覆盖 `renders/work/<id>/previews/episode-preview.mp4` 及其 sidecar 和 manifest。确认结构、字幕和关键帧后，再按 Episode 声明的 3840×2160 生成 `renders/masters/<id>/program-master-4k.mp4`。

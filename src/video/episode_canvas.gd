@@ -218,7 +218,7 @@ func _draw_force_axes(plot: Rect2, max_time_ms: float, max_force_n: float, alpha
 			"%.0f" % tick_value, HORIZONTAL_ALIGNMENT_RIGHT, 88, 24,
 			Color(colors["muted"], 0.76 * alpha)
 		)
-	draw_string(VideoTypography.medium(), Vector2(plot.position.x, plot.position.y - 38), "接触力 F / N", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color(colors["muted"], 0.88 * alpha))
+	draw_string(VideoTypography.medium(), Vector2(plot.position.x, plot.position.y - 38), "法向接触力 Fₙ / N", HORIZONTAL_ALIGNMENT_LEFT, -1, 25, Color(colors["muted"], 0.88 * alpha))
 	draw_string(VideoTypography.medium(), Vector2(plot.end.x - 220, plot.end.y + 70), "时间 t / ms", HORIZONTAL_ALIGNMENT_RIGHT, 220, 25, Color(colors["muted"], 0.88 * alpha))
 
 
@@ -553,7 +553,7 @@ func _draw_impact_momentum() -> void:
 		HORIZONTAL_ALIGNMENT_CENTER, 800, 39, Color(state_color, 0.96)
 	)
 	var reveal := smoothstep(9.35, 11.4, elapsed)
-	draw_string(VideoTypography.bold(), Vector2(420, 820), "Δp = 1 kg × (-3 - 5) m/s = -8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 1080, 42, Color(colors["text"], reveal))
+	draw_string(VideoTypography.bold(), Vector2(420, 820), "|Δpₓ| = 1 kg × |-3 - 5| m/s = 8 kg·m/s", HORIZONTAL_ALIGNMENT_CENTER, 1080, 42, Color(colors["text"], reveal))
 
 
 func _draw_equal_area() -> void:
@@ -567,8 +567,8 @@ func _draw_equal_area() -> void:
 	var soft_reveal := smoothstep(0.28, 0.58, p)
 	_draw_force_profile(hard_plot, 8.0, 0.008, 0.045, 1700, colors_by_id["hard"], hard_reveal, 0.22)
 	_draw_force_profile(soft_plot, 8.0, 0.040, 0.045, 1700, colors_by_id["soft"], soft_reveal, 0.22)
-	draw_string(VideoTypography.bold(), Vector2(130, 185), "钢板 · 硬接触", HORIZONTAL_ALIGNMENT_CENTER, 720, 32, Color(colors_by_id["hard"], 0.96))
-	draw_string(VideoTypography.bold(), Vector2(1070, 185), "软垫 · 软接触", HORIZONTAL_ALIGNMENT_CENTER, 720, 32, Color(colors_by_id["soft"], 0.96))
+	draw_string(VideoTypography.bold(), Vector2(130, 185), "钢板工况 · 8 ms", HORIZONTAL_ALIGNMENT_CENTER, 720, 32, Color(colors_by_id["hard"], 0.96))
+	draw_string(VideoTypography.bold(), Vector2(1070, 185), "软垫工况 · 40 ms", HORIZONTAL_ALIGNMENT_CENTER, 720, 32, Color(colors_by_id["soft"], 0.96))
 	var hard_badge := smoothstep(0.34, 0.52, p)
 	var soft_badge := smoothstep(0.54, 0.70, p)
 	var equality := smoothstep(0.72, 0.86, p)
@@ -578,8 +578,8 @@ func _draw_equal_area() -> void:
 	draw_rect(hard_card, Color(colors_by_id["hard"], 0.60 * hard_badge), false, 2.0)
 	draw_rect(soft_card, Color(colors_by_id["soft"], 0.08 * soft_badge), true)
 	draw_rect(soft_card, Color(colors_by_id["soft"], 0.60 * soft_badge), false, 2.0)
-	draw_string(VideoTypography.bold(), Vector2(305, 884), "钢板面积  8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 470, 34, Color(colors_by_id["hard"], hard_badge))
-	draw_string(VideoTypography.bold(), Vector2(1145, 884), "软垫面积  8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 470, 34, Color(colors_by_id["soft"], soft_badge))
+	draw_string(VideoTypography.bold(), Vector2(305, 884), "钢板工况 · Jₙ = 8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 470, 34, Color(colors_by_id["hard"], hard_badge))
+	draw_string(VideoTypography.bold(), Vector2(1145, 884), "软垫工况 · Jₙ = 8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 470, 34, Color(colors_by_id["soft"], soft_badge))
 	draw_string(VideoTypography.bold(), Vector2(900, 887), "=", HORIZONTAL_ALIGNMENT_CENTER, 120, 42, Color(colors["text"], equality))
 
 
@@ -589,7 +589,7 @@ func _draw_impulse_formula() -> void:
 	var plot := Rect2(150, 285, 650, 410)
 	_draw_force_axes(plot, 45, 1700, 0.62)
 	_draw_force_profile(plot, 8.0, 0.040, 0.045, 1700, colors_by_id["soft"], smoothstep(0.0, 0.40, p), 0.20)
-	draw_string(VideoTypography.medium(), Vector2(220, 805), "面积  8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 510, 32, Color(colors["accent"], smoothstep(0.28, 0.58, p)))
+	draw_string(VideoTypography.medium(), Vector2(220, 805), "曲线积分  8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 510, 32, Color(colors["accent"], smoothstep(0.28, 0.58, p)))
 
 
 func _draw_area_stretch() -> void:
@@ -603,10 +603,10 @@ func _draw_area_stretch() -> void:
 	_draw_force_profile(plot, 8.0, duration, 0.045, 1700, colors["accent"], 1.0, 0.20)
 	var duration_x := plot.position.x + plot.size.x * duration / 0.045
 	draw_line(Vector2(duration_x, plot.position.y), Vector2(duration_x, plot.end.y), Color(colors["accent"], 0.22), 2.0, true)
-	draw_string(VideoTypography.bold(), Vector2(650, 165), "面积始终保持  8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 620, 34, Color(colors["highlight"], 0.92))
+	draw_string(VideoTypography.bold(), Vector2(650, 165), "法向冲量始终保持  8 N·s", HORIZONTAL_ALIGNMENT_CENTER, 620, 34, Color(colors["highlight"], 0.92))
 	draw_string(VideoTypography.data(), Vector2(300, 895), "接触时间  %.0f ms" % (duration * 1000.0), HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors["text"], 0.94))
 	draw_string(VideoTypography.data(), Vector2(760, 895), "平均力  %.0f N" % average, HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors["muted"], 0.90))
-	draw_string(VideoTypography.data(), Vector2(1190, 895), "峰值  %.0f N" % peak, HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors["accent"], 0.96))
+	draw_string(VideoTypography.data(), Vector2(1190, 895), "接触力峰值  %.0f N" % peak, HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors["accent"], 0.96))
 
 
 func _draw_impact_applications() -> void:
@@ -682,15 +682,15 @@ func _draw_contact_model() -> void:
 	draw_rect(Rect2(damper_body_end, 582, 160, 58), Color(colors["muted"], 0.24 + 0.28 * damper_focus), true)
 	draw_line(Vector2(moving_node_x, 611), Vector2(wall_x - 100.0, 611), Color(colors["text"], 0.46), 5.0, true)
 	draw_line(Vector2(wall_x, 330), Vector2(wall_x, 715), Color(colors["text"], 0.64), 9.0, true)
-	draw_string(VideoTypography.medium(), Vector2(715, 335), "弹性 kx", HORIZONTAL_ALIGNMENT_CENTER, 260, 31, Color(colors["accent"], 0.92))
-	draw_string(VideoTypography.medium(), Vector2(715, 710), "阻尼 cẋ", HORIZONTAL_ALIGNMENT_CENTER, 260, 31, Color(colors["muted"], 0.92))
+	draw_string(VideoTypography.medium(), Vector2(715, 335), "弹簧力 kδ", HORIZONTAL_ALIGNMENT_CENTER, 260, 31, Color(colors["accent"], 0.92))
+	draw_string(VideoTypography.medium(), Vector2(715, 710), "阻尼力 cδ̇", HORIZONTAL_ALIGNMENT_CENTER, 260, 31, Color(colors["muted"], 0.92))
 	var plot := Rect2(1180, 310, 500, 360)
 	_draw_force_axes(plot, 45, 1700, 0.58)
 	var curve_progress := clampf((cycle - 0.18) / 0.62, 0.0, 1.0)
 	_draw_force_profile(plot, 8.0, 0.040, 0.045, 1700, colors_by_id["soft"], curve_progress, 0.12)
 	if cycle >= 0.18 and cycle <= 0.80:
 		_draw_force_cursor(plot, 0.040, 0.045, 1700, colors_by_id["soft"], curve_progress)
-	draw_string(VideoTypography.bold(), Vector2(330, 790), "Kelvin–Voigt 接触结构示意", HORIZONTAL_ALIGNMENT_CENTER, 1260, 36, Color(colors["text"], 0.92))
+	draw_string(VideoTypography.bold(), Vector2(330, 790), "Kelvin–Voigt 等效接触模型", HORIZONTAL_ALIGNMENT_CENTER, 1260, 36, Color(colors["text"], 0.92))
 	draw_string(VideoTypography.medium(), Vector2(430, 850), "用于解释曲线来源 · 不反推真实材料参数", HORIZONTAL_ALIGNMENT_CENTER, 1060, 28, Color(colors["muted"], 0.84))
 
 
@@ -712,7 +712,7 @@ func _draw_sampling_build() -> void:
 		rate = float(stages[stage_index + 1])
 	var measured := _sampled_peak_for_rate(rate)
 	draw_string(VideoTypography.bold(), Vector2(430, 860), "采样 %.0f Hz" % rate, HORIZONTAL_ALIGNMENT_LEFT, -1, 36, Color(colors["text"], 0.94))
-	draw_string(VideoTypography.data(), Vector2(1080, 860), "测得峰值  %.0f N" % measured, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["accent"], 0.96))
+	draw_string(VideoTypography.data(), Vector2(1080, 860), "采样峰值  %.0f N" % measured, HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["accent"], 0.96))
 
 
 func _sampled_peak_for_rate(rate: float) -> float:
@@ -747,8 +747,8 @@ func _draw_sampling_points(
 		draw_circle(point, 5.5 if rate_hz <= 100.0 else 3.5, Color(colors["text"], 0.88 * alpha))
 		draw_line(Vector2(point.x, plot.end.y), point, Color(colors["text"], 0.10 * alpha), 1.0, true)
 		sample_time += draw_interval
-	# The video treats a 30 fps frame interval as 33 ms. Keep the second frame
-	# visible at the plot boundary so the final sampling frame can hand off
+	# At 30 Hz, adjacent force-signal samples are about 33 ms apart. Keep the
+	# second sampling instant visible at the plot boundary so this view can hand off
 	# directly to the missed-peak explanation.
 	if rate_hz <= 30.0:
 		var endpoint_force := _force_value(
@@ -783,12 +783,12 @@ func _draw_impact_sampling_miss(cold_open: bool) -> void:
 	if not cold_open:
 		var source_copy_alpha := 1.0 - smoothstep(0.04, 0.24, p)
 		draw_string(VideoTypography.bold(), Vector2(430, 860), "采样 30 Hz", HORIZONTAL_ALIGNMENT_LEFT, -1, 36, Color(colors["text"], 0.94 * source_copy_alpha))
-		draw_string(VideoTypography.data(), Vector2(1080, 860), "测得峰值  0 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["accent"], 0.96 * source_copy_alpha))
+		draw_string(VideoTypography.data(), Vector2(1080, 860), "采样峰值  0 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["accent"], 0.96 * source_copy_alpha))
 	var peak_position := _force_point(plot, 0.016, float(_impact_metrics("hard")["peak_force_n"]), 0.033, 1700.0)
 	var peak_alpha := smoothstep(0.42, 0.68, p)
 	draw_circle(peak_position, 7.0, Color(colors["accent"], peak_alpha))
 	draw_string(VideoTypography.data(), peak_position + Vector2(18, -18), "1570 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 31, Color(colors["accent"], peak_alpha))
-	var copy := "真正的峰值，藏在两帧之间" if cold_open else "碰撞没变，采样点错过了峰值"
+	var copy := "参考曲线峰值，落在两个采样时刻之间" if cold_open else "接触过程没变，采样点错过了峰值"
 	draw_string(VideoTypography.bold(), Vector2(470, 895), copy, HORIZONTAL_ALIGNMENT_CENTER, 980, 39, Color(colors["text"], smoothstep(0.58, 0.82, p)))
 
 
@@ -935,7 +935,7 @@ func _draw_hook_fivefold() -> void:
 	)
 	var second_line := smoothstep(3.28, 3.72, t) * (1.0 - smoothstep(4.55, 4.95, t))
 	draw_string(
-		VideoTypography.bold(), Vector2(390, 820), "钢板的峰值力，是软垫的五倍",
+		VideoTypography.bold(), Vector2(390, 820), "钢板工况的接触力峰值，是软垫工况的五倍",
 		HORIZONTAL_ALIGNMENT_CENTER, 1140, 52, Color(colors["text"], second_line)
 	)
 
@@ -1004,7 +1004,7 @@ func _draw_hook_time_gap() -> void:
 	draw_line(Vector2(850, 175), Vector2(850, 745), Color(colors["accent"], 0.62 * gap_alpha), 3.0)
 	draw_line(Vector2(1070, 175), Vector2(1070, 745), Color(colors["accent"], 0.62 * gap_alpha), 3.0)
 	draw_string(
-		VideoTypography.bold(), Vector2(760, 125), "两帧之间  33 ms",
+		VideoTypography.bold(), Vector2(760, 125), "相邻采样时刻间隔  33 ms",
 		HORIZONTAL_ALIGNMENT_CENTER, 400, 36, Color(colors["text"], gap_alpha)
 	)
 	var plot := Rect2(310, 250, 1300, 480)
@@ -1023,7 +1023,7 @@ func _draw_hook_time_gap() -> void:
 		)
 	var payoff := smoothstep(4.65, 5.45, t)
 	draw_string(
-		VideoTypography.bold(), Vector2(470, 885), "完整的冲击，藏在两帧之间",
+		VideoTypography.bold(), Vector2(470, 885), "完整接触过程，可能落在两个采样时刻之间",
 		HORIZONTAL_ALIGNMENT_CENTER, 980, 44, Color(colors["text"], payoff)
 	)
 
@@ -1101,17 +1101,17 @@ func _draw_hook_curve_transform() -> void:
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 32, Color(colors["accent"], 0.96)
 	)
 	draw_string(
-		VideoTypography.bold(), Vector2(610, 130), "同一块面积，被拉宽五倍",
+		VideoTypography.bold(), Vector2(610, 130), "法向冲量不变，作用时程拉宽五倍",
 		HORIZONTAL_ALIGNMENT_CENTER, 700, 44, Color(colors["text"], smoothstep(0.20, 0.85, t))
 	)
 	var area_alpha := 0.72 + 0.28 * sin(t * 4.0)
 	draw_string(
-		VideoTypography.bold(), Vector2(680, 875), "面积始终是 8 N·s",
+		VideoTypography.bold(), Vector2(680, 875), "法向冲量始终是 8 N·s",
 		HORIZONTAL_ALIGNMENT_CENTER, 560, 37, Color(colors["highlight"], area_alpha)
 	)
 	var payoff := smoothstep(5.50, 6.30, t)
 	draw_string(
-		VideoTypography.bold(), Vector2(560, 965), "时间变长，峰值下降",
+		VideoTypography.bold(), Vector2(560, 965), "时间变长，接触力峰值下降",
 		HORIZONTAL_ALIGNMENT_CENTER, 800, 42, Color(colors["text"], payoff)
 	)
 
@@ -1205,7 +1205,7 @@ func _draw_impact_title_field() -> void:
 	var p := _beat_progress()
 	var title_reveal := smoothstep(0.05, 0.42, p)
 	draw_string(
-		VideoTypography.bold(), Vector2(360, 500), "碰撞力为什么不是一个数？",
+		VideoTypography.bold(), Vector2(360, 500), "接触力峰值为什么不是固定值？",
 		HORIZONTAL_ALIGNMENT_CENTER, 1200, 66,
 		Color(colors["text"], title_reveal)
 	)
@@ -1243,7 +1243,7 @@ func _draw_damage_boundary() -> void:
 	draw_string(VideoTypography.data(), Vector2(1190, 580), "接触面积 A 小", HORIZONTAL_ALIGNMENT_CENTER, 430, 28, Color(colors["accent"], 0.96))
 	draw_string(VideoTypography.medium(), Vector2(150, 700), "相同的力 · 分布在较大面积", HORIZONTAL_ALIGNMENT_CENTER, 730, 30, Color(colors["text"], 0.90))
 	draw_string(VideoTypography.medium(), Vector2(1040, 700), "相同的力 · 集中在很小面积", HORIZONTAL_ALIGNMENT_CENTER, 730, 30, Color(colors["text"], 0.90))
-	draw_string(VideoTypography.bold(), Vector2(540, 835), "峰值力，不等于全部破坏机制", HORIZONTAL_ALIGNMENT_CENTER, 840, 39, Color(colors["accent"], 0.94))
+	draw_string(VideoTypography.bold(), Vector2(540, 835), "接触力峰值不能单独决定破坏", HORIZONTAL_ALIGNMENT_CENTER, 840, 39, Color(colors["accent"], 0.94))
 
 
 func _draw_impact_takeaway() -> void:
@@ -1260,9 +1260,9 @@ func _draw_impact_takeaway() -> void:
 	if final_reveal > 0.001:
 		_draw_force_profile(plot, 8.0, 0.008, 0.045, 1700, colors_by_id["hard"], final_reveal, 0.08)
 		_draw_force_profile(plot, 8.0, 0.040, 0.045, 1700, colors_by_id["soft"], final_reveal, 0.08)
-	draw_string(VideoTypography.data(), Vector2(850, 300), "钢板  8 ms  ·  1570 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 29, Color(colors_by_id["hard"], maxf(hard_reveal * (1.0 - morph), final_reveal)))
-	draw_string(VideoTypography.data(), Vector2(1000, 640), "软垫  40 ms  ·  314 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 29, Color(colors_by_id["soft"], maxf(morph, final_reveal)))
-	draw_string(VideoTypography.bold(), Vector2(530, 895), "面积相同 · 峰值不同", HORIZONTAL_ALIGNMENT_CENTER, 860, 42, Color(colors["text"], final_reveal))
+	draw_string(VideoTypography.data(), Vector2(850, 300), "钢板工况  8 ms  ·  1570 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 29, Color(colors_by_id["hard"], maxf(hard_reveal * (1.0 - morph), final_reveal)))
+	draw_string(VideoTypography.data(), Vector2(1000, 640), "软垫工况  40 ms  ·  314 N", HORIZONTAL_ALIGNMENT_LEFT, -1, 29, Color(colors_by_id["soft"], maxf(morph, final_reveal)))
+	draw_string(VideoTypography.bold(), Vector2(530, 895), "法向冲量相同 · 接触力峰值不同", HORIZONTAL_ALIGNMENT_CENTER, 860, 42, Color(colors["text"], final_reveal))
 
 
 func _draw_explanation_module() -> void:

@@ -6,9 +6,10 @@ $ffmpeg = Find-SlingshotTool -Name 'ffmpeg'
 $ffprobe = Find-SlingshotTool -Name 'ffprobe'
 $episodePath = (Resolve-Path -LiteralPath $Episode).Path
 $config = Get-Content -Raw -Encoding UTF8 $episodePath | ConvertFrom-Json
-$stem = [IO.Path]::GetFileNameWithoutExtension($episodePath)
+$stem = [string]$config.id
+$episodePaths = Get-SlingshotEpisodePaths $stem
 $duration = Get-SlingshotEpisodeDuration $config
-$outputDir = Join-Path $script:RenderRoot "audio\$stem"
+$outputDir = $episodePaths.MasterAudio
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 $output = Join-Path $outputDir 'sound-design.wav'
 $manifest = Join-Path $outputDir 'sound-design.manifest.txt'

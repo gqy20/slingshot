@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
     [switch]$Reuse,
+    [switch]$AllowLong,
     [Parameter(Position = 0, ValueFromRemainingArguments = $true)][string[]]$Episode = @()
 )
 
@@ -24,8 +25,9 @@ foreach ($episodeInput in $Episode) {
     $textPath = Join-Path $script:ProjectRoot $scriptRelative
     if (-not (Test-Path $textPath)) { throw "Narration text not found: $textPath" }
 
-    $stem = [IO.Path]::GetFileNameWithoutExtension($episodePath)
-    $outputDir = Join-Path $script:RenderRoot "narration\$stem"
+    $stem = [string]$config.id
+    $episodePaths = Get-SlingshotEpisodePaths $stem
+    $outputDir = $episodePaths.MasterAudio
     New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
     $audio = Join-Path $outputDir 'narration.mp3'
     $subtitles = Join-Path $outputDir 'narration.srt'
@@ -33,8 +35,7 @@ foreach ($episodeInput in $Episode) {
     $manifest = Join-Path $outputDir 'narration.manifest.txt'
 
     if (-not $Reuse) {
-        $tempDir = Join-Path $script:RenderRoot ('.narration-tmp-' + [Guid]::NewGuid().ToString('N'))
-        New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
+        $tempDir = New-SlingshotRenderTempDirectory -Kind 'narration' -EpisodeId $stem
         try {
             $tempAudio = Join-Path $tempDir 'narration.mp3'
             $model = if ($narration.PSObject.Properties['model']) { [string]$narration.model } else { 'speech-2.8-hd' }
@@ -74,8 +75,11 @@ foreach ($episodeInput in $Episode) {
     $duration = [double]((& $ffprobe -v error -show_entries format=duration `
         -of default=nw=1:nk=1 $normalized).Trim())
     $videoDuration = Get-SlingshotEpisodeDuration $config
-    if ($duration -le 0 -or $duration -gt $videoDuration) {
-        throw "Narration duration $duration exceeds video duration $videoDuration for $stem"
+    if ($duration -le 0) {
+        throw "Narration duration is invalid for $stem"
+    }
+    if ($duration -gt $videoDuration -and -not $AllowLong) {
+        throw "Narration duration $duration exceeds video duration $videoDuration for $stem; use -AllowLong before timeline alignment"
     }
     $lines = @(
         "episode=$([IO.Path]::GetFileName($episodePath))",
@@ -92,4 +96,3 @@ foreach ($episodeInput in $Episode) {
     Write-SlingshotUtf8 $manifest (($lines -join "`n") + "`n")
     Write-Host "narration: $stem audio=${duration}s video=${videoDuration}s"
 }
-

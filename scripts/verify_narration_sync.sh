@@ -25,7 +25,7 @@ if [[ "$script_value" != res://* ]]; then
   exit 2
 fi
 narration_script="$PROJECT_ROOT/${script_value#res://}"
-subtitles="$RENDER_NARRATION_DIR/$stem/narration.srt"
+subtitles="$(episode_audio_dir "$stem")/narration.srt"
 if [[ ! -s "$narration_script" || ! -s "$subtitles" ]]; then
   printf 'narration-sync: script or subtitles missing for %s\n' "$stem" >&2
   exit 2

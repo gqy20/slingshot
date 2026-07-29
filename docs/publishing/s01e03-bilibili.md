@@ -136,11 +136,11 @@
 
 ## 发布检查
 
-- 完整发布包：`renders/publishing/s01e03-angle-with-drag/bilibili/`
-- 上传成片：`renders/publishing/s01e03-angle-with-drag/bilibili/video.mp4`
-- 上传封面：`renders/publishing/s01e03-angle-with-drag/bilibili/cover.png`
-- 发布文案副本：`renders/publishing/s01e03-angle-with-drag/bilibili/publish-copy.md`
-- 封面母版与生成记录：`renders/publishing/s01e03-angle-with-drag/bilibili/extras/`
+- 完整发布包：`renders/deliveries/s01e03-angle-with-drag/bilibili/`
+- 上传成片：`renders/deliveries/s01e03-angle-with-drag/bilibili/video.mp4`
+- 上传封面：`renders/deliveries/s01e03-angle-with-drag/bilibili/cover.png`
+- 发布文案副本：`renders/deliveries/s01e03-angle-with-drag/bilibili/publish-copy.md`
+- 封面母版与生成记录：`renders/deliveries/s01e03-angle-with-drag/bilibili/extras/`
 - 规格：3840 × 2160，30 fps，约5分钟
 - 品牌名：物理实验室 · 空气阻力实验
 - 主标题中不添加 `S01E03`

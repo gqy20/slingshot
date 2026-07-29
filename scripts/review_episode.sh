@@ -23,11 +23,11 @@ if [[ ! -f "$VIDEO_ABS" ]]; then
   exit 2
 fi
 
-stem="$(basename "${VIDEO_ABS%.mp4}")"
+stem="$(episode_id_from_video "$VIDEO_ABS")"
 if [[ $# -eq 2 ]]; then
   OUTPUT_INPUT="$2"
 else
-  OUTPUT_INPUT="$RENDER_CONTACT_SHEETS_DIR/$stem/${stem}--seven-beat.png"
+  OUTPUT_INPUT="$(episode_review_dir "$stem")/contact-sheets/${stem}--seven-beat.png"
 fi
 OUTPUT_DIR="$(dirname "$OUTPUT_INPUT")"
 mkdir -p "$OUTPUT_DIR"

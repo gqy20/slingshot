@@ -23,7 +23,7 @@ if ($Episode.Count -eq 0) {
         -File -Filter 's??e??-*.json' | Sort-Object Name | ForEach-Object FullName)
 }
 
-$tempRoot = Join-Path $script:RenderRoot ('.formula-tmp-' + [Guid]::NewGuid().ToString('N'))
+$tempRoot = New-SlingshotRenderTempDirectory -Kind 'formula'
 New-Item -ItemType Directory -Force -Path $tempRoot | Out-Null
 $assetCount = 0
 $cachedCount = 0
@@ -55,7 +55,7 @@ try {
         $manifestLines = @(
             "episode=$($config.id)",
             'typst_version=0.15.1',
-            'template_version=4',
+            'template_version=5',
             'math_font=New Computer Modern Math',
             'format=svg',
             'background=transparent'
@@ -64,7 +64,13 @@ try {
         for ($index = 0; $index -lt $steps.Count; $index++) {
             $number = $index + 1
             $name = 'step-{0:d2}' -f $number
-            $sourceHashText = "typst_version=0.15.1`ntemplate_version=4`nfill=$color`nsource=$($steps[$index].typst)"
+            $formulaFontSize = if ($steps[$index].PSObject.Properties['formula_font_size_pt']) {
+                [int]$steps[$index].formula_font_size_pt
+            } else { 96 }
+            if ($formulaFontSize -lt 48 -or $formulaFontSize -gt 120) {
+                throw "formula_font_size_pt must be between 48 and 120: $($config.id)/$name"
+            }
+            $sourceHashText = "typst_version=0.15.1`ntemplate_version=5`nfill=$color`nfont_size_pt=$formulaFontSize`nsource=$($steps[$index].typst)"
             $sha = [System.Security.Cryptography.SHA256]::Create()
             try {
                 $bytes = [Text.Encoding]::UTF8.GetBytes($sourceHashText)
@@ -83,7 +89,7 @@ try {
                 $compiledPath = Join-Path $tempRoot "$($config.id)-$name.svg"
                 $typSource = @"
 #set page(width: 1200pt, height: 240pt, margin: 0pt, fill: none)
-#set text(fill: rgb("$color"), size: 96pt)
+#set text(fill: rgb("$color"), size: ${formulaFontSize}pt)
 #show math.equation: set text(font: "New Computer Modern Math")
 #align(center + horizon)[$ $($steps[$index].typst) $]
 "@

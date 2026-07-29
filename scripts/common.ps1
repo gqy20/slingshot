@@ -3,6 +3,48 @@ $ErrorActionPreference = 'Stop'
 
 $script:ProjectRoot = Split-Path -Parent $PSScriptRoot
 $script:RenderRoot = Join-Path $script:ProjectRoot 'renders'
+$script:RenderWorkRoot = Join-Path $script:RenderRoot 'work'
+$script:RenderMasterRoot = Join-Path $script:RenderRoot 'masters'
+$script:RenderDeliveryRoot = Join-Path $script:RenderRoot 'deliveries'
+$script:RenderArchiveRoot = Join-Path $script:RenderRoot 'archive'
+$script:RenderCacheRoot = Join-Path $script:RenderRoot 'cache'
+
+function Get-SlingshotEpisodePaths {
+    param([Parameter(Mandatory = $true)][string]$EpisodeId)
+    if ($EpisodeId -notmatch '^s\d{2}e\d{2}-[a-z0-9][a-z0-9-]*$') {
+        throw "Unsafe episode id: $EpisodeId"
+    }
+    $work = Join-Path $script:RenderWorkRoot $EpisodeId
+    $masters = Join-Path $script:RenderMasterRoot $EpisodeId
+    return [pscustomobject]@{
+        Id = $EpisodeId
+        Work = $work
+        Previews = Join-Path $work 'previews'
+        Review = Join-Path $work 'review'
+        Frames = Join-Path $work 'review\frames'
+        Logs = Join-Path $work 'logs'
+        Masters = $masters
+        MasterAudio = Join-Path $masters 'audio'
+        MasterSubtitles = Join-Path $masters 'subtitles'
+        PictureCleanMaster = Join-Path $masters 'picture-clean-4k.mp4'
+        ProgramMaster = Join-Path $masters 'program-master-4k.mp4'
+        Deliveries = Join-Path $script:RenderDeliveryRoot $EpisodeId
+        Archive = Join-Path $script:RenderArchiveRoot $EpisodeId
+        Cache = Join-Path $script:RenderCacheRoot $EpisodeId
+    }
+}
+
+function New-SlingshotRenderTempDirectory {
+    param(
+        [Parameter(Mandatory = $true)][string]$Kind,
+        [string]$EpisodeId = '_shared'
+    )
+    $base = Join-Path $script:RenderCacheRoot "tmp\$EpisodeId"
+    New-Item -ItemType Directory -Force -Path $base | Out-Null
+    $path = Join-Path $base ('.' + $Kind + '-' + [Guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Force -Path $path | Out-Null
+    return $path
+}
 
 function Find-SlingshotTool {
     param(
@@ -36,7 +78,7 @@ function Get-SlingshotGodot {
 }
 
 function Initialize-SlingshotGodotEnvironment {
-    $dataRoot = Join-Path $script:RenderRoot '.godot-user'
+    $dataRoot = Join-Path $script:RenderCacheRoot 'godot-user'
     New-Item -ItemType Directory -Force -Path $dataRoot | Out-Null
     $env:APPDATA = $dataRoot
     $env:LOCALAPPDATA = $dataRoot

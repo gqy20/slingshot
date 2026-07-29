@@ -83,16 +83,14 @@ if [[ "${#EPISODES[@]}" -eq 0 ]]; then
 fi
 
 OUTPUT_SUFFIX=""
-if [[ "${EPISODE_RENDER_WIDTH:-}" == 1920 && "${EPISODE_RENDER_HEIGHT:-}" == 1080 ]]; then
-  if [[ -z "$OUTPUT_DIR" ]]; then
-    OUTPUT_DIR="$RENDER_PREVIEWS_DIR"
-  fi
-elif [[ -z "$OUTPUT_DIR" ]]; then
-  OUTPUT_DIR="$RENDER_FINAL_DIR"
+USE_EPISODE_DEFAULTS=0
+if [[ -z "$OUTPUT_DIR" ]]; then
+  USE_EPISODE_DEFAULTS=1
+  OUTPUT_DIR_ABS='<episode-scoped-defaults>'
+else
+  mkdir -p "$OUTPUT_DIR"
+  OUTPUT_DIR_ABS="$(cd "$OUTPUT_DIR" && pwd)"
 fi
-
-mkdir -p "$OUTPUT_DIR"
-OUTPUT_DIR_ABS="$(cd "$OUTPUT_DIR" && pwd)"
 
 for episode in "${EPISODES[@]}"; do
   if [[ ! -f "$episode" ]]; then
@@ -112,14 +110,19 @@ fi
 export SLINGSHOT_RENDER_SCRIPT="$SCRIPT_DIR/render_episode.sh"
 export SLINGSHOT_OUTPUT_DIR="$OUTPUT_DIR_ABS"
 export SLINGSHOT_OUTPUT_SUFFIX="$OUTPUT_SUFFIX"
+export SLINGSHOT_USE_EPISODE_DEFAULTS="$USE_EPISODE_DEFAULTS"
 export EPISODE_RENDER_WORKERS="$workers_per_episode"
 printf '%s\0' "${EPISODES[@]}" |
   xargs -0 -P "$JOBS" -n 1 bash -c '
     set -euo pipefail
     episode="$1"
     stem="$(basename "${episode%.json}")"
-    "$SLINGSHOT_RENDER_SCRIPT" "$episode" \
-      "$SLINGSHOT_OUTPUT_DIR/$stem$SLINGSHOT_OUTPUT_SUFFIX.mp4"
+    if [[ "$SLINGSHOT_USE_EPISODE_DEFAULTS" == 1 ]]; then
+      "$SLINGSHOT_RENDER_SCRIPT" "$episode"
+    else
+      "$SLINGSHOT_RENDER_SCRIPT" "$episode" \
+        "$SLINGSHOT_OUTPUT_DIR/$stem$SLINGSHOT_OUTPUT_SUFFIX.mp4"
+    fi
   ' _
 
 printf 'batch-render: completed %s episode(s) with jobs=%s\n' \

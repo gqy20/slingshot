@@ -29,13 +29,15 @@ Episode JSON
 
 ## 输出目录
 
-- `renders/final/`：正式 Episode 的 MP4、JSON sidecar 与 manifest。
-- `renders/frames/<episode>/`：通过 `scripts/extract_frame.sh` 生成的单帧。
+- `renders/masters/<id>/`：当前画面母版、正式成片、音频分轨、sidecar 与 manifest。
+- `renders/work/<id>/review/frames/`：通过 `scripts/extract_frame.sh` 生成的单帧。
 - `renders/contact-sheets/<episode>/`：七节拍等联络表及采样说明。
-- `renders/previews/`：不作为正式交付的视觉实验。
+- `renders/work/<id>/previews/`：不作为正式交付的视觉实验。
 - `renders/smoke/`：框架和冒烟测试产物。
-- `renders/narration/<episode>/`：原始配音、标准化母版、SRT 与响度报告。
-- `renders/audio/<episode>/`：由 Beat cue 确定性生成的音效轨与 provenance。
+- `renders/masters/<id>/audio/`：原始配音、标准化配音、SRT、音效轨与 provenance。
+- `renders/deliveries/<id>/<platform>/`：平台上传包。
+- `renders/archive/<id>/`：旧版本和重要制作里程碑。
+- `renders/cache/`：Godot 缓存与可安全重建的临时文件。
 
 最终 bundle 使用相同 basename；抽帧采用 `<episode>--<milliseconds>ms--<label>.png`。`renders/.gdignore` 阻止 Godot 把生成媒体当作项目资源导入。
 

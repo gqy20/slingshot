@@ -12,7 +12,7 @@ func _initialize() -> void:
 
 	var output_path := args[0]
 	var preset := _read_json("res://presets/t001-drag-base.json")
-	var final_sidecar := _read_json("res://renders/final/s01e03-angle-with-drag.json")
+	var final_sidecar := _read_json("res://renders/masters/s01e03-angle-with-drag/program-master-4k.json")
 	if preset.is_empty() or final_sidecar.is_empty():
 		quit(2)
 		return
@@ -26,7 +26,7 @@ func _initialize() -> void:
 	var output := {
 		"schema_version": 1,
 		"episode_id": "s01e03-angle-with-drag",
-		"source_sidecar": "res://renders/final/s01e03-angle-with-drag.json",
+		"source_sidecar": "res://renders/masters/s01e03-angle-with-drag/program-master-4k.json",
 		"source_preset": "res://presets/t001-drag-base.json",
 		"records": {
 			"angle_40": _cover_record(record_40),

@@ -78,7 +78,7 @@ for episode_input in "${EPISODES[@]}"; do
     + .story.compare_sec
   ' "$episode_abs")"
 
-  output_dir="$RENDER_NARRATION_DIR/$stem"
+  output_dir="$(episode_audio_dir "$stem")"
   audio="$output_dir/narration.mp3"
   subtitles="$output_dir/narration.srt"
   manifest="$output_dir/narration.manifest.txt"

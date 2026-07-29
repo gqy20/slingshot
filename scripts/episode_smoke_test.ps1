@@ -3,7 +3,7 @@ param()
 
 . (Join-Path $PSScriptRoot 'common.ps1')
 $ffprobe = Find-SlingshotTool -Name 'ffprobe'
-$smokeDir = Join-Path $script:RenderRoot ('.smoke-test-' + [Guid]::NewGuid().ToString('N'))
+$smokeDir = New-SlingshotRenderTempDirectory -Kind 'smoke-test'
 New-Item -ItemType Directory -Force -Path $smokeDir | Out-Null
 try {
     $output = Join-Path $smokeDir 'episode-smoke.mp4'
@@ -18,4 +18,3 @@ try {
 } finally {
     if (Test-Path $smokeDir) { Remove-Item -LiteralPath $smokeDir -Recurse -Force }
 }
-

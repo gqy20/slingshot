@@ -23,12 +23,11 @@ if [[ ! -f "$VIDEO_ABS" || "$VIDEO_ABS" != *.mp4 ]]; then
   exit 2
 fi
 
-stem="$(basename "${VIDEO_ABS%.mp4}")"
+stem="$(episode_id_from_video "$VIDEO_ABS")"
 subject="$stem"
-frames_root="${DENSE_REVIEW_FRAMES_DIR:-$RENDER_FRAMES_DIR}"
-sheets_root="${DENSE_REVIEW_SHEETS_DIR:-$RENDER_CONTACT_SHEETS_DIR}"
-output_dir="$frames_root/$subject/dense-2fps"
-sheet_dir="$sheets_root/$subject/dense-2fps"
+review_root="$(episode_review_dir "$stem")"
+output_dir="${DENSE_REVIEW_FRAMES_DIR:-$review_root/frames}/dense-2fps"
+sheet_dir="${DENSE_REVIEW_SHEETS_DIR:-$review_root/contact-sheets}/dense-2fps"
 
 duration="$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$VIDEO_ABS")"
 rate="$(ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=nw=1:nk=1 "$VIDEO_ABS")"
