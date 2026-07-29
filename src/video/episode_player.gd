@@ -1,12 +1,11 @@
 class_name SlingshotEpisodePlayer
 extends Node
 
-const EpisodeCanvas = preload("res://src/video/episode_canvas.gd")
 const EpisodeHud = preload("res://src/video/episode_hud.gd")
 const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 const EpisodeDirector = preload("res://src/video/episode_director.gd")
 const ShotCamera = preload("res://src/video/shot_camera.gd")
-const ReplayTrack = preload("res://src/playback/replay_track.gd")
+const DomainRegistry = preload("res://src/core/domain_registry.gd")
 const ResultAnalyzer = preload("res://src/core/result_analyzer.gd")
 const RunRecord = preload("res://src/core/run_record.gd")
 const SubtitleTrack = preload("res://src/playback/subtitle_track.gd")
@@ -15,7 +14,8 @@ var episode: Dictionary = {}
 var bundle: Dictionary = {}
 var analysis: Dictionary = {}
 var sidecar_path := ""
-var canvas: SlingshotEpisodeCanvas
+var domain: Variant
+var canvas
 var hud: SlingshotEpisodeHud
 var frame_index := 0
 var frame_end_exclusive := 0
@@ -46,6 +46,12 @@ func start(
 	analysis = ResultAnalyzer.analyze(episode, bundle)
 	capture_repeat_count = maxi(1, capture_repeat)
 	capture_repeat_index = 0
+	var model := String(episode["simulation"].get("model", "rigidbody"))
+	domain = DomainRegistry.for_model(model)
+	if domain == null:
+		push_error("unsupported playback model: %s" % model)
+		get_tree().quit(3)
+		return
 	var layout_errors := EpisodeLayout.validate_static_regions()
 	layout_errors.append_array(EpisodeLayout.audit_bundle(bundle))
 	if not layout_errors.is_empty():
@@ -53,7 +59,7 @@ func start(
 		get_tree().quit(3)
 		return
 
-	canvas = EpisodeCanvas.new()
+	canvas = domain.canvas_script().new()
 	canvas.name = "EpisodeCanvas"
 	add_child(canvas)
 	canvas.configure(episode, bundle, analysis)
@@ -117,7 +123,7 @@ func _process(_delta: float) -> void:
 		for record_value in bundle["records"]:
 			var record: Dictionary = record_value
 			var id: String = record["variant_id"]
-			states[id] = ReplayTrack.sample(record, float(times.get(id, 0.0)))
+			states[id] = domain.sample(record, float(times.get(id, 0.0)))
 		canvas.set_playback(phase, times, states, video_time, beat)
 		if phase != last_phase:
 			last_phase = phase

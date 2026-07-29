@@ -4,11 +4,11 @@ extends RefCounted
 const PresetLoader = preload("res://src/core/preset_loader.gd")
 const EpisodeTemplates = preload("res://src/core/episode_templates.gd")
 const ExplanationCatalog = preload("res://src/core/explanation_catalog.gd")
+const DomainRegistry = preload("res://src/core/domain_registry.gd")
 
 const REQUIRED_VIDEO_SIZE := Vector2i(3840, 2160)
 const ALLOWED_VIDEO_FPS := [30, 60]
 const ALLOWED_GOALS := ["max", "min"]
-const ALLOWED_SIMULATION_MODELS := ["rigidbody", "projectile_drag", "impact_pulse"]
 const ALLOWED_BEAT_PHASES := ["QUESTION", "EXPLAIN", "SETUP", "FLIGHT", "COMPARE"]
 const ALLOWED_SHOT_MODES := ["immersive", "measurement"]
 const ALLOWED_CAMERA_ACTIONS := ["establish", "hold", "reframe", "track"]
@@ -71,13 +71,14 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 	simulation["duration_sec"] = float(simulation["duration_sec"])
 	simulation["tick_rate"] = tick_rate
 	var simulation_model := String(simulation.get("model", "rigidbody")).strip_edges()
-	if simulation_model not in ALLOWED_SIMULATION_MODELS:
-		return _failure("simulation.model must be one of %s" % [ALLOWED_SIMULATION_MODELS])
+	var domain: Variant = DomainRegistry.for_model(simulation_model)
+	if domain == null:
+		return _failure("simulation.model must be one of %s" % [DomainRegistry.model_ids()])
 	simulation["model"] = simulation_model
-	var scan_result := _normalize_angle_scan(simulation.get("angle_scan", {}))
-	if not scan_result["ok"]:
-		return scan_result
-	simulation["angle_scan"] = scan_result["scan"]
+	var domain_simulation_result: Dictionary = domain.normalize_simulation(simulation)
+	if not domain_simulation_result["ok"]:
+		return _failure(String(domain_simulation_result["error"]))
+	simulation = domain_simulation_result["value"]
 
 	var story_result := _normalize_story(raw.get("story"))
 	if not story_result["ok"]:
@@ -282,35 +283,6 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 	if absf(cursor - duration_sec) > 0.001:
 		return _failure("beats must cover the complete %.3f second episode" % duration_sec)
 	return {"ok": true, "error": "", "beats": beats}
-
-
-static func _normalize_angle_scan(value: Variant) -> Dictionary:
-	if value == null or value == {}:
-		return {"ok": true, "error": "", "scan": {}}
-	if not value is Dictionary:
-		return _failure("simulation.angle_scan must be an object")
-	var scan: Dictionary = value
-	for key in ["min_angle_deg", "max_angle_deg", "step_deg"]:
-		if not _positive_finite(scan.get(key)):
-			return _failure("simulation.angle_scan.%s must be positive and finite" % key)
-	var min_angle := float(scan["min_angle_deg"])
-	var max_angle := float(scan["max_angle_deg"])
-	var step := float(scan["step_deg"])
-	if min_angle >= max_angle or max_angle >= 90.0:
-		return _failure("simulation.angle_scan requires 0 < min < max < 90")
-	if step > max_angle - min_angle:
-		return _failure("simulation.angle_scan.step_deg is too large")
-	return {
-		"ok": true,
-		"error": "",
-		"scan": {
-			"min_angle_deg": min_angle,
-			"max_angle_deg": max_angle,
-			"step_deg": step,
-			"include_vacuum": bool(scan.get("include_vacuum", true)),
-			"include_parameter_variant": bool(scan.get("include_parameter_variant", false)),
-		},
-	}
 
 
 static func _load_theme(path: String) -> Dictionary:

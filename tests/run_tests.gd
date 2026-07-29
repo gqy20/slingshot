@@ -7,6 +7,7 @@ const TEST_CASES := [
 	preload("res://tests/test_preset_loader.gd"),
 	preload("res://tests/test_simulation_nodes.gd"),
 	preload("res://tests/test_episode_loader.gd"),
+	preload("res://tests/test_domain_registry.gd"),
 	preload("res://tests/test_episode_templates.gd"),
 	preload("res://tests/test_episode_pipeline.gd"),
 	preload("res://tests/test_episode_layout.gd"),

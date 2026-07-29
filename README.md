@@ -10,6 +10,7 @@
 src/
 ├── episode_app.gd  # 唯一 Episode 入口
 ├── core/           # 配置、物理、记录与结果分析
+├── domains/        # 物理领域的模拟、校验、采样与画布入口
 ├── simulation/     # 刚体节点与逐 Variant 真实物理模拟
 ├── playback/       # 记录采样与插值
 └── video/          # 导演、画面、HUD、解释模块与回放生命周期
@@ -203,6 +204,18 @@ Windows PowerShell 会先处理 Godot 导入缓存，再运行相同测试：
 
 ```powershell
 .\scripts\run_tests.ps1
+```
+
+同时运行 projectile/impact 六个 4K 关键帧视觉回归：
+
+```powershell
+.\scripts\run_tests.ps1 -Visual
+```
+
+只有确认视觉变化符合预期时才更新基准图：
+
+```powershell
+.\scripts\run_visual_regression.ps1 -UpdateBaselines
 ```
 
 验证 Xvfb 下的 Episode 启动与配置解析：

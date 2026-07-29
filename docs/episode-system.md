@@ -8,14 +8,17 @@ Episode 系统把物理实验与视频导演分成两个确定性阶段。
 Episode JSON
   -> pinned Typst build (math source -> transparent SVG)
   -> EpisodeLoader
-  -> ExperimentRunner（逐个 Variant 模拟）
+  -> DomainRegistry（领域配置校验与实现选择）
+  -> ExperimentRunner + Domain（逐个 Variant 模拟）
   -> RunRecord JSON
   -> ResultAnalyzer + EpisodeDirector
-  -> ReplayTrack + EpisodeCanvas + EpisodeHud + SRT
+  -> Domain sampler + domain Canvas + shared EpisodeHud + SRT
   -> native 4K PNG sequence + standardized mmx narration -> H.264/AAC MP4
 ~~~
 
 模拟阶段决定发生了什么；分析阶段决定结果意味着什么；导演阶段决定何时展示；回放阶段只负责画面，不再修改物理状态。
+
+`projectile` 与 `impact` 是领域边界，不是单集边界。同一物理领域的 Episode 共享求解器、记录校验、采样器和画布入口；HUD、Director、Layout 与 RunRecord 生命周期继续跨领域共享。新增同类 Episode 只增加内容配置，新增物理范式才注册新的 Domain。
 
 `display_hook` 只负责短屏幕标题；`question` 与 narration 负责完整表述。显式 `beats` 是连续、无重叠的绝对时间线，每项包含 Phase、shot、focus、overlay、formula step 与 sfx cue。新 Episode 可以改用 `beat_template: editorial_comparison_v1` 和 `beat_overrides`；Loader 会先确定性展开标准节拍，再执行同一套时间缺口、重叠、重复 ID 和完整时长校验。
 
