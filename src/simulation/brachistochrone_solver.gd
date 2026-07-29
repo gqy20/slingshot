@@ -45,8 +45,11 @@ static func simulate(
 			)
 		frames.append({
 			"time_sec": time_sec,
+			"elapsed_motion_sec": minf(time_sec, arrival_time),
 			"position_px": origin + position_m * ppm,
 			"position_m": position_m,
+			"height_drop_m": position_m.y,
+			"distance_traveled_m": float(state["distance_m"]),
 			"speed_mps": speed,
 			"path_speed_mps": path_speed,
 			"kinetic_energy_j": kinetic,
@@ -62,6 +65,7 @@ static func simulate(
 				kind, float(index) / float(preview_steps), width, drop, path_parameters
 			) * ppm
 		)
+	var path_segments := _build_path_segments(table, origin, ppm, 48)
 	return {
 		"tick_rate": tick_rate,
 		"duration_sec": duration_sec,
@@ -71,6 +75,7 @@ static func simulate(
 			{"type": "arrival", "time_sec": arrival_time},
 		],
 		"path_points_px": path_points_px,
+		"path_segments": path_segments,
 		"metrics": {
 			"arrival_time_sec": arrival_time,
 			"arrival_speed_mps": arrival_speed,
@@ -80,6 +85,35 @@ static func simulate(
 			"integration_steps": integration_steps,
 		},
 	}
+
+
+static func _build_path_segments(
+	table: Array,
+	origin: Vector2,
+	ppm: float,
+	segment_count: int
+) -> Array:
+	var segments: Array = []
+	var last_index := table.size() - 1
+	for segment_index in range(segment_count):
+		var start_index := roundi(float(segment_index) / float(segment_count) * last_index)
+		var end_index := roundi(float(segment_index + 1) / float(segment_count) * last_index)
+		if end_index <= start_index:
+			continue
+		var start: Dictionary = table[start_index]
+		var finish: Dictionary = table[end_index]
+		var segment_time := float(finish["time_sec"]) - float(start["time_sec"])
+		var segment_length := float(finish["distance_m"]) - float(start["distance_m"])
+		segments.append({
+			"start_px": origin + Vector2(start["position_m"]) * ppm,
+			"finish_px": origin + Vector2(finish["position_m"]) * ppm,
+			"start_time_sec": float(start["time_sec"]),
+			"finish_time_sec": float(finish["time_sec"]),
+			"segment_time_sec": segment_time,
+			"segment_length_m": segment_length,
+			"mean_speed_mps": segment_length / maxf(segment_time, 1.0e-12),
+		})
+	return segments
 
 
 static func cycloid_exact_arrival_time(width: float, drop: float, gravity: float) -> float:

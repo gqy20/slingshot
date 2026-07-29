@@ -98,6 +98,8 @@ static func validate_record(record: Dictionary) -> String:
 		return "record.frames must be a non-empty array"
 	if not record.get("path_points_px") is Array or record["path_points_px"].size() < 2:
 		return "record.path_points_px must contain a sampled path"
+	if not record.get("path_segments") is Array or record["path_segments"].is_empty():
+		return "record.path_segments must contain cumulative path evidence"
 	if not record.get("metrics") is Dictionary:
 		return "record.metrics must be an object"
 	for metric in [
@@ -129,6 +131,9 @@ static func sample(record: Dictionary, time_sec: float) -> Dictionary:
 	return {
 		"position_px": _as_vector(lower["position_px"]).lerp(_as_vector(upper["position_px"]), weight),
 		"speed_mps": 0.0 if arrived else path_speed,
+		"elapsed_motion_sec": lerpf(float(lower["elapsed_motion_sec"]), float(upper["elapsed_motion_sec"]), weight),
+		"height_drop_m": lerpf(float(lower["height_drop_m"]), float(upper["height_drop_m"]), weight),
+		"distance_traveled_m": lerpf(float(lower["distance_traveled_m"]), float(upper["distance_traveled_m"]), weight),
 		"kinetic_energy_j": lerpf(float(lower["kinetic_energy_j"]), float(upper["kinetic_energy_j"]), weight),
 		"potential_energy_j": lerpf(float(lower["potential_energy_j"]), float(upper["potential_energy_j"]), weight),
 		"progress": lerpf(float(lower["progress"]), float(upper["progress"]), weight),

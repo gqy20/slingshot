@@ -6,7 +6,12 @@ param(
     [int]$Height = 0,
     [switch]$SkipNarration,
     [switch]$SkipSubtitles,
+    [switch]$SkipImport,
+    [switch]$ShowRenderWindow,
+    [switch]$NoFrameCache,
     [int]$CaptureRepeat = 1,
+    [ValidateRange(0, 4)][int]$RenderWorkers = 0,
+    [ValidateRange(0, 8)][int]$ShardWarmupFrames = 2,
     [ValidateSet('auto', 'nvenc', 'libx264')][string]$VideoEncoder = 'auto',
     [ValidateRange(24, 64)][int]$SubtitleFontSize = 42,
     [ValidateRange(30, 160)][int]$SubtitleBottomMargin = 68,
@@ -15,6 +20,8 @@ param(
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
+. (Join-Path $PSScriptRoot 'render_shard_planner.ps1')
+. (Join-Path $PSScriptRoot 'render_beat_cache.ps1')
 
 $episodePath = (Resolve-Path -LiteralPath $Episode).Path
 $config = Get-Content -Raw -Encoding UTF8 $episodePath | ConvertFrom-Json
@@ -30,10 +37,18 @@ if ($Height -eq 0) {
     $Height = if ($env:EPISODE_RENDER_HEIGHT) { [int]$env:EPISODE_RENDER_HEIGHT } else { $sourceHeight }
 }
 if ($env:EPISODE_SKIP_NARRATION -eq '1') { $SkipNarration = $true }
+if ($RenderWorkers -eq 0) {
+    $RenderWorkers = if ($env:EPISODE_RENDER_WORKERS) {
+        [int]$env:EPISODE_RENDER_WORKERS
+    } else {
+        2
+    }
+}
 if ($fps -notin @(30, 60)) { throw "Video FPS must be 30 or 60; got $fps" }
 if ("$sourceWidth,$sourceHeight" -ne '3840,2160') { throw 'Episode source resolution must be 3840x2160.' }
 if ("$Width,$Height" -notin @('3840,2160', '1920,1080')) { throw 'Render resolution must be 3840x2160 or 1920x1080.' }
 if ($CaptureRepeat -lt 1) { throw 'CaptureRepeat must be positive.' }
+if ($RenderWorkers -lt 1 -or $RenderWorkers -gt 4) { throw 'RenderWorkers must be between 1 and 4.' }
 if ($PreviewSeconds -lt 0) { throw 'PreviewSeconds cannot be negative.' }
 if ($PreviewStartSeconds -lt 0) { throw 'PreviewStartSeconds cannot be negative.' }
 
@@ -89,17 +104,23 @@ $outputDir = Split-Path -Parent $outputPath
 New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
 
 $godot = Get-SlingshotGodot
-# The console executable remains attached to the caller, which makes -Wait and
-# exit-code handling reliable in automated renders. The GUI executable may
-# detach immediately and leave the encoding pipeline without its frame producer.
+# Start-Process must track the actual Movie Writer process. In recent Windows
+# builds the console binary is a launcher which can remain alive after its GUI
+# child has finished recording, so waiting on it can deadlock the merge stage.
 $godotProcess = $godot
+if ($godot.EndsWith('_console.exe', [StringComparison]::OrdinalIgnoreCase)) {
+    $guiCandidate = $godot.Substring(0, $godot.Length - '_console.exe'.Length) + '.exe'
+    if (Test-Path -LiteralPath $guiCandidate) { $godotProcess = $guiCandidate }
+}
 $ffmpeg = Find-SlingshotTool -Name 'ffmpeg'
 $ffprobe = Find-SlingshotTool -Name 'ffprobe'
 Initialize-SlingshotGodotEnvironment
 
 & (Join-Path $PSScriptRoot 'build_formula_assets.ps1') -Episode $episodePath
 if ($LASTEXITCODE -ne 0) { throw 'Formula asset build failed.' }
-Invoke-SlingshotNative $godot --headless --import --path $script:ProjectRoot
+if (-not $SkipImport) {
+    Invoke-SlingshotNative $godot --headless --import --path $script:ProjectRoot
+}
 
 $episodeDuration = Get-SlingshotEpisodeDuration $config
 $previewStart = [Math]::Min($PreviewStartSeconds, $episodeDuration)
@@ -112,35 +133,27 @@ $frameStart = [int][Math]::Floor($previewStart * $fps + 0.5)
 $totalFrames = [int][Math]::Floor($duration * $fps + 0.5)
 if ($totalFrames -lt 1) { throw 'Preview range does not contain any frames.' }
 $frameEnd = $frameStart + $totalFrames
+$renderShards = @(Get-SlingshotStoryboardRenderShards -Episode $config -Fps $fps `
+    -FrameStart $frameStart -FrameEnd $frameEnd -WorkerCount $RenderWorkers `
+    -WarmupFrames $ShardWarmupFrames)
+$actualRenderWorkers = $renderShards.Count
+$frameCacheEnabled = -not $NoFrameCache -and $PreviewSeconds -le 0 -and $PreviewStartSeconds -le 0
+$frameCacheEntries = @()
+$frameCacheHits = 0
+$frameCacheMisses = 0
+$frameCacheFingerprint = 'disabled'
+$sidecarCachePath = $null
 $tempRoot = New-SlingshotRenderTempDirectory -Kind 'episode' -EpisodeId $episodeName
-$rawFrames = Join-Path $tempRoot 'raw-frames'
+$shardRoot = Join-Path $tempRoot 'shards'
 $frames = Join-Path $tempRoot 'frames'
 $recordPath = Join-Path $tempRoot 'run-record.json'
 $sidecarPath = Join-Path $tempRoot 'output.json'
 $videoTemp = Join-Path $tempRoot 'output.mp4'
 $cleanVideoTemp = Join-Path $tempRoot 'clean-master.mp4'
 $simulationLog = Join-Path $tempRoot 'simulation.log'
-$renderLog = Join-Path $tempRoot 'render.log'
-$projectView = Join-Path $tempRoot 'project'
-New-Item -ItemType Directory -Force -Path $rawFrames, $frames, $projectView | Out-Null
-Copy-Item -LiteralPath (Join-Path $script:ProjectRoot 'project.godot') -Destination $projectView
-Copy-Item -LiteralPath (Join-Path $script:ProjectRoot 'episode.tscn') -Destination $projectView
-foreach ($entry in @('assets', 'content', 'presets', 'src')) {
-    New-Item -ItemType Junction -Path (Join-Path $projectView $entry) `
-        -Target (Join-Path $script:ProjectRoot $entry) | Out-Null
-}
-if (Test-Path (Join-Path $script:ProjectRoot '.godot')) {
-    New-Item -ItemType Junction -Path (Join-Path $projectView '.godot') `
-        -Target (Join-Path $script:ProjectRoot '.godot') | Out-Null
-}
-$overrideConfig = @"
-[display]
-window/size/viewport_width=$Width
-window/size/viewport_height=$Height
-window/stretch/mode="disabled"
-"@
-Write-SlingshotUtf8 (Join-Path $projectView 'override.cfg') $overrideConfig
+New-Item -ItemType Directory -Force -Path $shardRoot, $frames | Out-Null
 $succeeded = $false
+$renderJobs = @()
 
 try {
     Write-Host "episode-render: simulate=$episodePath"
@@ -167,53 +180,171 @@ try {
         throw "Godot simulation logged an error. See $simulationLog"
     }
 
-    Write-Host "episode-render: render=$outputPath frames=$totalFrames"
-    $moviePath = Join-Path $rawFrames 'frame.png'
-    $renderErrorLog = Join-Path $tempRoot 'render.stderr.log'
-    $renderArgs = @('--path', $projectView, '--rendering-method', 'mobile',
-        '--rendering-driver', 'vulkan', '--resolution', "${Width}x${Height}",
-        '--write-movie', $moviePath, '--fixed-fps', [string]($fps * $CaptureRepeat),
-        '--disable-vsync', 'res://episode.tscn', '--', '--episode', $episodePath,
-        '--play-record', $recordPath, '--render-width', [string]$Width, '--render-height',
-        [string]$Height, '--capture-repeat', [string]$CaptureRepeat, '--frame-start', [string]$frameStart,
-        '--frame-end', [string]$frameEnd, '--sidecar', $sidecarPath)
-    $ffmpegInputArgs = @('-y', '-loglevel', 'error', '-framerate', [string]$fps,
-        '-i', (Join-Path $frames 'frame%08d.png'))
-    if ($hasSubtitles) {
-        $renderArgs += @('--subtitles', $subtitleSrt, '--external-subtitles')
-    }
-    $renderProcess = Start-Process -FilePath $godotProcess -ArgumentList $renderArgs `
-        -Wait -PassThru -WindowStyle Hidden -RedirectStandardOutput $renderLog `
-        -RedirectStandardError $renderErrorLog
-    $renderExitCode = $renderProcess.ExitCode
-    if (Test-Path $renderErrorLog) {
-        Add-Content -LiteralPath $renderLog -Value (Get-Content -Raw $renderErrorLog)
-    }
-    if ($renderExitCode -ne 0) {
-        Get-Content $renderLog -ErrorAction SilentlyContinue | Select-Object -First 260
-        throw 'Godot movie writer failed.'
-    }
-    $renderText = Get-Content -Raw $renderLog
-    $renderFatalText = $renderText `
-        -replace '(?m)^.*ERROR: Failed to read the root certificate store\..*\r?\n', '' `
-        -replace '(?m)^\s*at: get_system_ca_certificates.*\r?\n', ''
-    if ($renderFatalText -match 'SCRIPT ERROR|(?m)^ERROR:') {
-        throw "Godot render logged an error. See $renderLog"
+    if ($frameCacheEnabled) {
+        $commonEpisode = $config | Select-Object * -ExcludeProperty beats
+        $sourceFingerprint = Get-SlingshotRenderSourceFingerprint -ProjectRoot $script:ProjectRoot
+        $commonCacheText = @(
+            'picture-cache-schema=1',
+            "episode=$($commonEpisode | ConvertTo-Json -Depth 40 -Compress)",
+            "record=$(Get-SlingshotSha256 $recordPath)",
+            "source=$sourceFingerprint",
+            "resolution=${Width}x${Height}",
+            "fps=$fps",
+            "capture_repeat=$CaptureRepeat"
+        ) -join "`n"
+        $frameCacheFingerprint = Get-SlingshotTextSha256 $commonCacheText
+        $frameCacheEntries = @(Get-SlingshotBeatCacheEntries -Episode $config -Fps $fps `
+            -TotalFrames $totalFrames -CacheRoot $episodePaths.Cache `
+            -CommonFingerprint $frameCacheFingerprint)
+        $allBeatJson = ($frameCacheEntries | ForEach-Object { "$($_.Id)=$($_.Key)" }) -join "`n"
+        $sidecarKey = Get-SlingshotTextSha256 "$frameCacheFingerprint|$allBeatJson"
+        $sidecarCachePath = Join-Path $episodePaths.Cache "picture-sidecars\$sidecarKey.json"
+        foreach ($entry in $frameCacheEntries) {
+            $entry.Hit = Test-SlingshotBeatCacheEntry -Entry $entry
+            if ($entry.Hit) {
+                $frameCacheHits++
+                for ($frame = $entry.FrameStart; $frame -lt $entry.FrameEnd; $frame++) {
+                    Copy-Item -LiteralPath (Join-Path $entry.Directory ('frame{0:d8}.png' -f $frame)) `
+                        -Destination (Join-Path $frames ('frame{0:d8}.png' -f $frame))
+                }
+            } else {
+                $frameCacheMisses++
+            }
+        }
+        $missingEntries = @($frameCacheEntries | Where-Object { -not $_.Hit })
+        if ($missingEntries.Count -eq 0 -and (Test-Path -LiteralPath $sidecarCachePath)) {
+            Copy-Item -LiteralPath $sidecarCachePath -Destination $sidecarPath
+            $renderShards = @()
+        } elseif ($missingEntries.Count -eq $frameCacheEntries.Count) {
+            # Cold cache keeps the balanced storyboard plan instead of paying
+            # one Godot startup for every beat.
+        } else {
+            if ($missingEntries.Count -eq 0) { $missingEntries = @($frameCacheEntries[0]) }
+            $renderShards = @(Merge-SlingshotMissingBeatRanges -Entries $missingEntries `
+                -MaximumRanges $RenderWorkers -WarmupFrames $ShardWarmupFrames)
+        }
+        $actualRenderWorkers = $renderShards.Count
+        Write-Host "episode-render: frame-cache hits=$frameCacheHits misses=$frameCacheMisses fingerprint=$frameCacheFingerprint"
     }
 
-    $generated = @(Get-ChildItem -LiteralPath $rawFrames -File -Filter 'frame*.png' | Sort-Object Name)
-    $expectedRaw = $totalFrames * $CaptureRepeat
-    if ($generated.Count -ne $expectedRaw) {
-        throw "Godot produced $($generated.Count) frames; expected $expectedRaw. Diagnostics: $tempRoot"
+    Write-Host "episode-render: render=$outputPath frames=$totalFrames workers=$actualRenderWorkers"
+    $ffmpegInputArgs = @('-y', '-loglevel', 'error', '-framerate', [string]$fps,
+        '-i', (Join-Path $frames 'frame%08d.png'))
+    foreach ($shard in $renderShards) {
+        $shardName = 'shard-{0:d2}' -f $shard.Index
+        $shardDir = Join-Path $shardRoot $shardName
+        $rawFrames = Join-Path $shardDir 'raw-frames'
+        $projectView = Join-Path $shardDir 'project'
+        $renderLog = Join-Path $shardDir 'render.log'
+        $renderErrorLog = Join-Path $shardDir 'render.stderr.log'
+        New-Item -ItemType Directory -Force -Path $rawFrames, $projectView | Out-Null
+        Copy-Item -LiteralPath (Join-Path $script:ProjectRoot 'project.godot') -Destination $projectView
+        Copy-Item -LiteralPath (Join-Path $script:ProjectRoot 'episode.tscn') -Destination $projectView
+        foreach ($entry in @('assets', 'content', 'presets', 'src')) {
+            New-Item -ItemType Junction -Path (Join-Path $projectView $entry) `
+                -Target (Join-Path $script:ProjectRoot $entry) | Out-Null
+        }
+        # Imported resources are copied once per worker. Sharing this directory
+        # lets concurrent Godot processes race while updating import metadata.
+        if (Test-Path (Join-Path $script:ProjectRoot '.godot')) {
+            Copy-Item -LiteralPath (Join-Path $script:ProjectRoot '.godot') `
+                -Destination $projectView -Recurse
+        }
+        $workerProjectName = "SlingshotRender-$($tempRoot | Split-Path -Leaf)-$($shard.Index)"
+        $overrideConfig = @"
+[application]
+config/name="$workerProjectName"
+
+[display]
+window/size/viewport_width=$Width
+window/size/viewport_height=$Height
+window/stretch/mode="disabled"
+"@
+        Write-SlingshotUtf8 (Join-Path $projectView 'override.cfg') $overrideConfig
+
+        $moviePath = Join-Path $rawFrames 'frame.png'
+        $renderArgs = @('--path', $projectView, '--rendering-method', 'mobile',
+            '--rendering-driver', 'vulkan', '--resolution', "${Width}x${Height}",
+            '--write-movie', $moviePath, '--fixed-fps', [string]($fps * $CaptureRepeat),
+            '--disable-vsync', '--audio-driver', 'Dummy', '--log-file', (Join-Path $shardDir 'godot.log'),
+            'res://episode.tscn', '--', '--episode', $episodePath,
+            '--play-record', $recordPath, '--render-width', [string]$Width, '--render-height',
+            [string]$Height, '--capture-repeat', [string]$CaptureRepeat,
+            '--frame-start', [string]$shard.RenderStart, '--frame-end', [string]$shard.FrameEnd)
+        if (-not $ShowRenderWindow) {
+            $renderArgs = @('--position', '10000,10000') + $renderArgs
+        }
+        if ($shard.Index -eq 0) { $renderArgs += @('--sidecar', $sidecarPath) }
+        if ($hasSubtitles) { $renderArgs += @('--subtitles', $subtitleSrt, '--external-subtitles') }
+        Write-Host ("episode-render: {0} frames=[{1},{2}) warmup={3}" -f `
+            $shardName, $shard.FrameStart, $shard.FrameEnd, $shard.WarmupFrames)
+        $process = Start-Process -FilePath $godotProcess -ArgumentList $renderArgs `
+            -PassThru -WindowStyle Hidden -RedirectStandardOutput $renderLog `
+            -RedirectStandardError $renderErrorLog
+        $renderJobs += [pscustomobject]@{
+            Shard = $shard
+            Name = $shardName
+            RawFrames = $rawFrames
+            Log = $renderLog
+            ErrorLog = $renderErrorLog
+            Process = $process
+        }
     }
-    $merged = 0
-    for ($index = $CaptureRepeat - 1; $index -lt $generated.Count; $index += $CaptureRepeat) {
-        $destination = Join-Path $frames ('frame{0:d8}.png' -f $merged)
-        Move-Item -LiteralPath $generated[$index].FullName -Destination $destination
-        $merged++
+
+    foreach ($job in $renderJobs) {
+        $job.Process.WaitForExit()
+        $job.Process.Refresh()
     }
-    if ($merged -ne $totalFrames -or -not (Test-Path $sidecarPath)) {
+    foreach ($job in $renderJobs) {
+        if (Test-Path $job.ErrorLog) {
+            Add-Content -LiteralPath $job.Log -Value (Get-Content -Raw $job.ErrorLog)
+        }
+        $renderExitCode = $job.Process.ExitCode
+        if ($null -ne $renderExitCode -and $renderExitCode -ne 0) {
+            Get-Content $job.Log -ErrorAction SilentlyContinue | Select-Object -First 260
+            throw "Godot movie writer failed for $($job.Name) (exit=$renderExitCode)."
+        }
+        $renderText = Get-Content -Raw $job.Log
+        $renderFatalText = $renderText `
+            -replace '(?m)^.*ERROR: Failed to read the root certificate store\..*\r?\n', '' `
+            -replace '(?m)^\s*at: get_system_ca_certificates.*\r?\n', ''
+        if ($renderFatalText -match 'SCRIPT ERROR|(?m)^ERROR:') {
+            throw "Godot render logged an error. See $($job.Log)"
+        }
+    }
+
+    $renderedOutputFrames = 0
+    foreach ($job in $renderJobs) {
+        $generated = @(Get-ChildItem -LiteralPath $job.RawFrames -File -Filter 'frame*.png' | Sort-Object Name)
+        $renderedLogicalFrames = $job.Shard.FrameEnd - $job.Shard.RenderStart
+        $expectedRaw = $renderedLogicalFrames * $CaptureRepeat
+        if ($generated.Count -ne $expectedRaw) {
+            throw "$($job.Name) produced $($generated.Count) frames; expected $expectedRaw. Diagnostics: $tempRoot"
+        }
+        $firstStableFrame = ($job.Shard.WarmupFrames * $CaptureRepeat) + $CaptureRepeat - 1
+        $logicalFrame = $job.Shard.FrameStart
+        for ($index = $firstStableFrame; $index -lt $generated.Count; $index += $CaptureRepeat) {
+            $outputIndex = $logicalFrame - $frameStart
+            $destination = Join-Path $frames ('frame{0:d8}.png' -f $outputIndex)
+            Move-Item -LiteralPath $generated[$index].FullName -Destination $destination -Force
+            $logicalFrame++
+            $renderedOutputFrames++
+        }
+    }
+    $finalFrameCount = @(Get-ChildItem -LiteralPath $frames -File -Filter 'frame*.png').Count
+    if ($finalFrameCount -ne $totalFrames -or -not (Test-Path $sidecarPath)) {
         throw 'Frame merge or sidecar generation failed.'
+    }
+    if ($frameCacheEnabled -and $renderJobs.Count -gt 0) {
+        foreach ($entry in $frameCacheEntries) {
+            New-Item -ItemType Directory -Force -Path $entry.Directory | Out-Null
+            for ($frame = $entry.FrameStart; $frame -lt $entry.FrameEnd; $frame++) {
+                Copy-Item -LiteralPath (Join-Path $frames ('frame{0:d8}.png' -f $frame)) `
+                    -Destination (Join-Path $entry.Directory ('frame{0:d8}.png' -f $frame)) -Force
+            }
+        }
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $sidecarCachePath) | Out-Null
+        Copy-Item -LiteralPath $sidecarPath -Destination $sidecarCachePath -Force
     }
 
     $videoFilter = $null
@@ -348,11 +479,19 @@ try {
         "engine=$((& $godot --version | Select-Object -First 1))",
         'renderer=mobile_vulkan_windows',
         "render_resolution=${Width}x${Height}",
-        'render_workers=1',
+        "render_workers=$actualRenderWorkers",
+        "render_workers_requested=$RenderWorkers",
+        "render_shard_warmup_frames=$ShardWarmupFrames",
+        "render_shards=$(($renderShards | ForEach-Object { '({0},{1})' -f $_.FrameStart, $_.FrameEnd }) -join ';')",
+        "frame_cache=$(if ($frameCacheEnabled) { 'enabled' } else { 'disabled' })",
+        "frame_cache_fingerprint=$frameCacheFingerprint",
+        "frame_cache_hits=$frameCacheHits",
+        "frame_cache_misses=$frameCacheMisses",
+        "frame_cache_rendered_frames=$renderedOutputFrames",
         "capture_repeat=$CaptureRepeat",
         "video_encoder=$selectedEncoder",
         "video_encoder_request=$VideoEncoder",
-        'render_sharding=serial_windows',
+        "render_sharding=$(if ($actualRenderWorkers -eq 0) { 'beat_cache_only' } elseif ($frameCacheHits -gt 0) { 'beat_cache_miss_ranges' } elseif ($actualRenderWorkers -gt 1) { 'storyboard_beat_boundaries' } else { 'serial_windows' })",
         'deterministic_seeded=true',
         "subtitles=$(if ($hasSubtitles) { 'burned_in' } else { 'none' })",
         "subtitle_font_size=$SubtitleFontSize",
@@ -381,6 +520,11 @@ try {
         Write-Host "episode-render: clean master $cleanMasterPath"
     }
 } finally {
+    foreach ($job in $renderJobs) {
+        if ($null -ne $job.Process -and -not $job.Process.HasExited) {
+            Stop-Process -Id $job.Process.Id -Force -ErrorAction SilentlyContinue
+        }
+    }
     if ($succeeded -and (Test-Path $tempRoot)) {
         Remove-Item -LiteralPath $tempRoot -Recurse -Force
     } elseif (-not $succeeded) {

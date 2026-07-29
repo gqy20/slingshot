@@ -1,27 +1,44 @@
 [CmdletBinding()]
 param(
     [switch]$UpdateBaselines,
+    [switch]$ShowRenderWindow,
     [ValidateSet('projectile', 'impact', 'track')][string[]]$Domain = @()
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
 $godot = Get-SlingshotGodot
+$godotProcess = $godot
+if ($godot.EndsWith('_console.exe', [StringComparison]::OrdinalIgnoreCase)) {
+    $guiCandidate = $godot.Substring(0, $godot.Length - '_console.exe'.Length) + '.exe'
+    if (Test-Path -LiteralPath $guiCandidate) { $godotProcess = $guiCandidate }
+}
 Initialize-SlingshotGodotEnvironment
 
 function Invoke-VisualGodot {
     param([Parameter(Mandatory = $true)][string[]]$Arguments)
 
-    $previousErrorPreference = $ErrorActionPreference
-    $ErrorActionPreference = 'Continue'
-    $lines = @(& $godot @Arguments 2>&1 | ForEach-Object { $_.ToString() })
-    $exitCode = $LASTEXITCODE
-    $ErrorActionPreference = $previousErrorPreference
+    $logId = [Guid]::NewGuid().ToString('N')
+    $stdoutPath = Join-Path ([IO.Path]::GetTempPath()) "slingshot-visual-$logId.stdout.log"
+    $stderrPath = Join-Path ([IO.Path]::GetTempPath()) "slingshot-visual-$logId.stderr.log"
+    try {
+        $process = Start-Process -FilePath $godotProcess -ArgumentList $Arguments `
+            -PassThru -WindowStyle Hidden -RedirectStandardOutput $stdoutPath `
+            -RedirectStandardError $stderrPath
+        $process.WaitForExit()
+        $process.Refresh()
+        $exitCode = $process.ExitCode
+        $lines = @()
+        if (Test-Path -LiteralPath $stdoutPath) { $lines += @(Get-Content $stdoutPath) }
+        if (Test-Path -LiteralPath $stderrPath) { $lines += @(Get-Content $stderrPath) }
+    } finally {
+        Remove-Item -LiteralPath $stdoutPath, $stderrPath -Force -ErrorAction SilentlyContinue
+    }
     $lines | ForEach-Object { Write-Host $_ }
     $text = $lines -join "`n"
     $fatalText = $text `
         -replace '(?m)^.*ERROR: Failed to read the root certificate store\..*\r?\n?', '' `
         -replace '(?m)^\s*at: get_system_ca_certificates.*\r?\n?', ''
-    if ($exitCode -ne 0 -or $fatalText -match 'SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|(?m)^ERROR:') {
+    if (($null -ne $exitCode -and $exitCode -ne 0) -or $fatalText -match 'SCRIPT ERROR|Parse Error|Compile Error|Failed to load script|(?m)^ERROR:') {
         throw "Godot visual-regression step failed (exit=$exitCode)."
     }
 }
@@ -58,6 +75,17 @@ foreach ($case in $cases) {
         @{ Name = 'compare'; Seconds = $duration - $compare * 0.5 }
 	)
 	if ($case.Prefix -eq 'track') {
+		$beatMidpoint = {
+			param([string]$BeatId)
+			$beat = $config.beats | Where-Object { [string]$_.id -eq $BeatId } | Select-Object -First 1
+			if ($null -eq $beat) { throw "Track visual beat not found: $BeatId" }
+			[double]$beat.at + 0.5 * [double]$beat.duration
+		}
+		$moments += @(
+			@{ Name = 'setup-controls'; Seconds = & $beatMidpoint 'fair-controls' },
+			@{ Name = 'compare-results'; Seconds = & $beatMidpoint 'distance-time-table' },
+			@{ Name = 'model-boundary'; Seconds = & $beatMidpoint 'model-boundary' }
+		)
 		$record = Get-Content -Raw -Encoding UTF8 $recordPath | ConvertFrom-Json
 		$arrivals = @($record.records | ForEach-Object {
 			[double]$_.metrics.arrival_time_sec
@@ -84,14 +112,18 @@ foreach ($case in $cases) {
         New-Item -ItemType Directory -Force -Path $caseRoot | Out-Null
         $moviePath = Join-Path $caseRoot 'frame.png'
         $sidecarPath = Join-Path $caseRoot 'sidecar.json'
-        Invoke-VisualGodot -Arguments @(
+        $renderArguments = @(
             '--path', $script:ProjectRoot, '--rendering-method', 'mobile',
             '--rendering-driver', 'vulkan', '--write-movie', $moviePath,
-            '--fixed-fps', [string]$config.video.fps, '--disable-vsync',
+            '--fixed-fps', [string]$config.video.fps, '--disable-vsync', '--audio-driver', 'Dummy',
             'res://episode.tscn', '--', '--episode', $episodePath,
             '--play-record', $recordPath, '--frame-start', [string]$frame,
             '--frame-end', [string]($frame + 1), '--sidecar', $sidecarPath
         )
+        if (-not $ShowRenderWindow) {
+            $renderArguments = @('--position', '10000,10000') + $renderArguments
+        }
+        Invoke-VisualGodot -Arguments $renderArguments
         $actualPath = Join-Path $caseRoot 'frame00000000.png'
         if (-not (Test-Path -LiteralPath $actualPath)) {
             throw "Visual-regression frame was not generated: $actualPath"

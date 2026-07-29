@@ -5,6 +5,9 @@ param([switch]$SkipImport, [switch]$Visual)
 $godot = Get-SlingshotGodot
 Initialize-SlingshotGodotEnvironment
 
+& (Join-Path $script:ProjectRoot 'tests\test_render_shard_planner.ps1')
+& (Join-Path $script:ProjectRoot 'tests\test_render_beat_cache.ps1')
+
 function Invoke-GodotTestStep {
     param([Parameter(Mandatory = $true)][string[]]$Arguments)
 

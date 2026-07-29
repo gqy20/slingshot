@@ -11,7 +11,7 @@ $script:RenderCacheRoot = Join-Path $script:RenderRoot 'cache'
 
 function Get-SlingshotEpisodePaths {
     param([Parameter(Mandatory = $true)][string]$EpisodeId)
-    if ($EpisodeId -notmatch '^s\d{2}e\d{2}-[a-z0-9][a-z0-9-]*$') {
+    if ($EpisodeId -ne 'framework-smoke' -and $EpisodeId -notmatch '^s\d{2}e\d{2}-[a-z0-9][a-z0-9-]*$') {
         throw "Unsafe episode id: $EpisodeId"
     }
     $work = Join-Path $script:RenderWorkRoot $EpisodeId

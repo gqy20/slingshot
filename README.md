@@ -75,7 +75,20 @@ Windows PowerShell：
 
 Windows 默认使用单次稳定帧捕获，并在可用时自动选择 NVIDIA NVENC；可用
 `-CaptureRepeat 2` 恢复双次捕获，或用 `-VideoEncoder libx264` 强制 CPU 编码。
-制作阶段可用 `-PreviewSeconds 30` 只渲染开头 30 秒样片。
+制作阶段可用 `-PreviewSeconds 30` 只渲染开头 30 秒样片。Windows 单集默认使用 2 个
+Worker，渲染器会在最接近均分点的分镜边界切片；后续 Worker 会预热并丢弃
+`-ShardWarmupFrames 2` 帧，再统一合并画面并执行一次字幕、混音和编码。
+需要排查驱动或比较基准时，可用 `-RenderWorkers 1` 强制恢复串行。
+自动渲染默认把 Vulkan 窗口放到屏幕外并禁用音频设备，不会在桌面弹出；需要观察
+实时渲染窗口时可显式传入 `-ShowRenderWindow`。Godot 的真正 `--headless` 使用 Dummy
+渲染器，无法为 Movie Writer 提供这套 Canvas/Vulkan 画面，因此不用于视频捕获阶段。
+
+完整单集渲染默认启用分镜帧缓存。缓存指纹包含物理 RunRecord、除 `beats` 外的课程公共
+配置、单条 Beat 配置、渲染尺寸、FPS，以及场景、视觉源码、预设、主题、字体和公式资源。
+冷缓存仍由两个均衡 Worker 捕获，完成后按 Beat 存入 `renders/cache/<episode>/picture-frames`；
+再次渲染时直接复用未变化 Beat，只为失效范围启动 Godot。Manifest 会记录
+`frame_cache_hits`、`frame_cache_misses` 和 `frame_cache_rendered_frames`。需要做无缓存基准或
+排查缓存时可传入 `-NoFrameCache`；预览区间默认不写入完整课程缓存。
 
 新建同系列 Episode 不需要复制现有 14 个 Beat。脚手架会生成单集配置、讲稿占位稿，并使用标准节拍模板自动补齐镜头、图层、意图、镜头理由和连续时间：
 
@@ -153,14 +166,14 @@ scripts/remux_narration.sh content/episodes/s01e01-angle-sweep.json
 - S01E01：相同弹簧能量下比较 15°、30°、45°、60°、75° 的首次落地距离；
 - S01E02：保持 45°，比较 0.3 m、0.6 m、0.9 m、1.2 m 拉伸距离。
 
-单集固定使用一个连续渲染进程，并让每个逻辑状态保持两个 Movie Writer tick 后选取已稳定的末帧。当前 Linux 软件 Vulkan 驱动下，并行分片或逐 tick 改变画面都会让 CanvasItem 图层隔帧缺失，因此完整性优先于单集内并行；批量入口仍可并行不同集：
+Windows 渲染器默认使用 2 个 Worker 按分镜边界切片；物理模拟只执行一次，每个 Worker 获得独立项目视图、导入缓存、用户数据名称和绝对帧范围。显式 `beats` 直接提供切点，模板课程使用阶段边界作为安全切点；只有请求区间内没有任何安全边界时才自动回退为单 Worker。批量入口仍可并行不同集：
 
 ```bash
 scripts/render_batch.sh
 scripts/render_batch.sh --jobs 2 content/episodes/s01e01-angle-sweep.json content/episodes/s01e02-stretch-sweep.json
 ```
 
-`EPISODE_RENDER_WORKERS` 大于 1 时会被安全地收敛为 1；`RENDER_MAX_WORKERS` 只控制整批任务的并发上限。每个渲染任务会创建隔离的临时项目视图，用 `override.cfg` 在 Movie Maker 初始化前设置真实帧缓冲尺寸，因此 1080p 不再暗中生成 4K PNG，4K 也不经过低分辨率放大。
+Linux 软件 Vulkan 路径曾在并行 Movie Writer 中出现 CanvasItem 图层隔帧缺失，因此 Linux 脚本目前仍将 `EPISODE_RENDER_WORKERS` 收敛为 1；`RENDER_MAX_WORKERS` 只控制整批任务的并发上限。Windows 并行模式应先用预览片段验证目标机器，再用于最终母版。每个渲染任务都会用 `override.cfg` 在 Movie Maker 初始化前设置真实帧缓冲尺寸，因此 1080p 不再暗中生成 4K PNG，4K 也不经过低分辨率放大。
 
 批量脚本按 Episode JSON 的 `id` 自动路由输出：4K 写入 `renders/masters/<id>/program-master-4k.mp4`，同时保留 `picture-clean-4k.mp4`；1080p 写入 `renders/work/<id>/previews/episode-preview.mp4`。更换课程编号时不需要修改脚本路径。
 
