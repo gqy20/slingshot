@@ -1,7 +1,6 @@
 class_name SlingshotEpisodeLoader
 extends RefCounted
 
-const PresetLoader = preload("res://src/core/preset_loader.gd")
 const EpisodeTemplates = preload("res://src/core/episode_templates.gd")
 const ExplanationCatalog = preload("res://src/core/explanation_catalog.gd")
 const DomainRegistry = preload("res://src/core/domain_registry.gd")
@@ -112,7 +111,7 @@ static func validate_dict(raw: Dictionary, source_path: String = "") -> Dictiona
 	var normalized_variants: Array = []
 	var seen_ids := {}
 	for index in range(variants_value.size()):
-		var variant_result := _normalize_variant(variants_value[index], base_raw, index)
+		var variant_result := _normalize_variant(variants_value[index], base_raw, index, domain)
 		if not variant_result["ok"]:
 			return variant_result
 		var variant: Dictionary = variant_result["variant"]
@@ -492,7 +491,12 @@ static func _normalize_narration(value: Variant, source_path: String) -> Diction
 	}
 
 
-static func _normalize_variant(value: Variant, base_raw: Dictionary, index: int) -> Dictionary:
+static func _normalize_variant(
+	value: Variant,
+	base_raw: Dictionary,
+	index: int,
+	domain: Variant
+) -> Dictionary:
 	if not value is Dictionary:
 		return _failure("variants[%d] must be an object" % index)
 	var raw_variant: Dictionary = value
@@ -515,10 +519,7 @@ static func _normalize_variant(value: Variant, base_raw: Dictionary, index: int)
 			return _failure("variants[%d] %s" % [index, set_error])
 	preset_raw["id"] = "%s-%s" % [preset_raw.get("id", "episode"), raw_variant["id"]]
 	preset_raw["duration_sec"] = maxf(1.0, float(preset_raw.get("duration_sec", 1.0)))
-	var scene: Dictionary = preset_raw.get("scene", {})
-	scene["bird_color"] = raw_variant["color"]
-	preset_raw["scene"] = scene
-	var preset_result := PresetLoader.validate_dict(preset_raw)
+	var preset_result: Dictionary = domain.normalize_preset(preset_raw, String(raw_variant["color"]))
 	if not preset_result["ok"]:
 		return _failure("variants[%d] invalid preset: %s" % [index, preset_result["error"]])
 	return {

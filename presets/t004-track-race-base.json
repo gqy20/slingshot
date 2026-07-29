@@ -1,0 +1,16 @@
+{
+  "id": "t004-track-race-base",
+  "duration_sec": 3.0,
+  "video": {"width": 1920, "height": 1080, "fps": 60},
+  "physics": {
+    "pixels_per_meter": 100.0,
+    "gravity_mps2": 9.81,
+    "mass_kg": 1.0
+  },
+  "scene": {
+    "origin_px": [360.0, 230.0],
+    "horizontal_span_m": 10.0,
+    "vertical_drop_m": 6.0,
+    "track_kind": "line"
+  }
+}

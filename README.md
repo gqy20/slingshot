@@ -206,7 +206,7 @@ Windows PowerShell 会先处理 Godot 导入缓存，再运行相同测试：
 .\scripts\run_tests.ps1
 ```
 
-同时运行 projectile/impact 六个 4K 关键帧视觉回归：
+同时运行 projectile/impact/track 九个 4K 关键帧视觉回归：
 
 ```powershell
 .\scripts\run_tests.ps1 -Visual

@@ -6,10 +6,11 @@ const RunRecord = preload("res://src/core/run_record.gd")
 
 func run(test) -> void:
 	var models := DomainRegistry.model_ids()
-	test.check(models == ["rigidbody", "projectile_drag", "impact_pulse"], "domain registry exposes stable model order")
+	test.check(models == ["rigidbody", "projectile_drag", "impact_pulse", "track_race"], "domain registry exposes stable model order")
 	test.check(DomainRegistry.has_model("rigidbody"), "projectile domain owns rigidbody")
 	test.check(DomainRegistry.has_model("projectile_drag"), "projectile domain owns drag model")
 	test.check(DomainRegistry.has_model("impact_pulse"), "impact domain owns pulse model")
+	test.check(DomainRegistry.has_model("track_race"), "track domain owns path-race model")
 	test.check(not DomainRegistry.has_model("unknown"), "unknown model is rejected")
 
 	var projectile = DomainRegistry.for_model("projectile_drag")

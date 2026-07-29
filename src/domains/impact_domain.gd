@@ -4,6 +4,8 @@ extends RefCounted
 const ReplayTrack = preload("res://src/playback/replay_track.gd")
 const Canvas = preload("res://src/video/canvases/impact_canvas.gd")
 const ImpactPulseSolver = preload("res://src/simulation/impact_pulse_solver.gd")
+const PresetLoader = preload("res://src/core/preset_loader.gd")
+const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 
 const MODELS := ["impact_pulse"]
 
@@ -63,6 +65,14 @@ static func normalize_simulation(simulation: Dictionary) -> Dictionary:
 	return {"ok": true, "error": "", "value": normalized}
 
 
+static func normalize_preset(raw: Dictionary, variant_color: String) -> Dictionary:
+	var colored := raw.duplicate(true)
+	var scene: Dictionary = colored.get("scene", {})
+	scene["bird_color"] = variant_color
+	colored["scene"] = scene
+	return PresetLoader.validate_dict(colored)
+
+
 static func validate_record(record: Dictionary) -> String:
 	var common_error := _validate_common_record(record)
 	if not common_error.is_empty():
@@ -81,6 +91,10 @@ static func sample(record: Dictionary, time_sec: float) -> Dictionary:
 
 static func canvas_script() -> Script:
 	return Canvas
+
+
+static func audit_bundle(bundle: Dictionary) -> PackedStringArray:
+	return EpisodeLayout.audit_bundle(bundle)
 
 
 static func _measurement_extras(records: Array) -> Dictionary:

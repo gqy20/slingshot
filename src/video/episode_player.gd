@@ -53,7 +53,7 @@ func start(
 		get_tree().quit(3)
 		return
 	var layout_errors := EpisodeLayout.validate_static_regions()
-	layout_errors.append_array(EpisodeLayout.audit_bundle(bundle))
+	layout_errors.append_array(domain.audit_bundle(bundle))
 	if not layout_errors.is_empty():
 		push_error("episode layout audit failed: %s" % "; ".join(layout_errors))
 		get_tree().quit(3)

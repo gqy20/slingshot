@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "id": "s01e05-shortest-is-not-fastest",
+  "series": "物理实验室",
+  "season": 1,
+  "episode": 5,
+  "title": "最短的路为什么不一定最快？",
+  "question": "三个小球从同一起点滑向同一终点，直线最短，它会最先到达吗？",
+  "display_hook": "最短，不等于最快",
+  "base_preset": "res://presets/t004-track-race-base.json",
+  "theme": "res://content/themes/laboratory.json",
+  "video": {"width": 3840, "height": 2160, "fps": 30},
+  "simulation": {
+    "model": "track_race",
+    "duration_sec": 3.0,
+    "tick_rate": 240,
+    "integration_steps": 8000
+  },
+  "story": {
+    "question_sec": 7.0,
+    "explain_sec": 8.0,
+    "setup_sec": 6.0,
+    "flight_sec": 12.0,
+    "compare_sec": 7.0,
+    "primary_metric": "arrival_time_sec",
+    "metric_label": "到达时间",
+    "metric_unit": "s",
+    "secondary_metric": "path_length_m",
+    "secondary_label": "路径长度",
+    "secondary_unit": "m",
+    "goal": "min",
+    "show_target": false,
+    "conclusion": "最快路径不是几何距离最短，而是最善于尽早获得速度的路径。"
+  },
+  "beats": [
+    {"id":"question","label":"提出问题","phase":"QUESTION","at":0.0,"duration":7.0,"shot":"track-overview","mode":"immersive","camera_action":"establish","camera_reason":"show all three routes before revealing motion","intent":"ask-shortest-fastest","primary_subject":"tracks","layers":["world","headline"]},
+    {"id":"explain","label":"能量直觉","phase":"EXPLAIN","at":7.0,"duration":8.0,"shot":"energy-drop","mode":"measurement","camera_action":"reframe","camera_reason":"connect early vertical drop to early speed gain","intent":"explain-energy","primary_subject":"height-to-speed","layers":["world","annotations","identity"]},
+    {"id":"setup","label":"公平条件","phase":"SETUP","at":15.0,"duration":6.0,"shot":"shared-endpoints","mode":"measurement","camera_action":"reframe","camera_reason":"make the common endpoints and frictionless assumption explicit","intent":"show-controls","primary_subject":"track-conditions","layers":["world","legend","grid","headline"]},
+    {"id":"race","label":"同步释放","phase":"FLIGHT","at":21.0,"duration":12.0,"shot":"track-race","mode":"immersive","camera_action":"hold","camera_reason":"keep every moving ball visible in a single fair comparison","intent":"observe-race","primary_subject":"racing-balls","layers":["world","subjects","trajectories"]},
+    {"id":"compare","label":"到达时间","phase":"COMPARE","at":33.0,"duration":7.0,"shot":"arrival-ranking","mode":"measurement","camera_action":"reframe","camera_reason":"compare path length against measured arrival time","intent":"compare-arrival-times","primary_subject":"arrival-ranking","layers":["world"]}
+  ],
+  "variants": [
+    {"id":"line","label":"直线","color":"#7594B3","overrides":{"scene.track_kind":"line"}},
+    {"id":"circular-arc","label":"圆弧","color":"#D6A85F","overrides":{"scene.track_kind":"circular_arc"}},
+    {"id":"cycloid","label":"摆线","color":"#F06A47","overrides":{"scene.track_kind":"cycloid"}}
+  ]
+}

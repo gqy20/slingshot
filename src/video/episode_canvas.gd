@@ -43,19 +43,27 @@ func configure(
 	for record_value in bundle["records"]:
 		var record: Dictionary = record_value
 		records_by_id[record["variant_id"]] = record
-		trajectories_by_id[record["variant_id"]] = ReplayTrack.full_trajectory(record)
+		_configure_record(record)
 	var first_variant: Dictionary = episode["variants"][0]
 	var preset: Dictionary = first_variant["preset"]
-	var ppm: float = preset["physics"]["pixels_per_meter"]
-	launch_position_px = preset["scene"]["launch_position_m"] * ppm
-	target_position_px = preset["scene"]["target_position_m"] * ppm
-	ground_y_px = preset["scene"]["ground_y_m"] * ppm
+	_configure_domain_geometry(preset)
 	camera_state = ShotCamera.desired_state(
 		"QUESTION",
 		episode.get("beats", [{}])[0],
 		EpisodeLayout.SOURCE_WORLD_RECT.get_center()
 	)
 	queue_redraw()
+
+
+func _configure_record(record: Dictionary) -> void:
+	trajectories_by_id[record["variant_id"]] = ReplayTrack.full_trajectory(record)
+
+
+func _configure_domain_geometry(preset: Dictionary) -> void:
+	var ppm: float = preset["physics"]["pixels_per_meter"]
+	launch_position_px = preset["scene"]["launch_position_m"] * ppm
+	target_position_px = preset["scene"]["target_position_m"] * ppm
+	ground_y_px = preset["scene"]["ground_y_m"] * ppm
 
 
 func set_playback(
