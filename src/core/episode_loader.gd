@@ -264,6 +264,7 @@ static func _normalize_beats(value: Variant, duration_sec: float) -> Dictionary:
 			"focus_label": String(raw.get("focus_label", "")),
 			"focus_secondary_label": String(raw.get("focus_secondary_label", "")),
 			"headline": String(raw.get("headline", "")),
+			"headline_exit_at": float(raw.get("headline_exit_at", -1.0)),
 			"overlay": String(raw.get("overlay", "")),
 			"formula_step": int(raw.get("formula_step", -1)),
 			"formula_reveal": clampf(float(raw.get("formula_reveal", 0.42)), 0.0, 0.85),

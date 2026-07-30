@@ -14,7 +14,7 @@ param(
     [ValidateRange(0, 8)][int]$ShardWarmupFrames = 2,
     [ValidateSet('auto', 'nvenc', 'libx264')][string]$VideoEncoder = 'auto',
     [ValidateRange(24, 64)][int]$SubtitleFontSize = 42,
-    [ValidateRange(30, 160)][int]$SubtitleBottomMargin = 68,
+    [ValidateRange(30, 160)][int]$SubtitleBottomMargin = 100,
     [double]$PreviewSeconds = 0,
     [double]$PreviewStartSeconds = 0
 )
@@ -75,7 +75,14 @@ if ($hasNarration) {
 }
 if ($null -ne $narrationProperty -and $null -ne $narrationProperty.Value) {
     $editorialSubtitle = [string]$config.narration.subtitle_script
-    if (-not [string]::IsNullOrWhiteSpace($editorialSubtitle)) {
+    $timingMode = if ($config.narration.PSObject.Properties['timing_mode']) {
+        [string]$config.narration.timing_mode
+    } else {
+        'continuous'
+    }
+    # Beat-timed narration gets sentence timings from the actual generated audio.
+    # An editorial SRT is only a fallback for continuous narration workflows.
+    if ($timingMode -ne 'beats' -and -not [string]::IsNullOrWhiteSpace($editorialSubtitle)) {
         if (-not $editorialSubtitle.StartsWith('res://') -or $editorialSubtitle.Contains('..')) {
             throw "Unsafe narration.subtitle_script: $editorialSubtitle"
         }

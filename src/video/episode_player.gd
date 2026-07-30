@@ -23,6 +23,7 @@ var total_frame_count := 0
 var render_output_size := Vector2i(3840, 2160)
 var running := false
 var last_phase := ""
+var last_beat_id := ""
 var display_subtitle_cues: Array = []
 var capture_repeat_count := 1
 var capture_repeat_index := 0
@@ -96,6 +97,7 @@ func start(
 		get_tree().quit(3)
 		return
 	last_phase = ""
+	last_beat_id = ""
 	running = true
 	print(
 		"[episode:playback] episode=%s duration=%.3f variants=%d frames=[%d,%d)/%d"
@@ -125,10 +127,15 @@ func _process(_delta: float) -> void:
 			var id: String = record["variant_id"]
 			states[id] = domain.sample(record, float(times.get(id, 0.0)))
 		canvas.set_playback(phase, times, states, video_time, beat)
-		if phase != last_phase:
+		var phase_changed := phase != last_phase
+		var beat_id := String(beat.get("id", ""))
+		var beat_changed := beat_id != last_beat_id
+		if phase_changed:
 			last_phase = phase
 			hud.set_phase(phase)
-		hud.set_beat(beat)
+		if phase_changed or beat_changed:
+			last_beat_id = beat_id
+			hud.set_beat(beat)
 		hud.set_elapsed(video_time, times)
 
 	capture_repeat_index += 1

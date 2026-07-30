@@ -53,6 +53,7 @@ func run(t) -> void:
 
 	t.check(ExplanationRegistry.has_module("angle_components"), "angle explanation is registered")
 	t.check(ExplanationRegistry.has_module("spring_energy"), "spring explanation is registered")
+	t.check(ExplanationRegistry.has_module("track_race"), "track-race explanation is registered")
 	t.check(not ExplanationRegistry.has_module("missing"), "unknown explanation is not registered")
 	var angle_module := ExplanationRegistry.create("angle_components")
 	var energy_module := ExplanationRegistry.create("spring_energy")

@@ -5,7 +5,7 @@ param(
     [Parameter(Position = 2)][string]$Output = '',
     [string]$Bgm = '',
     [ValidateRange(24, 64)][int]$SubtitleFontSize = 42,
-    [ValidateRange(30, 160)][int]$SubtitleBottomMargin = 68,
+    [ValidateRange(30, 160)][int]$SubtitleBottomMargin = 100,
     [ValidateSet('auto', 'nvenc', 'libx264')][string]$VideoEncoder = 'auto'
 )
 
@@ -29,11 +29,20 @@ $outputPath = if ([IO.Path]::IsPathRooted($Output)) {
 if ([IO.Path]::GetExtension($outputPath) -ne '.mp4') { throw 'Output path must end in .mp4.' }
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $outputPath) | Out-Null
 
-$subtitleRelative = [string]$config.narration.subtitle_script
-if (-not $subtitleRelative.StartsWith('res://') -or $subtitleRelative.Contains('..')) {
-    throw "Unsafe narration.subtitle_script: $subtitleRelative"
+$timingMode = if ($config.narration.PSObject.Properties['timing_mode']) {
+    [string]$config.narration.timing_mode
+} else {
+    'continuous'
 }
-$subtitlePath = Join-Path $script:ProjectRoot $subtitleRelative.Substring(6).Replace('/', '\')
+$subtitlePath = if ($timingMode -eq 'beats') {
+    Join-Path $episodePaths.MasterAudio 'narration.srt'
+} else {
+    $subtitleRelative = [string]$config.narration.subtitle_script
+    if (-not $subtitleRelative.StartsWith('res://') -or $subtitleRelative.Contains('..')) {
+        throw "Unsafe narration.subtitle_script: $subtitleRelative"
+    }
+    Join-Path $script:ProjectRoot $subtitleRelative.Substring(6).Replace('/', '\')
+}
 $narrationPath = Join-Path $episodePaths.MasterAudio 'narration-normalized.wav'
 $soundDesignPath = Join-Path $episodePaths.MasterAudio 'sound-design.wav'
 $required = @($cleanMasterPath, $subtitlePath, $narrationPath, $soundDesignPath)

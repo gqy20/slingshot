@@ -119,12 +119,30 @@ for episode_input in "${EPISODES[@]}"; do
         "$episode_id" "$step_name" >&2
       exit 1
     fi
+    formula_canvas_height="$(jq -er ".story.explanation.steps[$step_index].formula_canvas_height_pt // 240" "$episode_abs")"
+    if [[ ! "$formula_canvas_height" =~ ^[0-9]+$ ]] || ((formula_canvas_height < 240 || formula_canvas_height > 480)); then
+      printf 'formula-assets: formula_canvas_height_pt must be between 240 and 480: %s/%s\n' \
+        "$episode_id" "$step_name" >&2
+      exit 1
+    fi
+    formula_canvas_width="$(jq -er ".story.explanation.steps[$step_index].formula_canvas_width_pt // 1200" "$episode_abs")"
+    if [[ ! "$formula_canvas_width" =~ ^[0-9]+$ ]] || ((formula_canvas_width < 1200 || formula_canvas_width > 2400)); then
+      printf 'formula-assets: formula_canvas_width_pt must be between 1200 and 2400: %s/%s\n' \
+        "$episode_id" "$step_name" >&2
+      exit 1
+    fi
     source_hash="$({
       printf 'typst_version=%s\n' "$REQUIRED_TYPST_VERSION"
       printf 'template_version=%s\n' "$TEMPLATE_VERSION"
       printf 'fill=%s\n' "$formula_color"
       printf 'font_size_pt=%s\n' "$formula_font_size"
       printf 'source=%s\n' "$typst_source"
+      if jq -e ".story.explanation.steps[$step_index] | has(\"formula_canvas_height_pt\")" "$episode_abs" >/dev/null; then
+        printf 'canvas_height_pt=%s\n' "$formula_canvas_height"
+      fi
+      if jq -e ".story.explanation.steps[$step_index] | has(\"formula_canvas_width_pt\")" "$episode_abs" >/dev/null; then
+        printf 'canvas_width_pt=%s\n' "$formula_canvas_width"
+      fi
     } | sha256sum | awk '{print $1}')"
     output_svg="$output_dir/$step_name.svg"
     output_hash="$output_dir/$step_name.sha256"
@@ -143,7 +161,8 @@ for episode_input in "${EPISODES[@]}"; do
       {
         # Keep the same page aspect and sizing contract as the PowerShell build.
         # Per-step font sizing prevents long equations from being clipped.
-        printf '#set page(width: 1200pt, height: 240pt, margin: 0pt, fill: none)\n'
+        printf '#set page(width: %spt, height: %spt, margin: 0pt, fill: none)\n' \
+          "$formula_canvas_width" "$formula_canvas_height"
         printf '#set text(fill: rgb("%s"), size: %spt)\n' "$formula_color" "$formula_font_size"
         printf '#show math.equation: set text(font: "New Computer Modern Math")\n'
         printf '#align(center + horizon)[$ %s $]\n' "$typst_source"

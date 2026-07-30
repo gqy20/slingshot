@@ -10,6 +10,156 @@ $mmx = Find-SlingshotTool -Name 'mmx'
 $ffmpeg = Find-SlingshotTool -Name 'ffmpeg'
 $ffprobe = Find-SlingshotTool -Name 'ffprobe'
 
+function ConvertFrom-SrtTimestamp([string]$Value) {
+    if ($Value -notmatch '^(\d{2}):(\d{2}):(\d{2}),(\d{3})$') {
+        throw "Invalid SRT timestamp: $Value"
+    }
+    return ((([int64]$Matches[1] * 60 + [int64]$Matches[2]) * 60 +
+        [int64]$Matches[3]) * 1000 + [int64]$Matches[4])
+}
+
+function ConvertTo-SrtTimestamp([int64]$Milliseconds) {
+    $value = [Math]::Max(0, $Milliseconds)
+    $hours = [Math]::Floor($value / 3600000)
+    $value %= 3600000
+    $minutes = [Math]::Floor($value / 60000)
+    $value %= 60000
+    $seconds = [Math]::Floor($value / 1000)
+    $millis = $value % 1000
+    return '{0:00}:{1:00}:{2:00},{3:000}' -f $hours, $minutes, $seconds, $millis
+}
+
+function Add-SrtSegment(
+    [System.Collections.Generic.List[object]]$Entries,
+    [string]$Path,
+    [double]$OffsetSeconds,
+    [double]$SlotDuration
+) {
+    $source = Get-Content -Raw -Encoding UTF8 -LiteralPath $Path
+    $pattern = '(?ms)^\s*\d+\s*\r?\n(?<start>\d{2}:\d{2}:\d{2},\d{3})\s+-->\s+(?<end>\d{2}:\d{2}:\d{2},\d{3})[^\r\n]*\r?\n(?<text>.*?)(?=\r?\n\r?\n|\z)'
+    $offsetMs = [int64][Math]::Round($OffsetSeconds * 1000)
+    $slotEndMs = [int64][Math]::Round(($OffsetSeconds + $SlotDuration) * 1000)
+    foreach ($match in [regex]::Matches($source, $pattern)) {
+        $startMs = $offsetMs + (ConvertFrom-SrtTimestamp $match.Groups['start'].Value)
+        $endMs = [Math]::Min(
+            $slotEndMs,
+            $offsetMs + (ConvertFrom-SrtTimestamp $match.Groups['end'].Value)
+        )
+        $text = $match.Groups['text'].Value.Trim()
+        if ($text -and $endMs -gt $startMs) {
+            $Entries.Add([pscustomobject]@{ Start = $startMs; End = $endMs; Text = $text })
+        }
+    }
+}
+
+function Split-SrtText([string]$Text, [int]$MaximumCharacters = 32) {
+    $normalized = ($Text -replace '\s+', ' ').Trim()
+    if (-not $normalized) { return @() }
+    $result = @()
+    $remaining = $normalized
+    while ($remaining.Length -gt $MaximumCharacters) {
+        $window = $remaining.Substring(0, $MaximumCharacters)
+        # Use Unicode escapes so Windows PowerShell 5 can parse this UTF-8 script
+        # without corrupting the Chinese punctuation literals.
+        $cut = $MaximumCharacters
+        $minimumCut = [Math]::Floor($MaximumCharacters * 0.45)
+        $strongBreaks = [regex]::Matches($window, '[\u3002\uFF01\uFF1F\uFF1B]')
+        $candidate = if ($strongBreaks.Count -gt 0) {
+            $strongBreaks[$strongBreaks.Count - 1].Index + 1
+        } else { 0 }
+        if ($candidate -lt $minimumCut) {
+            $softBreaks = [regex]::Matches($window, '[\uFF0C\u3001\uFF1A]')
+            $candidate = if ($softBreaks.Count -gt 0) {
+                $softBreaks[$softBreaks.Count - 1].Index + 1
+            } else { 0 }
+        }
+        if ($candidate -ge $minimumCut) {
+            $cut = $candidate
+        }
+        $result += $remaining.Substring(0, $cut).Trim()
+        $remaining = $remaining.Substring($cut).Trim()
+    }
+    if ($remaining) { $result += $remaining }
+    return @($result)
+}
+
+function Read-SrtEntries([string]$Path) {
+    $entries = [System.Collections.Generic.List[object]]::new()
+    $source = Get-Content -Raw -Encoding UTF8 -LiteralPath $Path
+    $pattern = '(?ms)^\s*\d+\s*\r?\n(?<start>\d{2}:\d{2}:\d{2},\d{3})\s+-->\s+(?<end>\d{2}:\d{2}:\d{2},\d{3})[^\r\n]*\r?\n(?<text>.*?)(?=\r?\n\r?\n|\z)'
+    foreach ($match in [regex]::Matches($source, $pattern)) {
+        $entries.Add([pscustomobject]@{
+            Start = ConvertFrom-SrtTimestamp $match.Groups['start'].Value
+            End = ConvertFrom-SrtTimestamp $match.Groups['end'].Value
+            Text = $match.Groups['text'].Value.Trim()
+        })
+    }
+    return $entries
+}
+
+function Merge-SrtEntriesByBeat(
+    [System.Collections.Generic.List[object]]$Entries,
+    [object[]]$Beats
+) {
+    $merged = [System.Collections.Generic.List[object]]::new()
+    foreach ($beat in $Beats) {
+        $beatStart = [int64][Math]::Round([double]$beat.at * 1000)
+        $beatEnd = [int64][Math]::Round(([double]$beat.at + [double]$beat.duration) * 1000)
+        $members = @($Entries | Where-Object {
+            [int64]$_.Start -ge $beatStart -and [int64]$_.Start -lt $beatEnd
+        } | Sort-Object Start)
+        if ($members.Count -eq 0) { continue }
+        $merged.Add([pscustomobject]@{
+            Start = [int64]$members[0].Start
+            End = [int64]$members[-1].End
+            Text = (($members | ForEach-Object { [string]$_.Text }) -join '')
+        })
+    }
+    return $merged
+}
+
+function Write-SrtEntries([string]$Path, [System.Collections.Generic.List[object]]$Entries) {
+    $expanded = [System.Collections.Generic.List[object]]::new()
+    foreach ($entry in $Entries) {
+        $parts = @(Split-SrtText -Text ([string]$entry.Text) -MaximumCharacters 32)
+        if ($parts.Count -eq 0) { continue }
+        $totalCharacters = ($parts | ForEach-Object Length | Measure-Object -Sum).Sum
+        $duration = [int64]$entry.End - [int64]$entry.Start
+        $consumedCharacters = 0
+        for ($partIndex = 0; $partIndex -lt $parts.Count; $partIndex++) {
+            $partStart = if ($partIndex -eq 0) {
+                [int64]$entry.Start
+            } else {
+                [int64]$entry.Start + [int64][Math]::Round(
+                    $duration * $consumedCharacters / $totalCharacters
+                )
+            }
+            $consumedCharacters += $parts[$partIndex].Length
+            $partEnd = if ($partIndex -eq $parts.Count - 1) {
+                [int64]$entry.End
+            } else {
+                [int64]$entry.Start + [int64][Math]::Round(
+                    $duration * $consumedCharacters / $totalCharacters
+                )
+            }
+            $expanded.Add([pscustomobject]@{
+                Start = $partStart
+                End = $partEnd
+                Text = $parts[$partIndex]
+            })
+        }
+    }
+    $blocks = for ($index = 0; $index -lt $expanded.Count; $index++) {
+        $entry = $expanded[$index]
+        @(
+            ($index + 1),
+            "$(ConvertTo-SrtTimestamp $entry.Start) --> $(ConvertTo-SrtTimestamp $entry.End)",
+            $entry.Text
+        ) -join "`n"
+    }
+    Write-SlingshotUtf8 $Path (($blocks -join "`n`n") + "`n")
+}
+
 if ($Episode.Count -eq 0) {
     $Episode = @(Get-ChildItem (Join-Path $script:ProjectRoot 'content\episodes') `
         -File -Filter 's??e??-*.json' | Sort-Object Name | ForEach-Object FullName)
@@ -60,15 +210,17 @@ foreach ($episodeInput in $Episode) {
                     throw "Beat-timed narration requires one paragraph per beat; got $($paragraphs.Count) paragraphs and $($beats.Count) beats for $stem"
                 }
                 $concatLines = @()
+                $subtitleEntries = [System.Collections.Generic.List[object]]::new()
                 for ($index = 0; $index -lt $beats.Count; $index++) {
                     $segmentText = Join-Path $tempDir ('beat-{0:d2}.txt' -f $index)
                     $segmentMp3 = Join-Path $tempDir ('beat-{0:d2}.mp3' -f $index)
+                    $segmentSrt = Join-Path $tempDir ('beat-{0:d2}.srt' -f $index)
                     $segmentWav = Join-Path $tempDir ('beat-{0:d2}.wav' -f $index)
                     Write-SlingshotUtf8 $segmentText $paragraphs[$index]
                     $arguments = @('speech', 'synthesize', '--text-file', $segmentText, '--model', $model,
                         '--voice', [string]$narration.voice, '--speed', $speed, '--volume', $volume,
                         '--pitch', $pitch, '--language', $language, '--format', 'mp3', '--sample-rate',
-                        '32000', '--bitrate', '128000', '--channels', '1', '--out', $segmentMp3,
+                        '32000', '--bitrate', '128000', '--channels', '1', '--subtitles', '--out', $segmentMp3,
                         '--non-interactive', '--quiet', '--output', 'json')
                     if ($narration.PSObject.Properties['pronunciations']) {
                         foreach ($pronunciation in @($narration.pronunciations)) {
@@ -76,7 +228,7 @@ foreach ($episodeInput in $Episode) {
                         }
                     }
                     & $mmx @arguments
-                    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $segmentMp3)) {
+                    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $segmentMp3) -or -not (Test-Path $segmentSrt)) {
                         throw "mmx beat narration generation failed for $stem beat $($beats[$index].id)"
                     }
                     $segmentDuration = [double]((& $ffprobe -v error -show_entries format=duration `
@@ -90,6 +242,7 @@ foreach ($episodeInput in $Episode) {
                     if ($LASTEXITCODE -ne 0) { throw "Failed to pad narration beat $($beats[$index].id)" }
                     $concatPath = $segmentWav.Replace('\', '/')
                     $concatLines += "file '$concatPath'"
+                    Add-SrtSegment $subtitleEntries $segmentSrt ([double]$beats[$index].at) $beatDuration
                     $beatTimingLines += "beat_$($beats[$index].id)_speech_sec=$segmentDuration"
                     $beatTimingLines += "beat_$($beats[$index].id)_slot_sec=$beatDuration"
                 }
@@ -98,16 +251,10 @@ foreach ($episodeInput in $Episode) {
                 & $ffmpeg -y -loglevel error -f concat -safe 0 -i $concatFile `
                     -c:a libmp3lame -b:a 128k -ar 32000 -ac 1 $tempAudio
                 if ($LASTEXITCODE -ne 0) { throw "Failed to concatenate beat narration for $stem" }
-                $subtitleProperty = $narration.PSObject.Properties['subtitle_script']
-                if ($null -eq $subtitleProperty) {
-                    throw "Beat-timed narration requires narration.subtitle_script for $stem"
+                if ($subtitleEntries.Count -eq 0) {
+                    throw "mmx produced no subtitle cues for beat-timed narration $stem"
                 }
-                $subtitleResource = [string]$subtitleProperty.Value
-                if (-not $subtitleResource.StartsWith('res://') -or $subtitleResource.Contains('..')) {
-                    throw "Unsafe narration.subtitle_script: $subtitleResource"
-                }
-                $editorialSrt = Join-Path $script:ProjectRoot $subtitleResource.Substring(6).Replace('/', '\')
-                Copy-Item -LiteralPath $editorialSrt -Destination $tempSrt
+                Write-SrtEntries $tempSrt $subtitleEntries
             } else {
                 $arguments = @('speech', 'synthesize', '--text-file', $textPath, '--model', $model,
                     '--voice', [string]$narration.voice, '--speed', $speed, '--volume', $volume,
@@ -132,6 +279,16 @@ foreach ($episodeInput in $Episode) {
         }
     } elseif (-not (Test-Path $audio) -or -not (Test-Path $subtitles)) {
         throw "-Reuse requested but narration assets are missing for $stem"
+    }
+
+    if ($timingMode -eq 'beats') {
+        [System.Collections.Generic.List[object]]$existingEntries = Read-SrtEntries -Path $subtitles
+        if ($existingEntries.Count -eq 0) {
+            throw "Beat-timed narration subtitle file contains no cues for $stem"
+        }
+        [System.Collections.Generic.List[object]]$beatEntries = Merge-SrtEntriesByBeat `
+            -Entries $existingEntries -Beats @($config.beats)
+        Write-SrtEntries -Path $subtitles -Entries $beatEntries
     }
 
     & $ffmpeg -y -loglevel error -i $audio `

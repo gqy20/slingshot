@@ -6,12 +6,14 @@ const AngleComponents = preload("res://src/video/explanations/angle_components.g
 const SpringEnergy = preload("res://src/video/explanations/spring_energy.gd")
 const DragEffect = preload("res://src/video/explanations/drag_effect.gd")
 const ImpactImpulse = preload("res://src/video/explanations/impact_impulse.gd")
+const TrackRace = preload("res://src/video/explanations/track_race.gd")
 
 const MODULES := {
 	ExplanationCatalog.ANGLE_COMPONENTS: AngleComponents,
 	ExplanationCatalog.SPRING_ENERGY: SpringEnergy,
 	ExplanationCatalog.DRAG_EFFECT: DragEffect,
 	ExplanationCatalog.IMPACT_IMPULSE: ImpactImpulse,
+	ExplanationCatalog.TRACK_RACE: TrackRace,
 }
 
 

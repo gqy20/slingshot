@@ -2,6 +2,7 @@ class_name SlingshotFormulaRenderer
 extends Control
 
 const VideoTypography = preload("res://src/video/video_typography.gd")
+const FormulaAsset = preload("res://src/video/formula_asset.gd")
 
 var explanation: Dictionary = {}
 var colors: Dictionary = {}
@@ -58,25 +59,13 @@ func set_step(value: int) -> void:
 	var formula_asset := String(step.get("formula_asset", ""))
 	formula_texture.texture = null
 	if not formula_asset.is_empty():
-		formula_texture.texture = _load_formula_texture(formula_asset)
+		formula_texture.texture = FormulaAsset.load_texture(formula_asset)
 	formula_texture.visible = formula_texture.texture != null
 	formula_label.visible = not formula_texture.visible
 	caption_label.text = String(step.get("caption", ""))
 	caption_label.visible = show_supporting_copy
 	assumptions_label.visible = show_supporting_copy and step_index == steps.size() - 1
 	queue_redraw()
-
-
-func _load_formula_texture(path: String) -> Texture2D:
-	if ResourceLoader.exists(path):
-		return load(path) as Texture2D
-	if not FileAccess.file_exists(path):
-		return null
-	var image := Image.new()
-	var svg_source := FileAccess.get_file_as_string(path)
-	if svg_source.is_empty() or image.load_svg_from_string(svg_source, 1.0) != OK:
-		return null
-	return ImageTexture.create_from_image(image)
 
 
 func _build_ui() -> void:

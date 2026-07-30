@@ -47,6 +47,17 @@ foreach ($beat in @($config.beats)) {
     $mixInputs += "[$label]"
     $cueCount++
 }
+$brandProperty = $config.story.PSObject.Properties['brand']
+if ($null -ne $brandProperty -and $null -ne $brandProperty.Value) {
+    $introProperty = $brandProperty.Value.PSObject.Properties['intro_stinger_at_sec']
+    if ($null -ne $introProperty) {
+        $delay = [int][Math]::Floor([double]$introProperty.Value * 1000 + 0.5)
+        $label = "cue$cueCount"
+        $filter += ";sine=f=392:r=48000:d=0.78,volume=0.08,tremolo=f=5:d=0.60,afade=t=out:st=0.24:d=0.54,adelay=${delay}:all=1[$label]"
+        $mixInputs += "[$label]"
+        $cueCount++
+    }
+}
 $filter += ";${mixInputs}amix=inputs=$($cueCount + 2):duration=longest:normalize=0,alimiter=limit=0.35[out]"
 & $ffmpeg -y -loglevel error -filter_complex $filter -map '[out]' -t $duration `
     -ar 48000 -ac 1 -c:a pcm_s24le $output

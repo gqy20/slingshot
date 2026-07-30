@@ -38,11 +38,11 @@
     "integration_steps": 8000
   },
   "story": {
-    "question_sec": 25.0,
-    "explain_sec": 50.0,
+    "question_sec": 28.0,
+    "explain_sec": 51.0,
     "setup_sec": 30.0,
     "flight_sec": 60.0,
-    "compare_sec": 45.0,
+    "compare_sec": 50.0,
     "primary_metric": "arrival_time_sec",
     "metric_label": "到达时间",
     "metric_unit": "s",
@@ -51,23 +51,56 @@
     "secondary_unit": "m",
     "goal": "min",
     "show_target": false,
+    "brand": {"intro_stinger_at_sec":11.55},
+    "explanation": {
+      "kind": "derivation",
+      "module": "track_race",
+      "eyebrow": "最速降线",
+      "asset_dir": "res://assets/generated/formulas/s01e05-shortest-is-not-fastest",
+      "steps": [
+        {
+          "concept": "高度差转化为速度",
+          "equation": "mgh → ½mv²",
+          "typst": "m g h arrow.r.long frac(1, 2) m v^2",
+          "formula_font_size_pt": 120,
+          "caption": "更早下降，就能更早获得速度"
+        },
+        {
+          "concept": "总时间来自每一小段",
+          "equation": "T = ∫ ds / v(s)",
+          "typst": "T = integral_A^B frac(dif s, v(s))",
+          "formula_font_size_pt": 112,
+          "formula_canvas_width_pt": 1400,
+          "formula_canvas_height_pt": 336,
+          "caption": "路径长度和沿途速度共同决定总时间"
+        },
+        {
+          "concept": "滚动圆生成摆线",
+          "equation": "x(θ)=a(θ−sinθ), y(θ)=a(1−cosθ)",
+          "typst": "mat(delim: #none, x(theta), =, a (theta - sin theta); y(theta), =, a (1 - cos theta))",
+          "formula_font_size_pt": 80,
+          "caption": "摆线是当前理想模型下的最速降线"
+        }
+      ],
+      "assumptions": ["无摩擦", "质点", "匀强重力"]
+    },
     "conclusion": "最快路径不是几何距离最短，而是最善于尽早获得速度的路径。"
   },
   "beats": [
-    {"id":"cold-open","label":"三球冲向终点","phase":"QUESTION","at":0.0,"duration":12.0,"shot":"track-race-teaser","mode":"immersive","camera_action":"establish","camera_reason":"show the three moving balls without revealing the finish order","intent":"invite-race-prediction","primary_subject":"racing-balls","layers":["world","subjects","trajectories","headline","identity","subtitle"],"headline":"谁会先到？","sfx":"cold-open","chapter":true},
-    {"id":"shortest-bet","label":"直线几何最短","phase":"QUESTION","at":12.0,"duration":13.0,"shot":"shortest-path","mode":"measurement","camera_action":"hold","camera_reason":"isolate the shortest path while retaining the two alternatives as context","intent":"establish-shortest-path-intuition","primary_subject":"line-track","layers":["world","trajectories","headline","subtitle"],"focus":"line","headline":"最短，就一定最快吗？"},
-    {"id":"distance-is-not-time","label":"路程不等于时间","phase":"EXPLAIN","at":25.0,"duration":17.0,"shot":"distance-time-contrast","mode":"measurement","camera_action":"reframe","camera_reason":"make room for separate distance and time evidence beside the straight track","intent":"separate-distance-from-travel-time","primary_subject":"distance-and-time","layers":["world","annotations","subtitle"],"chapter":true},
-    {"id":"energy-drop","label":"先下降先获得速度","phase":"EXPLAIN","at":42.0,"duration":18.0,"shot":"energy-drop","mode":"measurement","camera_action":"hold","camera_reason":"bind vertical drop and live speed bars to the same moving states","intent":"connect-height-drop-to-speed","primary_subject":"height-to-speed","layers":["world","subjects","annotations","subtitle"]},
-    {"id":"time-integral","label":"每一段都贡献时间","phase":"EXPLAIN","at":60.0,"duration":15.0,"shot":"segmented-time","mode":"measurement","camera_action":"hold","camera_reason":"replace one total time with visible per-segment time contributions","intent":"build-travel-time-integral","primary_subject":"cycloid-time-segments","layers":["world","annotations","subtitle"]},
-    {"id":"fair-controls","label":"公平条件","phase":"SETUP","at":75.0,"duration":15.0,"shot":"shared-endpoints","mode":"measurement","camera_action":"reframe","camera_reason":"state the common endpoints gravity and frictionless point-mass assumption before racing","intent":"show-track-race-controls","primary_subject":"track-conditions","layers":["world","trajectories","headline","subtitle"],"chapter":true},
-    {"id":"track-preview","label":"三条候选轨道","phase":"SETUP","at":90.0,"duration":15.0,"shot":"track-overview","mode":"measurement","camera_action":"hold","camera_reason":"keep the full geometry visible while naming each path and its length","intent":"preview-track-identities","primary_subject":"three-tracks","layers":["world","trajectories","subtitle"]},
-    {"id":"race-release","label":"同步释放","phase":"FLIGHT","at":105.0,"duration":12.0,"shot":"track-release","mode":"immersive","camera_action":"reframe","camera_reason":"return attention to the common start and show a single synchronized release","intent":"observe-simultaneous-release","primary_subject":"racing-balls","layers":["world","subjects","trajectories","subtitle"],"sfx":"release","chapter":true},
-    {"id":"race-separation","label":"领先关系形成","phase":"FLIGHT","at":117.0,"duration":18.0,"shot":"track-race","mode":"immersive","camera_action":"hold","camera_reason":"keep all balls visible while their early speed differences become spatial separation","intent":"observe-race-separation","primary_subject":"racing-balls","layers":["world","subjects","trajectories","subtitle"]},
-    {"id":"finish-slow-motion","label":"终点八倍慢放","phase":"FLIGHT","at":135.0,"duration":15.0,"shot":"finish-magnifier","mode":"measurement","camera_action":"reframe","camera_reason":"magnify the finish region so the forty-two millisecond gap remains perceptible","intent":"inspect-close-finish-honestly","primary_subject":"cycloid-and-arc-finish","layers":["world","subjects","trajectories","annotations","subtitle"],"sfx":"landing"},
-    {"id":"arrival-lock","label":"依次锁定到达时间","phase":"FLIGHT","at":150.0,"duration":15.0,"shot":"arrival-lock","mode":"measurement","camera_action":"hold","camera_reason":"preserve every arrival as a ranked marker after the moving balls share one endpoint","intent":"lock-arrival-order","primary_subject":"arrival-ranking","layers":["world","subjects","trajectories","annotations","subtitle"],"sfx":"result"},
-    {"id":"distance-time-table","label":"路径长度与到达时间","phase":"COMPARE","at":165.0,"duration":18.0,"shot":"dual-metric-ranking","mode":"measurement","camera_action":"reframe","camera_reason":"place path length and arrival time in adjacent columns to expose their reversed order","intent":"compare-distance-and-arrival-time","primary_subject":"distance-time-ranking","layers":["world","results","subtitle"],"chapter":true},
-    {"id":"cycloid-generation","label":"滚动圆生成摆线","phase":"COMPARE","at":183.0,"duration":17.0,"shot":"cycloid-construction","mode":"measurement","camera_action":"reframe","camera_reason":"replace the race with one rolling circle so the winning curve has a geometric origin","intent":"construct-cycloid","primary_subject":"rolling-circle-point","layers":["annotations","subtitle"]},
-    {"id":"model-boundary","label":"模型边界与下一个问题","phase":"COMPARE","at":200.0,"duration":10.0,"shot":"model-boundary","mode":"measurement","camera_action":"reframe","camera_reason":"return to the three tracks while separating the point-mass model from rolling friction and drag","intent":"state-track-model-boundary","primary_subject":"model-boundary-cards","layers":["world","annotations","subtitle"]}
+    {"id":"cold-open","label":"三球冲向终点并转入品牌片头","phase":"QUESTION","at":0.0,"duration":14.0,"shot":"track-race-teaser","mode":"immersive","camera_action":"establish","camera_reason":"show the three moving balls, hold the prediction, then transform the pause into series identification","intent":"invite-race-prediction-and-identify-series","primary_subject":"racing-balls-to-brand","layers":["world","subjects","trajectories","headline","identity","subtitle"],"headline":"谁会先到？","headline_exit_at":0.70,"sfx":"cold-open","chapter":true},
+    {"id":"shortest-bet","label":"直线几何最短","phase":"QUESTION","at":14.0,"duration":14.0,"shot":"shortest-path","mode":"measurement","camera_action":"hold","camera_reason":"isolate the shortest path while retaining the two alternatives as context","intent":"establish-shortest-path-intuition","primary_subject":"line-track","layers":["world","trajectories","headline","subtitle"],"focus":"line","headline":"最短，就一定最快吗？"},
+    {"id":"distance-is-not-time","label":"路程不等于时间","phase":"EXPLAIN","at":28.0,"duration":17.0,"shot":"distance-time-contrast","mode":"measurement","camera_action":"reframe","camera_reason":"make room for separate distance and time evidence beside the straight track","intent":"separate-distance-from-travel-time","primary_subject":"distance-and-time","layers":["world","annotations","subtitle"],"chapter":true},
+    {"id":"energy-drop","label":"先下降先获得速度","phase":"EXPLAIN","at":45.0,"duration":18.0,"shot":"energy-drop","mode":"measurement","camera_action":"hold","camera_reason":"bind vertical drop and live speed bars to the same moving states","intent":"connect-height-drop-to-speed","primary_subject":"height-to-speed","layers":["world","subjects","annotations","subtitle"]},
+    {"id":"time-integral","label":"每一段都贡献时间","phase":"EXPLAIN","at":63.0,"duration":16.0,"shot":"segmented-time","mode":"measurement","camera_action":"hold","camera_reason":"replace one total time with visible per-segment time contributions","intent":"build-travel-time-integral","primary_subject":"cycloid-time-segments","layers":["world","annotations","subtitle"]},
+    {"id":"fair-controls","label":"公平条件","phase":"SETUP","at":79.0,"duration":15.0,"shot":"shared-endpoints","mode":"measurement","camera_action":"reframe","camera_reason":"state the common endpoints gravity and frictionless point-mass assumption before racing","intent":"show-track-race-controls","primary_subject":"track-conditions","layers":["world","trajectories","subtitle"],"chapter":true},
+    {"id":"track-preview","label":"三条候选轨道","phase":"SETUP","at":94.0,"duration":15.0,"shot":"track-overview","mode":"measurement","camera_action":"hold","camera_reason":"keep the full geometry visible while naming each path and its length","intent":"preview-track-identities","primary_subject":"three-tracks","layers":["world","trajectories","subtitle"]},
+    {"id":"race-release","label":"同步释放","phase":"FLIGHT","at":109.0,"duration":12.0,"shot":"track-release","mode":"immersive","camera_action":"reframe","camera_reason":"return attention to the common start and show a single synchronized release","intent":"observe-simultaneous-release","primary_subject":"racing-balls","layers":["world","subjects","trajectories","subtitle"],"sfx":"release","chapter":true},
+    {"id":"race-separation","label":"领先关系形成","phase":"FLIGHT","at":121.0,"duration":18.0,"shot":"track-race","mode":"immersive","camera_action":"hold","camera_reason":"keep all balls visible while their early speed differences become spatial separation","intent":"observe-race-separation","primary_subject":"racing-balls","layers":["world","subjects","trajectories","subtitle"]},
+    {"id":"finish-slow-motion","label":"终点八倍慢放","phase":"FLIGHT","at":139.0,"duration":15.0,"shot":"finish-magnifier","mode":"measurement","camera_action":"reframe","camera_reason":"magnify the finish region so the forty-two millisecond gap remains perceptible","intent":"inspect-close-finish-honestly","primary_subject":"cycloid-and-arc-finish","layers":["world","subjects","trajectories","annotations","subtitle"],"sfx":"landing"},
+    {"id":"arrival-lock","label":"依次锁定到达时间","phase":"FLIGHT","at":154.0,"duration":15.0,"shot":"arrival-lock","mode":"measurement","camera_action":"hold","camera_reason":"preserve every arrival as a ranked marker after the moving balls share one endpoint","intent":"lock-arrival-order","primary_subject":"arrival-ranking","layers":["world","subjects","trajectories","annotations","subtitle"],"sfx":"result"},
+    {"id":"distance-time-table","label":"路径长度与到达时间","phase":"COMPARE","at":169.0,"duration":19.0,"shot":"dual-metric-ranking","mode":"measurement","camera_action":"reframe","camera_reason":"replace the race geometry with a dedicated comparison table so labels and evidence never compete","intent":"compare-distance-and-arrival-time","primary_subject":"distance-time-ranking","layers":["annotations","subtitle"],"chapter":true},
+    {"id":"cycloid-generation","label":"滚动圆生成摆线","phase":"COMPARE","at":188.0,"duration":19.0,"shot":"cycloid-construction","mode":"measurement","camera_action":"reframe","camera_reason":"replace the race with one rolling circle so the winning curve has a geometric origin","intent":"construct-cycloid","primary_subject":"rolling-circle-point","layers":["annotations","subtitle"]},
+    {"id":"model-boundary","label":"模型边界与下一个问题","phase":"COMPARE","at":207.0,"duration":12.0,"shot":"model-boundary","mode":"measurement","camera_action":"reframe","camera_reason":"return to the three tracks while separating the point-mass model from rolling friction and drag","intent":"state-track-model-boundary","primary_subject":"model-boundary-cards","layers":["world","annotations","subtitle"]}
   ],
   "variants": [
     {"id":"line","label":"直线","color":"#7594B3","overrides":{"scene.track_kind":"line"}},

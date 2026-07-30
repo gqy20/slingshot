@@ -81,9 +81,26 @@ foreach ($case in $cases) {
 			if ($null -eq $beat) { throw "Track visual beat not found: $BeatId" }
 			[double]$beat.at + 0.5 * [double]$beat.duration
 		}
+		$beatAtProgress = {
+			param([string]$BeatId, [double]$Progress)
+			$beat = $config.beats | Where-Object { [string]$_.id -eq $BeatId } | Select-Object -First 1
+			if ($null -eq $beat) { throw "Track visual beat not found: $BeatId" }
+			[double]$beat.at + $Progress * [double]$beat.duration
+		}
 		$moments += @(
+			@{ Name = 'beat-cold-open'; Seconds = & $beatMidpoint 'cold-open' },
+			@{ Name = 'beat-shortest-bet'; Seconds = & $beatMidpoint 'shortest-bet' },
+			@{ Name = 'beat-distance-is-not-time'; Seconds = & $beatMidpoint 'distance-is-not-time' },
+			@{ Name = 'beat-energy-drop-early'; Seconds = & $beatAtProgress 'energy-drop' 0.25 },
+			@{ Name = 'beat-energy-drop-late'; Seconds = & $beatAtProgress 'energy-drop' 0.75 },
+			@{ Name = 'beat-time-integral'; Seconds = & $beatMidpoint 'time-integral' },
 			@{ Name = 'setup-controls'; Seconds = & $beatMidpoint 'fair-controls' },
+			@{ Name = 'beat-track-preview'; Seconds = & $beatMidpoint 'track-preview' },
+			@{ Name = 'beat-race-release'; Seconds = & $beatMidpoint 'race-release' },
+			@{ Name = 'beat-race-separation'; Seconds = & $beatMidpoint 'race-separation' },
+			@{ Name = 'beat-finish-slow-motion'; Seconds = & $beatMidpoint 'finish-slow-motion' },
 			@{ Name = 'compare-results'; Seconds = & $beatMidpoint 'distance-time-table' },
+			@{ Name = 'beat-cycloid-generation'; Seconds = & $beatMidpoint 'cycloid-generation' },
 			@{ Name = 'model-boundary'; Seconds = & $beatMidpoint 'model-boundary' }
 		)
 		$record = Get-Content -Raw -Encoding UTF8 $recordPath | ConvertFrom-Json

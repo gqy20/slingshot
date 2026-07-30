@@ -181,6 +181,14 @@ func set_elapsed(video_time_sec: float, simulation_times: Dictionary) -> void:
 			question_label,
 			(video_time_sec - float(current_beat.get("at", 0.0))) / 0.55
 		)
+		var headline_exit_at := float(current_beat.get("headline_exit_at", -1.0))
+		if headline_exit_at >= 0.0:
+			var beat_progress := EpisodeDirector.beat_progress(current_beat, video_time_sec)
+			var headline_alpha := 1.0 - smoothstep(
+				headline_exit_at, minf(1.0, headline_exit_at + 0.06), beat_progress
+			)
+			question_label.modulate.a *= headline_alpha
+			question_label.visible = question_label.visible and headline_alpha > 0.001
 	else:
 		_reset_label_motion(question_label)
 	var subtitle_text := SubtitleTrack.display_text_at(subtitle_cues, video_time_sec)

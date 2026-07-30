@@ -27,7 +27,7 @@ func run(test) -> void:
 	test.check(episode_result["ok"], "S01E05 production storyboard loads")
 	if episode_result["ok"]:
 		var episode: Dictionary = episode_result["episode"]
-		test.check_close(float(episode["duration_sec"]), 210.0, 1.0e-6, "S01E05 is exactly three minutes thirty seconds")
+		test.check_close(float(episode["duration_sec"]), 219.0, 1.0e-6, "S01E05 content-driven cut is three minutes thirty-nine seconds")
 		test.check(episode["beats"].size() == 14, "S01E05 materializes fourteen production beats")
 		test.check(String(episode["beats"][9]["id"]) == "finish-slow-motion", "S01E05 reserves a dedicated honest finish replay")
 

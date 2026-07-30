@@ -4,6 +4,8 @@ const EpisodeLayout = preload("res://src/video/episode_layout.gd")
 const EpisodeCanvas = preload("res://src/video/episode_canvas.gd")
 const EpisodeHud = preload("res://src/video/episode_hud.gd")
 const SpringEnergy = preload("res://src/video/explanations/spring_energy.gd")
+const TrackRaceCanvas = preload("res://src/video/canvases/track_race_canvas.gd")
+const EpisodeLoader = preload("res://src/core/episode_loader.gd")
 
 
 func run(t) -> void:
@@ -46,6 +48,106 @@ func run(t) -> void:
 	t.check_close(reveal_after_copy_boundary, 1.0, 0.0001, "energy bars do not reset at the next explanation beat")
 	var errors := EpisodeLayout.validate_static_regions()
 	t.check(errors.is_empty(), "episode plot areas avoid every reserved text region")
+	t.check(
+		TrackRaceCanvas.CONTENT_BOTTOM <= EpisodeLayout.SUBTITLE_RECT.position.y - 40.0,
+		"track course leaves a visible gutter above the subtitle safe area"
+	)
+	t.check(
+		TrackRaceCanvas.FONT_ESSENTIAL >= 30
+		and TrackRaceCanvas.FONT_DATA >= 32,
+		"track course essential text follows the EP04 readability floor"
+	)
+	t.check(
+		TrackRaceCanvas.FONT_SECONDARY >= 28
+		and TrackRaceCanvas.FONT_ENVIRONMENT >= 24,
+		"track course secondary and environmental text keep distinct floors"
+	)
+	for beat_id in TrackRaceCanvas.layout_audit_regions():
+		var regions: Array = TrackRaceCanvas.layout_audit_regions()[beat_id]
+		for index in range(regions.size()):
+			var region: Rect2 = regions[index]
+			t.check(
+				Rect2(Vector2.ZERO, EpisodeLayout.CANVAS_SIZE).encloses(region),
+				"track layout stays on canvas: %s/%d" % [beat_id, index]
+			)
+			t.check(
+				region.end.y <= TrackRaceCanvas.CONTENT_BOTTOM,
+				"track layout stays above subtitles: %s/%d" % [beat_id, index]
+			)
+			for other_index in range(index):
+				t.check(
+					not region.intersects(regions[other_index]),
+					"track text panels do not overlap: %s/%d/%d" % [beat_id, other_index, index]
+				)
+	var formula_regions: Dictionary = TrackRaceCanvas.formula_audit_regions()
+	var energy_formula: Rect2 = formula_regions["energy"]
+	var time_formula: Rect2 = formula_regions["time"]
+	var cycloid_formula: Rect2 = formula_regions["cycloid"]
+	t.check(energy_formula.size.y >= 90.0, "energy formula keeps a readable display height")
+	t.check(time_formula.size.y >= 112.0, "time integral keeps a readable display height")
+	t.check(cycloid_formula.size.y >= 160.0, "two-line cycloid formula keeps a readable display height")
+	t.check(
+		TrackRaceCanvas.ENERGY_ARROW_TOP - energy_formula.end.y >= 20.0,
+		"energy formula keeps breathing room above the transformation arrow"
+	)
+	t.check(
+		TrackRaceCanvas.TIME_SUPPORTING_BASELINE_Y - time_formula.end.y >= 55.0,
+		"time integral keeps breathing room above its supporting copy"
+	)
+	t.check(
+		cycloid_formula.end.y <= TrackRaceCanvas.CONTENT_BOTTOM - 20.0,
+		"cycloid formula keeps a gutter above the subtitle safe area"
+	)
+	var track_episode_result := EpisodeLoader.load_path(
+		"res://content/episodes/s01e05-shortest-is-not-fastest.json"
+	)
+	t.check(track_episode_result["ok"], "track episode loads for layout audit")
+	if track_episode_result["ok"]:
+		var explanation: Dictionary = track_episode_result["episode"]["story"]["explanation"]
+		t.check(
+			explanation.get("module", "") == "track_race",
+			"track course owns a dedicated explanation module"
+		)
+		t.check(explanation.get("steps", []).size() == 3, "track course declares all three formulas")
+		var time_formula_step: Dictionary = explanation.get("steps", [])[1]
+		t.check(
+			FileAccess.get_file_as_string(String(time_formula_step.get("formula_asset", ""))).contains(
+				"viewBox=\"0 0 1400 336\""
+			),
+			"integral SVG reserves vertical canvas padding for its limits"
+		)
+		for step_value in explanation.get("steps", []):
+			var step: Dictionary = step_value
+			t.check(not String(step.get("typst", "")).is_empty(), "track formula declares Typst source")
+			t.check(
+				FileAccess.file_exists(String(step.get("formula_asset", ""))),
+				"track Typst SVG exists: %s" % String(step.get("formula_asset", ""))
+			)
+		var beats_by_id := {}
+		for beat_value in track_episode_result["episode"]["beats"]:
+			beats_by_id[String(beat_value["id"])] = beat_value
+		t.check(
+			not "headline" in beats_by_id["fair-controls"]["layers"],
+			"fair-control cards do not compete with the shared HUD headline"
+		)
+		t.check(
+			not "results" in beats_by_id["distance-time-table"]["layers"],
+			"dedicated distance-time table does not duplicate the generic result HUD"
+		)
+	for beat_id in [
+		"distance-is-not-time", "energy-drop", "time-integral",
+		"fair-controls", "track-preview", "race-release", "race-separation",
+	]:
+		var plot_bounds := TrackRaceCanvas.track_plot_bounds(beat_id)
+		t.check(
+			plot_bounds.end.y <= TrackRaceCanvas.CONTENT_BOTTOM,
+			"%s reframed track stays above subtitles" % beat_id
+		)
+		for region in TrackRaceCanvas.layout_audit_regions()[beat_id]:
+			t.check(
+				not plot_bounds.intersects(region),
+				"%s information region clears the animated track viewport" % beat_id
+			)
 
 	var flight_plot := EpisodeLayout.plot_rect_for_phase("FLIGHT")
 	var compare_plot := EpisodeLayout.plot_rect_for_phase("COMPARE")

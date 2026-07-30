@@ -70,7 +70,25 @@ try {
             if ($formulaFontSize -lt 48 -or $formulaFontSize -gt 120) {
                 throw "formula_font_size_pt must be between 48 and 120: $($config.id)/$name"
             }
+            $formulaCanvasHeight = if ($steps[$index].PSObject.Properties['formula_canvas_height_pt']) {
+                [int]$steps[$index].formula_canvas_height_pt
+            } else { 240 }
+            if ($formulaCanvasHeight -lt 240 -or $formulaCanvasHeight -gt 480) {
+                throw "formula_canvas_height_pt must be between 240 and 480: $($config.id)/$name"
+            }
+            $formulaCanvasWidth = if ($steps[$index].PSObject.Properties['formula_canvas_width_pt']) {
+                [int]$steps[$index].formula_canvas_width_pt
+            } else { 1200 }
+            if ($formulaCanvasWidth -lt 1200 -or $formulaCanvasWidth -gt 2400) {
+                throw "formula_canvas_width_pt must be between 1200 and 2400: $($config.id)/$name"
+            }
             $sourceHashText = "typst_version=0.15.1`ntemplate_version=5`nfill=$color`nfont_size_pt=$formulaFontSize`nsource=$($steps[$index].typst)"
+            if ($steps[$index].PSObject.Properties['formula_canvas_height_pt']) {
+                $sourceHashText += "`ncanvas_height_pt=$formulaCanvasHeight"
+            }
+            if ($steps[$index].PSObject.Properties['formula_canvas_width_pt']) {
+                $sourceHashText += "`ncanvas_width_pt=$formulaCanvasWidth"
+            }
             $sha = [System.Security.Cryptography.SHA256]::Create()
             try {
                 $bytes = [Text.Encoding]::UTF8.GetBytes($sourceHashText)
@@ -88,7 +106,7 @@ try {
                 $typPath = Join-Path $tempRoot "$($config.id)-$name.typ"
                 $compiledPath = Join-Path $tempRoot "$($config.id)-$name.svg"
                 $typSource = @"
-#set page(width: 1200pt, height: 240pt, margin: 0pt, fill: none)
+#set page(width: ${formulaCanvasWidth}pt, height: ${formulaCanvasHeight}pt, margin: 0pt, fill: none)
 #set text(fill: rgb("$color"), size: ${formulaFontSize}pt)
 #show math.equation: set text(font: "New Computer Modern Math")
 #align(center + horizon)[$ $($steps[$index].typst) $]
