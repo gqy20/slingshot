@@ -152,12 +152,12 @@ $accent = ConvertTo-Color '#ff8a3d'
 $angle40 = ConvertTo-Color '#98ae7a'
 $angle45 = ConvertTo-Color '#c0af6b'
 
-$fontRegular = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SarasaGothicSC-Regular.ttf') 34
-$fontBrand = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SarasaGothicSC-SemiBold.ttf') 42
-$fontBody = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SarasaGothicSC-SemiBold.ttf') 43
-$fontBold = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SarasaGothicSC-Bold.ttf') 142
-$fontAngle = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SarasaGothicSC-SemiBold.ttf') 45
-$fontHero = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SmileySans-Oblique.ttf') 292
+$fontRegular = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SarasaGothicSC-Regular.ttf') 58
+$fontBrand = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SarasaGothicSC-SemiBold.ttf') 88
+$fontBody = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SarasaGothicSC-SemiBold.ttf') 64
+$fontBold = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SarasaGothicSC-Bold.ttf') 178
+$fontAngle = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SarasaGothicSC-SemiBold.ttf') 94
+$fontHero = New-PrivateFont (Join-Path $ProjectRoot 'assets/fonts/SmileySans-Oblique.ttf') 360
 
 $bitmap = [System.Drawing.Bitmap]::new($masterWidth, $masterHeight, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
 $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
@@ -173,8 +173,8 @@ try {
     $gridPenHorizontal = New-Pen ([System.Drawing.Color]::FromArgb(22, 48, 54, 61)) 2
     $disposables.Add($gridPenVertical)
     $disposables.Add($gridPenHorizontal)
-    for ($x = 1070; $x -lt 2210; $x += 150) { $graphics.DrawLine($gridPenVertical, $x, 210, $x, 1190) }
-    for ($y = 310; $y -lt 1190; $y += 145) { $graphics.DrawLine($gridPenHorizontal, 1010, $y, 2210, $y) }
+    for ($x = 1010; $x -lt 2210; $x += 150) { $graphics.DrawLine($gridPenVertical, $x, 185, $x, 1195) }
+    for ($y = 285; $y -lt 1195; $y += 145) { $graphics.DrawLine($gridPenHorizontal, 950, $y, 2210, $y) }
 
     $accentBrush = [System.Drawing.SolidBrush]::new($accent)
     $textBrush = [System.Drawing.SolidBrush]::new($text)
@@ -184,55 +184,52 @@ try {
     $surfaceBrush = [System.Drawing.SolidBrush]::new($surface)
     foreach ($item in @($accentBrush, $textBrush, $mutedBrush, $angle40Brush, $angle45Brush, $surfaceBrush)) { $disposables.Add($item) }
 
-    $graphics.FillRectangle($accentBrush, 126, 112, 12, 54)
+    $graphics.FillRectangle($accentBrush, 126, 94, 16, 76)
     $identityMain = Get-UnicodeText '\u7269\u7406\u5b9e\u9a8c\u5ba4'
     $identitySecondary = Get-UnicodeText '\u7a7a\u6c14\u963b\u529b\u5b9e\u9a8c'
     $headlineAngle = Get-UnicodeText '40\u00b0'
     $headlineCopy = Get-UnicodeText '\u53cd\u800c\u66f4\u8fdc\uff1f'
     $controlCopy = Get-UnicodeText '\u540c\u4e00\u9897\u7403 \u00b7 \u540c\u6837\u7684\u901f\u5ea6'
-    $graphics.DrawString($identityMain, $fontBrand.Font, $textBrush, 166, 103)
-    $graphics.DrawString($identitySecondary, $fontRegular.Font, $mutedBrush, 410, 112)
+    $graphics.DrawString($identityMain, $fontBrand.Font, $textBrush, 170, 76)
+    $graphics.DrawString($identitySecondary, $fontRegular.Font, $mutedBrush, 700, 96)
 
-    $graphics.DrawString($headlineAngle, $fontHero.Font, $angle40Brush, 120, 278)
-    $graphics.DrawString($headlineCopy, $fontBold.Font, $textBrush, 132, 618)
-    $headlineRule = New-Pen ([System.Drawing.Color]::FromArgb(46, $text)) 3
-    $disposables.Add($headlineRule)
-    $graphics.DrawLine($headlineRule, 134, 833, 770, 833)
-    $graphics.DrawString($controlCopy, $fontBody.Font, $mutedBrush, 136, 858)
+    $graphics.DrawString($headlineAngle, $fontHero.Font, $angle40Brush, 88, 406)
+    $graphics.DrawString($headlineCopy, $fontBold.Font, $textBrush, 100, 814)
+    $graphics.DrawString($controlCopy, $fontBody.Font, $mutedBrush, 106, 1044)
 
-    $launch = [System.Drawing.PointF]::new(1050, 1110)
+    $launch = [System.Drawing.PointF]::new(980, 1115)
     $maxRange = [Math]::Max([double]$record40.metrics.flight_range_m, [double]$record45.metrics.flight_range_m)
     $maxHeight = [Math]::Max([double]$record40.metrics.max_height_m, [double]$record45.metrics.max_height_m)
-    $xScale = 1080.0 / ($maxRange * 1.06)
-    $yScale = 735.0 / ($maxHeight * 1.14)
+    $xScale = 1180.0 / ($maxRange * 1.04)
+    $yScale = 790.0 / ($maxHeight * 1.12)
     $originX = [double]$record40.points_m[0][0]
     $originY = [double]$record40.points_m[0][1]
 
     $groundPen = New-Pen ([System.Drawing.Color]::FromArgb(132, $text)) 4
     $disposables.Add($groundPen)
-    $graphics.DrawLine($groundPen, 1000, $launch.Y, 2210, $launch.Y)
-    $graphics.FillEllipse($textBrush, $launch.X - 15, $launch.Y - 15, 30, 30)
+    $graphics.DrawLine($groundPen, 930, $launch.Y, 2215, $launch.Y)
+    $graphics.FillEllipse($textBrush, $launch.X - 18, $launch.Y - 18, 36, 36)
     $backgroundBrush = [System.Drawing.SolidBrush]::new($background)
     $disposables.Add($backgroundBrush)
-    $graphics.FillEllipse($backgroundBrush, $launch.X - 7, $launch.Y - 7, 14, 14)
+    $graphics.FillEllipse($backgroundBrush, $launch.X - 8, $launch.Y - 8, 16, 16)
 
-    $points45 = Draw-Trajectory $graphics $record45.points_m $launch $originX $originY $xScale $yScale $angle45 23 7
-    $points40 = Draw-Trajectory $graphics $record40.points_m $launch $originX $originY $xScale $yScale $angle40 29 10
-    Draw-AngleMark $graphics $launch 45 168 $angle45
-    Draw-AngleMark $graphics $launch 40 122 $angle40
+    $points45 = Draw-Trajectory $graphics $record45.points_m $launch $originX $originY $xScale $yScale $angle45 30 9
+    $points40 = Draw-Trajectory $graphics $record40.points_m $launch $originX $originY $xScale $yScale $angle40 38 13
+    Draw-AngleMark $graphics $launch 45 196 $angle45
+    Draw-AngleMark $graphics $launch 40 146 $angle40
 
     $end45 = $points45[$points45.Length - 1]
     $end40 = $points40[$points40.Length - 1]
-    $graphics.FillEllipse($angle45Brush, $end45.X - 13, $end45.Y - 13, 26, 26)
-    $graphics.FillEllipse($angle40Brush, $end40.X - 15, $end40.Y - 15, 30, 30)
+    $graphics.FillEllipse($angle45Brush, $end45.X - 18, $end45.Y - 18, 36, 36)
+    $graphics.FillEllipse($angle40Brush, $end40.X - 21, $end40.Y - 21, 42, 42)
 
-    $lensCenter = [System.Drawing.PointF]::new(1990, 1080)
+    $lensCenter = [System.Drawing.PointF]::new(1970, 1055)
     $connector45 = New-Pen ([System.Drawing.Color]::FromArgb(96, $angle45)) 3
     $connector40 = New-Pen ([System.Drawing.Color]::FromArgb(116, $angle40)) 3
     $disposables.Add($connector45)
     $disposables.Add($connector40)
-    $graphics.DrawLine($connector45, $end45.X, $end45.Y - 8, $lensCenter.X - 70, $lensCenter.Y - 105)
-    $graphics.DrawLine($connector40, $end40.X, $end40.Y - 8, $lensCenter.X + 70, $lensCenter.Y - 105)
+    $graphics.DrawLine($connector45, $end45.X, $end45.Y - 10, $lensCenter.X - 104, $lensCenter.Y - 164)
+    $graphics.DrawLine($connector40, $end40.X, $end40.Y - 10, $lensCenter.X + 104, $lensCenter.Y - 164)
 
     # Draw the handle behind the lens. The fill hides its inner end and the rim
     # closes the seam, avoiding the visible round-cap bump from the first version.
@@ -240,30 +237,30 @@ try {
     $disposables.Add($lensHandle)
     $graphics.DrawLine(
         $lensHandle,
-        $lensCenter.X + 110,
-        $lensCenter.Y + 110,
-        $lensCenter.X + 198,
-        $lensCenter.Y + 198
+        $lensCenter.X + 164,
+        $lensCenter.Y + 164,
+        $lensCenter.X + 270,
+        $lensCenter.Y + 270
     )
-    $graphics.FillEllipse($surfaceBrush, $lensCenter.X - 172, $lensCenter.Y - 172, 344, 344)
+    $graphics.FillEllipse($surfaceBrush, $lensCenter.X - 250, $lensCenter.Y - 250, 500, 500)
     $lensPen = New-Pen ([System.Drawing.Color]::FromArgb(174, $text)) 4
     $lensRail = New-Pen ([System.Drawing.Color]::FromArgb(96, $text)) 4
     foreach ($item in @($lensPen, $lensRail)) { $disposables.Add($item) }
-    $graphics.DrawEllipse($lensPen, $lensCenter.X - 172, $lensCenter.Y - 172, 344, 344)
-    $graphics.DrawLine($lensRail, $lensCenter.X - 122, $lensCenter.Y + 34, $lensCenter.X + 122, $lensCenter.Y + 34)
+    $graphics.DrawEllipse($lensPen, $lensCenter.X - 250, $lensCenter.Y - 250, 500, 500)
+    $graphics.DrawLine($lensRail, $lensCenter.X - 184, $lensCenter.Y + 58, $lensCenter.X + 184, $lensCenter.Y + 58)
 
-    $lens45 = [System.Drawing.PointF]::new($lensCenter.X - 51, $lensCenter.Y + 34)
-    $lens40 = [System.Drawing.PointF]::new($lensCenter.X + 51, $lensCenter.Y + 34)
+    $lens45 = [System.Drawing.PointF]::new($lensCenter.X - 78, $lensCenter.Y + 58)
+    $lens40 = [System.Drawing.PointF]::new($lensCenter.X + 78, $lensCenter.Y + 58)
     $marker45 = New-Pen ([System.Drawing.Color]::FromArgb(225, $angle45)) 5
     $marker40 = New-Pen ([System.Drawing.Color]::FromArgb(235, $angle40)) 5
     $disposables.Add($marker45)
     $disposables.Add($marker40)
-    $graphics.DrawLine($marker45, $lens45.X, $lens45.Y - 48, $lens45.X, $lens45.Y)
-    $graphics.DrawLine($marker40, $lens40.X, $lens40.Y - 48, $lens40.X, $lens40.Y)
-    $graphics.FillEllipse($angle45Brush, $lens45.X - 14, $lens45.Y - 14, 28, 28)
-    $graphics.FillEllipse($angle40Brush, $lens40.X - 16, $lens40.Y - 16, 32, 32)
-    $graphics.DrawString((Get-UnicodeText '45\u00b0'), $fontAngle.Font, $angle45Brush, $lensCenter.X - 122, $lensCenter.Y - 99)
-    $graphics.DrawString((Get-UnicodeText '40\u00b0'), $fontAngle.Font, $angle40Brush, $lensCenter.X + 34, $lensCenter.Y - 99)
+    $graphics.DrawLine($marker45, $lens45.X, $lens45.Y - 78, $lens45.X, $lens45.Y)
+    $graphics.DrawLine($marker40, $lens40.X, $lens40.Y - 78, $lens40.X, $lens40.Y)
+    $graphics.FillEllipse($angle45Brush, $lens45.X - 22, $lens45.Y - 22, 44, 44)
+    $graphics.FillEllipse($angle40Brush, $lens40.X - 25, $lens40.Y - 25, 50, 50)
+    $graphics.DrawString((Get-UnicodeText '45\u00b0'), $fontAngle.Font, $angle45Brush, $lensCenter.X - 194, $lensCenter.Y - 174)
+    $graphics.DrawString((Get-UnicodeText '40\u00b0'), $fontAngle.Font, $angle40Brush, $lensCenter.X + 31, $lensCenter.Y - 174)
 
     $masterPath = Join-Path $OutputRoot 's01e03-cover-master-2292x1434.png'
     $bilibiliPath = Join-Path $OutputRoot 's01e03-cover-bilibili-1146x717.png'

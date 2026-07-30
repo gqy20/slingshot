@@ -16,6 +16,7 @@
   },
   "narration": {
     "script": "res://content/narration/s01e03-angle-with-drag.txt",
+    "subtitle_script": "res://content/subtitles/s01e03-angle-with-drag.srt",
     "model": "speech-2.8-hd",
     "voice": "Chinese (Mandarin)_Sincere_Adult",
     "language": "Chinese",
