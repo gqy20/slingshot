@@ -48,6 +48,20 @@ func run(t) -> void:
 	t.check_close(reveal_after_copy_boundary, 1.0, 0.0001, "energy bars do not reset at the next explanation beat")
 	var errors := EpisodeLayout.validate_static_regions()
 	t.check(errors.is_empty(), "episode plot areas avoid every reserved text region")
+	var render_script := FileAccess.get_file_as_string("res://scripts/render_episode.ps1")
+	var reburn_script := FileAccess.get_file_as_string("res://scripts/reburn_episode.ps1")
+	var render_shell_script := FileAccess.get_file_as_string("res://scripts/render_episode.sh")
+	t.check(
+		render_script.contains("[int]$SubtitleBottomMargin = 68")
+		and reburn_script.contains("[int]$SubtitleBottomMargin = 68")
+		and render_shell_script.contains("EPISODE_SUBTITLE_BOTTOM_MARGIN:-68"),
+		"all render paths share the EP04 subtitle bottom margin"
+	)
+	t.check(
+		render_script.contains("--script res://scripts/export_subtitles.gd")
+		and render_script.contains("-i $displaySrt $subtitleAss"),
+		"full Windows renders normalize display cues before ASS conversion"
+	)
 	t.check(
 		TrackRaceCanvas.CONTENT_BOTTOM <= EpisodeLayout.SUBTITLE_RECT.position.y - 40.0,
 		"track course leaves a visible gutter above the subtitle safe area"
@@ -137,6 +151,37 @@ func run(t) -> void:
 		t.check(
 			not "results" in beats_by_id["distance-time-table"]["layers"],
 			"dedicated distance-time table does not duplicate the generic result HUD"
+		)
+		t.check(
+			TrackRaceCanvas.layout_audit_regions()["distance-is-not-time"].size() == 1,
+			"distance and time read as one argument instead of two stacked cards"
+		)
+		t.check(
+			TrackRaceCanvas.layout_audit_regions()["finish-slow-motion"].size() == 1,
+			"finish slow motion keeps one local-time view instead of duplicating arrival data"
+		)
+		t.check(
+			TrackRaceCanvas.layout_audit_regions()["model-boundary"].size() == 1,
+			"model boundary uses one editorial note column instead of three cards"
+		)
+		var track_canvas_source := FileAccess.get_file_as_string(
+			"res://src/video/canvases/track_race_canvas.gd"
+		)
+		t.check(
+			not track_canvas_source.contains("func _draw_panel"),
+			"track episode uses no reusable boxed-container primitive"
+		)
+		t.check(
+			not track_canvas_source.contains("draw_rect(rect, Color(colors[\"surface\"]")
+			and not track_canvas_source.contains("draw_rect(panel, Color(colors[\"surface\"]"),
+			"track episode does not hide hierarchy inside opaque surface cards"
+		)
+		var final_subtitles := FileAccess.get_file_as_string(
+			"res://content/subtitles/s01e05-shortest-is-not-fastest.srt"
+		)
+		t.check(
+			final_subtitles.contains("小球是否会同时到达最低点？"),
+			"track episode closes with a complete causal question"
 		)
 	for beat_id in [
 		"distance-is-not-time", "energy-drop", "time-integral",

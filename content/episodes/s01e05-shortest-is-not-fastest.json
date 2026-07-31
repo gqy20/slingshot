@@ -60,6 +60,8 @@
     "secondary_metric": "path_length_m",
     "secondary_label": "路径长度",
     "secondary_unit": "m",
+    "identity_label": "最速降线实验",
+    "show_episode_code": false,
     "goal": "min",
     "show_target": false,
     "brand": {"intro_stinger_at_sec":11.55},

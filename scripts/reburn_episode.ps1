@@ -5,7 +5,7 @@ param(
     [Parameter(Position = 2)][string]$Output = '',
     [string]$Bgm = '',
     [ValidateRange(24, 64)][int]$SubtitleFontSize = 42,
-    [ValidateRange(30, 160)][int]$SubtitleBottomMargin = 100,
+    [ValidateRange(30, 180)][int]$SubtitleBottomMargin = 68,
     [ValidateSet('auto', 'nvenc', 'libx264')][string]$VideoEncoder = 'auto'
 )
 

@@ -14,7 +14,7 @@ param(
     [ValidateRange(0, 8)][int]$ShardWarmupFrames = 2,
     [ValidateSet('auto', 'nvenc', 'libx264')][string]$VideoEncoder = 'auto',
     [ValidateRange(24, 64)][int]$SubtitleFontSize = 42,
-    [ValidateRange(30, 160)][int]$SubtitleBottomMargin = 100,
+    [ValidateRange(30, 180)][int]$SubtitleBottomMargin = 68,
     [double]$PreviewSeconds = 0,
     [double]$PreviewStartSeconds = 0
 )
@@ -358,8 +358,12 @@ window/stretch/mode="disabled"
 
     $videoFilter = $null
     if ($hasSubtitles) {
+        $displaySrt = Join-Path $tempRoot 'subtitles-display.srt'
         $subtitleAss = Join-Path $tempRoot 'subtitles.ass'
-        & $ffmpeg -y -loglevel error -i $subtitleSrt $subtitleAss
+        & $godot --headless --path $script:ProjectRoot --script res://scripts/export_subtitles.gd `
+            '--' $subtitleSrt $displaySrt
+        if ($LASTEXITCODE -ne 0) { throw 'Subtitle display export failed.' }
+        & $ffmpeg -y -loglevel error -i $displaySrt $subtitleAss
         if ($LASTEXITCODE -ne 0) { throw 'Subtitle conversion failed.' }
         $assText = Get-Content -Raw -Encoding UTF8 $subtitleAss
         $assText = $assText -replace '(?m)^PlayResX:.*$', 'PlayResX: 1920'
