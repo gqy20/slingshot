@@ -13,6 +13,17 @@
   "narration": {
     "script": "res://content/narration/s01e05-shortest-is-not-fastest.txt",
     "subtitle_script": "res://content/subtitles/s01e05-shortest-is-not-fastest.srt",
+    "subtitle_replacements": [
+      {"from": "十一点六六二米", "to": " 11.662 m"},
+      {"from": "具体关系是，v 等于根号下二 g y", "to": "具体关系如下"},
+      {"from": "具体关系是，v = √(2gy)", "to": "具体关系如下"},
+      {"from": "八倍慢放", "to": " 8× 慢放"},
+      {"from": "一点七九零秒", "to": " 1.790 s"},
+      {"from": "一点八二一秒", "to": " 1.821 s"},
+      {"from": "两点一五零秒", "to": " 2.150 s"},
+      {"from": "三十毫秒", "to": " 30 ms"},
+      {"from": "十二点五八米", "to": " 12.58 m"}
+    ],
     "model": "speech-2.8-hd",
     "voice": "Chinese (Mandarin)_Warm_Bestie",
     "language": "Chinese",
@@ -60,10 +71,17 @@
       "steps": [
         {
           "concept": "高度差转化为速度",
-          "equation": "mgh → ½mv²",
-          "typst": "m g h arrow.r.long frac(1, 2) m v^2",
+          "equation": "mgy = ½mv²",
+          "typst": "m g y = frac(1, 2) m v^2",
           "formula_font_size_pt": 120,
           "caption": "更早下降，就能更早获得速度"
+        },
+        {
+          "concept": "下降高度决定速度",
+          "equation": "v = √(2gy)",
+          "typst": "v = sqrt(2 g y)",
+          "formula_font_size_pt": 120,
+          "caption": "下降得越深，速度越大"
         },
         {
           "concept": "总时间来自每一小段",
@@ -96,7 +114,7 @@
     {"id":"track-preview","label":"三条候选轨道","phase":"SETUP","at":94.0,"duration":15.0,"shot":"track-overview","mode":"measurement","camera_action":"hold","camera_reason":"keep the full geometry visible while naming each path and its length","intent":"preview-track-identities","primary_subject":"three-tracks","layers":["world","trajectories","subtitle"]},
     {"id":"race-release","label":"同步释放","phase":"FLIGHT","at":109.0,"duration":12.0,"shot":"track-release","mode":"immersive","camera_action":"reframe","camera_reason":"return attention to the common start and show a single synchronized release","intent":"observe-simultaneous-release","primary_subject":"racing-balls","layers":["world","subjects","trajectories","subtitle"],"sfx":"release","chapter":true},
     {"id":"race-separation","label":"领先关系形成","phase":"FLIGHT","at":121.0,"duration":18.0,"shot":"track-race","mode":"immersive","camera_action":"hold","camera_reason":"keep all balls visible while their early speed differences become spatial separation","intent":"observe-race-separation","primary_subject":"racing-balls","layers":["world","subjects","trajectories","subtitle"]},
-    {"id":"finish-slow-motion","label":"终点八倍慢放","phase":"FLIGHT","at":139.0,"duration":15.0,"shot":"finish-magnifier","mode":"measurement","camera_action":"reframe","camera_reason":"magnify the finish region so the forty-two millisecond gap remains perceptible","intent":"inspect-close-finish-honestly","primary_subject":"cycloid-and-arc-finish","layers":["world","subjects","trajectories","annotations","subtitle"],"sfx":"landing"},
+    {"id":"finish-slow-motion","label":"终点八倍慢放","phase":"FLIGHT","at":139.0,"duration":15.0,"shot":"finish-magnifier","mode":"measurement","camera_action":"reframe","camera_reason":"magnify the finish region so the thirty-millisecond gap remains perceptible","intent":"inspect-close-finish-honestly","primary_subject":"cycloid-and-arc-finish","layers":["world","subjects","trajectories","annotations","subtitle"],"sfx":"landing"},
     {"id":"arrival-lock","label":"依次锁定到达时间","phase":"FLIGHT","at":154.0,"duration":15.0,"shot":"arrival-lock","mode":"measurement","camera_action":"hold","camera_reason":"preserve every arrival as a ranked marker after the moving balls share one endpoint","intent":"lock-arrival-order","primary_subject":"arrival-ranking","layers":["world","subjects","trajectories","annotations","subtitle"],"sfx":"result"},
     {"id":"distance-time-table","label":"路径长度与到达时间","phase":"COMPARE","at":169.0,"duration":19.0,"shot":"dual-metric-ranking","mode":"measurement","camera_action":"reframe","camera_reason":"replace the race geometry with a dedicated comparison table so labels and evidence never compete","intent":"compare-distance-and-arrival-time","primary_subject":"distance-time-ranking","layers":["annotations","subtitle"],"chapter":true},
     {"id":"cycloid-generation","label":"滚动圆生成摆线","phase":"COMPARE","at":188.0,"duration":19.0,"shot":"cycloid-construction","mode":"measurement","camera_action":"reframe","camera_reason":"replace the race with one rolling circle so the winning curve has a geometric origin","intent":"construct-cycloid","primary_subject":"rolling-circle-point","layers":["annotations","subtitle"]},

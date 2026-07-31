@@ -7,6 +7,9 @@ const FONT_ENVIRONMENT := 24
 const FONT_SECONDARY := 28
 const FONT_ESSENTIAL := 30
 const FONT_DATA := 32
+const RACE_BALL_CORE_RADIUS := 12.0
+const RACE_BALL_HALO_RADIUS := 16.0
+const RACE_BALL_RING_RADIUS := 18.0
 const DISTANCE_TIME_PANEL := Rect2(500, 175, 920, 540)
 const SHORTEST_BET_PANEL := Rect2(1300, 300, 500, 160)
 const RAW_TRACK_BOUNDS := Rect2(330, 90, 1100, 790)
@@ -14,14 +17,18 @@ const OPENING_WORLD_SCALE := 0.94
 const OPENING_WORLD_OFFSET := Vector2(50, 20)
 const EXPLAIN_WORLD_SCALE := 0.78
 const EXPLAIN_WORLD_OFFSET := Vector2(420, 90)
-const SETUP_WORLD_SCALE := 0.86
-const SETUP_WORLD_OFFSET := Vector2(150, 110)
+const TIME_WORLD_SCALE := 0.62
+const TIME_WORLD_OFFSET := Vector2(-65, 135)
+const SETUP_WORLD_SCALE := 0.90
+const SETUP_WORLD_OFFSET := Vector2(-40, 70)
+const FAIR_CONTROLS_NOTE_REGION := Rect2(1390, 185, 400, 585)
 const RACE_CLOCK_PANEL := Rect2(1470, 180, 350, 118)
 const RACE_TELEMETRY_PANEL := Rect2(1470, 330, 350, 292)
-const ENERGY_FORMULA_BOUNDS := Rect2(105, 238, 440, 90)
-const ENERGY_ARROW_TOP := 350.0
-const TIME_FORMULA_BOUNDS := Rect2(124, 373, 500, 112)
-const TIME_SUPPORTING_BASELINE_Y := 550.0
+const ENERGY_FORMULA_BOUNDS := Rect2(105, 248, 440, 130)
+const TIME_PANEL := Rect2(1040, 145, 780, 650)
+const TIME_MEASUREMENT_STRIP := Rect2(110, 730, 820, 110)
+const TIME_FORMULA_BOUNDS := Rect2(1095, 315, 670, 170)
+const TIME_ACCUMULATION_BASELINE_Y := 580.0
 const CYCLOID_FORMULA_BOUNDS := Rect2(500, 690, 920, 165)
 const MODEL_BOUNDARY_CARDS := [
 	Rect2(1460, 170, 380, 170),
@@ -34,9 +41,9 @@ static func layout_audit_regions() -> Dictionary:
 	return {
 		"shortest-bet": [SHORTEST_BET_PANEL],
 		"distance-is-not-time": [Rect2(90, 190, 430, 210), Rect2(90, 440, 430, 210)],
-		"energy-drop": [Rect2(70, 170, 530, 610)],
-		"time-integral": [Rect2(90, 180, 560, 430)],
-		"fair-controls": [Rect2(520, 70, 1280, 82)],
+		"energy-drop": [Rect2(70, 170, 530, 300)],
+		"time-integral": [TIME_PANEL, TIME_MEASUREMENT_STRIP],
+		"fair-controls": [FAIR_CONTROLS_NOTE_REGION],
 		"track-preview": [Rect2(520, 90, 1280, 55)],
 		"race-release": [RACE_CLOCK_PANEL, RACE_TELEMETRY_PANEL],
 		"race-separation": [RACE_CLOCK_PANEL, RACE_TELEMETRY_PANEL],
@@ -61,6 +68,7 @@ static func track_plot_bounds(beat_id: String) -> Rect2:
 static func formula_audit_regions() -> Dictionary:
 	return {
 		"energy": ENERGY_FORMULA_BOUNDS,
+		"velocity": ENERGY_FORMULA_BOUNDS,
 		"time": TIME_FORMULA_BOUNDS,
 		"cycloid": CYCLOID_FORMULA_BOUNDS,
 	}
@@ -69,8 +77,10 @@ static func formula_audit_regions() -> Dictionary:
 static func _world_scale_and_offset(beat_id: String) -> Array:
 	if beat_id in ["cold-open", "shortest-bet"]:
 		return [OPENING_WORLD_SCALE, OPENING_WORLD_OFFSET]
-	if beat_id in ["distance-is-not-time", "energy-drop", "time-integral"]:
+	if beat_id in ["distance-is-not-time", "energy-drop"]:
 		return [EXPLAIN_WORLD_SCALE, EXPLAIN_WORLD_OFFSET]
+	if beat_id == "time-integral":
+		return [TIME_WORLD_SCALE, TIME_WORLD_OFFSET]
 	if beat_id in ["fair-controls", "track-preview"]:
 		return [SETUP_WORLD_SCALE, SETUP_WORLD_OFFSET]
 	return [1.0, Vector2.ZERO]
@@ -109,7 +119,7 @@ func _draw_domain() -> void:
 		"time-integral":
 			_draw_time_integral()
 		"fair-controls":
-			_draw_tracks()
+			_draw_tracks("", false, 1.0, false)
 			_draw_fair_controls()
 		"track-preview":
 			_draw_tracks()
@@ -151,7 +161,12 @@ func _draw_domain() -> void:
 					_draw_arrival_results()
 
 
-func _draw_tracks(focus_id: String = "", dim_others: bool = false, reveal_progress: float = 1.0) -> void:
+func _draw_tracks(
+	focus_id: String = "",
+	dim_others: bool = false,
+	reveal_progress: float = 1.0,
+	draw_endpoints: bool = true
+) -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
 	for variant_value in episode["variants"]:
 		var variant: Dictionary = variant_value
@@ -166,20 +181,40 @@ func _draw_tracks(focus_id: String = "", dim_others: bool = false, reveal_progre
 		var focused := focus_id.is_empty() or id == focus_id
 		var alpha := 0.76 if focused else (0.16 if dim_others else 0.38)
 		var width := 9.0 if not focus_id.is_empty() and id == focus_id else 7.0
+		# A quiet outer rail makes the constraint visible: these are fixed guides,
+		# not free-flight trajectories. Keep it subordinate to the color identity.
+		draw_polyline(points, Color(colors["divider"], alpha * 0.72), width + 8.0, true)
 		draw_polyline(points, Color(color, alpha), width, true)
 		draw_polyline(points, Color(colors["text"], 0.18), 2.0, true)
 	var first_record: Dictionary = bundle.get("records", [{}])[0]
 	var first_path: Array = first_record.get("path_points_px", [])
-	if first_path.size() >= 2 and reveal_progress > 0.08:
+	if draw_endpoints and first_path.size() >= 2 and reveal_progress > 0.08:
 		var start := _display_position(_vector(first_path[0]))
 		var finish := _display_position(_vector(first_path[-1]))
 		var marker_alpha := smoothstep(0.08, 0.24, reveal_progress)
-		draw_line(start - Vector2(0, 54), start + Vector2(0, 54), Color(colors["text"], 0.75 * marker_alpha), 5.0)
-		draw_string(VideoTypography.data(), start + Vector2(-35, -63), "START", HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_ENVIRONMENT, Color(colors["muted"], marker_alpha))
+		_draw_track_endpoint(start, "START", marker_alpha, false)
 		if reveal_progress > 0.78:
 			var finish_alpha := smoothstep(0.78, 0.96, reveal_progress)
-			draw_line(finish - Vector2(0, 72), finish + Vector2(0, 72), Color(colors["text"], 0.75 * finish_alpha), 5.0)
-			draw_string(VideoTypography.data(), finish + Vector2(20, 58), "FINISH →", HORIZONTAL_ALIGNMENT_LEFT, 170, FONT_ENVIRONMENT, Color(colors["muted"], finish_alpha))
+			_draw_track_endpoint(finish, "FINISH", finish_alpha, true)
+
+
+func _draw_track_endpoint(position: Vector2, label: String, alpha: float, is_finish: bool) -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
+	var marker_color := Color(colors["muted"], 0.90 * alpha)
+	draw_circle(position, 7.0, Color(colors["background"], 0.96 * alpha))
+	draw_arc(position, 8.0, 0.0, TAU, 28, marker_color, 2.5, true)
+	if is_finish:
+		draw_line(position + Vector2(-26, 23), position + Vector2(26, 23), marker_color, 2.0, true)
+		draw_string(
+			VideoTypography.data(), position + Vector2(-50, 51), label,
+			HORIZONTAL_ALIGNMENT_CENTER, 100, FONT_ENVIRONMENT, marker_color
+		)
+	else:
+		draw_line(position + Vector2(-26, -23), position + Vector2(26, -23), marker_color, 2.0, true)
+		draw_string(
+			VideoTypography.data(), position + Vector2(-50, -34), label,
+			HORIZONTAL_ALIGNMENT_CENTER, 100, FONT_ENVIRONMENT, marker_color
+		)
 
 
 func _draw_opening_teaser() -> void:
@@ -237,7 +272,7 @@ func _draw_track_brand_stinger(progress: float) -> void:
 	var brand_alpha := smoothstep(0.42, 0.60, progress)
 	draw_string(VideoTypography.bold(), Vector2(560, 720), "物理实验室", HORIZONTAL_ALIGNMENT_CENTER, 800, 54, Color(colors["text"], brand_alpha))
 	draw_string(VideoTypography.data(), Vector2(660, 780), "SLINGSHOT PHYSICS", HORIZONTAL_ALIGNMENT_CENTER, 600, 29, Color(colors["muted"], brand_alpha * 0.90))
-	draw_string(VideoTypography.data(), Vector2(710, 838), "S01E05  ·  最速降线", HORIZONTAL_ALIGNMENT_CENTER, 500, 27, Color(accent, brand_alpha * 0.88))
+	draw_string(VideoTypography.data(), Vector2(710, 838), "最速降线", HORIZONTAL_ALIGNMENT_CENTER, 500, 27, Color(accent, brand_alpha * 0.88))
 
 
 func _draw_opening_trails(time_sec: float, race_progress: float) -> void:
@@ -253,7 +288,7 @@ func _draw_opening_trails(time_sec: float, race_progress: float) -> void:
 			if state.is_empty():
 				continue
 			draw_circle(
-				_display_position(state["position_px"]), 10.0 + 0.8 * sample_index,
+				_display_position(state["position_px"]), 6.0 + 0.6 * sample_index,
 				Color(colors_by_id.get(id, Color.WHITE), alpha)
 			)
 
@@ -325,20 +360,17 @@ func _draw_energy_explanation() -> void:
 	# Draw the moving evidence first. The opaque explanation panel masks balls
 	# while they occupy its copy region, then reveals them as they enter the plot.
 	_draw_racing_balls(preview)
-	var panel := Rect2(70, 170, 530, 610)
+	var panel := Rect2(70, 170, 530, 300)
 	draw_rect(panel, Color(colors["surface"], 0.90), true)
 	draw_rect(panel, Color(colors["divider"], 0.65), false, 2.0)
 	draw_string(
 		VideoTypography.bold(), Vector2(105, 225), "先下降，先获得速度",
 		HORIZONTAL_ALIGNMENT_LEFT, -1, 40, Color(colors["text"], smoothstep(0.05, 0.35, progress))
 	)
-	_draw_typst_formula(
-		0, ENERGY_FORMULA_BOUNDS,
-		Color(colors["accent"], smoothstep(0.25, 0.62, progress))
-	)
-	var arrow_x := 250.0
-	draw_line(Vector2(arrow_x, ENERGY_ARROW_TOP), Vector2(arrow_x, 700), Color(colors["muted"], 0.55), 3.0)
-	_draw_arrow(Vector2(arrow_x, 380), Vector2(arrow_x, 660), Color(colors["accent"], 0.85), 5.0)
+	var energy_alpha := smoothstep(0.12, 0.25, progress) * (1.0 - smoothstep(0.30, 0.42, progress))
+	var velocity_alpha := smoothstep(0.32, 0.46, progress)
+	_draw_typst_formula(0, ENERGY_FORMULA_BOUNDS, Color(colors["accent"], energy_alpha))
+	_draw_typst_formula(1, ENERGY_FORMULA_BOUNDS, Color(colors["accent"], velocity_alpha))
 	var bar_x := 1470.0
 	var bar_y := 260.0
 	for variant_value in episode["variants"]:
@@ -358,27 +390,79 @@ func _draw_time_integral() -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
 	var record: Dictionary = records_by_id.get("cycloid", {})
 	var segments: Array = record.get("path_segments", [])
-	var reveal_count := clampi(ceili(segments.size() * smoothstep(0.08, 0.78, _beat_progress())), 0, segments.size())
-	for index in range(reveal_count):
+	if segments.is_empty():
+		return
+	var progress := _beat_progress()
+	var reveal := smoothstep(0.08, 0.82, progress)
+	var reveal_position := reveal * float(segments.size())
+	var completed_count := clampi(floori(reveal_position), 0, segments.size())
+	var active_index := mini(completed_count, segments.size() - 1)
+	var active_fraction := 1.0 if completed_count >= segments.size() else reveal_position - floorf(reveal_position)
+	var cycloid_color: Color = colors_by_id.get("cycloid", colors["accent"])
+
+	# Establish the complete route first, then let completed time accumulate over it.
+	for index in range(segments.size()):
 		var segment: Dictionary = segments[index]
-		var dt := float(segment["segment_time_sec"])
-		var weight := clampf(dt / 0.09, 0.0, 1.0)
-		var cycloid_color: Color = colors_by_id.get("cycloid", colors["accent"])
-		var color := cycloid_color.lerp(colors["muted"], weight * 0.55)
+		var start := _display_position(_vector(segment["start_px"]))
+		var finish := _display_position(_vector(segment["finish_px"]))
+		draw_line(start, finish, Color(colors["muted"], 0.22), 5.0, true)
+		if index % 4 == 0:
+			draw_circle(start, 3.5, Color(colors["muted"], 0.48))
+
+	var accumulated_time := 0.0
+	for index in range(completed_count):
+		var segment: Dictionary = segments[index]
+		accumulated_time += float(segment["segment_time_sec"])
 		draw_line(
 			_display_position(_vector(segment["start_px"])),
 			_display_position(_vector(segment["finish_px"])),
-			color, 10.0, true
+			Color(cycloid_color, 0.82), 9.0, true
 		)
-	var panel := Rect2(90, 180, 560, 430)
-	_draw_panel(panel)
-	draw_string(VideoTypography.bold(), panel.position + Vector2(34, 65), "每一小段，都要花时间", HORIZONTAL_ALIGNMENT_LEFT, -1, 36, colors["text"])
-	draw_string(VideoTypography.data(), panel.position + Vector2(34, 145), "小段时间  ≈  路程 ÷ 当地速度", HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_ESSENTIAL, colors["muted"])
-	_draw_typst_formula(
-		1, TIME_FORMULA_BOUNDS,
-		colors["accent"]
+
+	var active_segment: Dictionary = segments[active_index]
+	var active_start := _display_position(_vector(active_segment["start_px"]))
+	var active_finish := _display_position(_vector(active_segment["finish_px"]))
+	var marker_position := active_start.lerp(active_finish, active_fraction)
+	if completed_count < segments.size():
+		accumulated_time += float(active_segment["segment_time_sec"]) * active_fraction
+		draw_line(active_start, marker_position, cycloid_color, 13.0, true)
+	var pulse := 0.5 + 0.5 * sin(progress * TAU * 10.0)
+	draw_circle(marker_position, 21.0 + 4.0 * pulse, Color(cycloid_color, 0.12 + 0.08 * pulse))
+	draw_circle(marker_position, 12.0, cycloid_color)
+	draw_arc(marker_position, 17.0, 0.0, TAU, 32, Color(colors["background"], 0.90), 3.0, true)
+
+	var path_alpha := smoothstep(0.04, 0.18, progress)
+	draw_string(
+		VideoTypography.medium(), Vector2(115, 175), "路径分成 48 个小段",
+		HORIZONTAL_ALIGNMENT_LEFT, 760, 34, Color(colors["text"], path_alpha)
 	)
-	draw_string(VideoTypography.medium(), Vector2(panel.position.x + 34, TIME_SUPPORTING_BASELINE_Y), "更长的路，可以用更高的速度走完", HORIZONTAL_ALIGNMENT_LEFT, 485, FONT_ESSENTIAL, colors["text"])
+
+	_draw_panel(TIME_MEASUREMENT_STRIP)
+	var metric_alpha := smoothstep(0.10, 0.24, progress)
+	var metric_labels := ["当前 ds", "当地 v(s)", "这一段 Δt"]
+	var metric_values := [
+		"%.3f m" % float(active_segment["segment_length_m"]),
+		"%.2f m/s" % float(active_segment["mean_speed_mps"]),
+		"%.1f ms" % (float(active_segment["segment_time_sec"]) * 1000.0),
+	]
+	for index in range(metric_labels.size()):
+		var metric_x := TIME_MEASUREMENT_STRIP.position.x + 28.0 + index * 265.0
+		draw_string(VideoTypography.medium(), Vector2(metric_x, 772), metric_labels[index], HORIZONTAL_ALIGNMENT_LEFT, 220, FONT_SECONDARY, Color(colors["muted"], metric_alpha))
+		draw_string(VideoTypography.data(), Vector2(metric_x, 817), metric_values[index], HORIZONTAL_ALIGNMENT_LEFT, 220, FONT_DATA, Color(cycloid_color, metric_alpha))
+
+	_draw_panel(TIME_PANEL)
+	draw_string(VideoTypography.bold(), TIME_PANEL.position + Vector2(44, 70), "每一小段，都要花时间", HORIZONTAL_ALIGNMENT_LEFT, -1, 42, colors["text"])
+	draw_string(VideoTypography.medium(), TIME_PANEL.position + Vector2(44, 137), "Δt  ≈  ds ÷ v(s)", HORIZONTAL_ALIGNMENT_LEFT, -1, 34, colors["muted"])
+	_draw_typst_formula(2, TIME_FORMULA_BOUNDS, Color(colors["accent"], smoothstep(0.20, 0.38, progress)))
+	draw_line(Vector2(1085, 520), Vector2(1775, 520), Color(colors["divider"], 0.58), 2.0)
+	draw_string(VideoTypography.medium(), Vector2(1085, TIME_ACCUMULATION_BASELINE_Y), "沿路径累计", HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_ESSENTIAL, colors["muted"])
+	draw_string(VideoTypography.data(), Vector2(1515, TIME_ACCUMULATION_BASELINE_Y), "T = %.3f s" % accumulated_time, HORIZONTAL_ALIGNMENT_RIGHT, 260, 42, cycloid_color)
+	var arrival_time := float(record.get("metrics", {}).get("arrival_time_sec", 1.0))
+	var accumulation_ratio := clampf(accumulated_time / maxf(arrival_time, 1.0e-6), 0.0, 1.0)
+	draw_rect(Rect2(1085, 615, 690, 18), Color(colors["divider"], 0.42), true)
+	draw_rect(Rect2(1085, 615, 690.0 * accumulation_ratio, 18), cycloid_color, true)
+	draw_circle(Vector2(1085 + 690.0 * accumulation_ratio, 624), 10.0, cycloid_color)
+	draw_string(VideoTypography.medium(), Vector2(1085, 715), "更长的路，也可能用更高的速度走完", HORIZONTAL_ALIGNMENT_LEFT, 690, FONT_ESSENTIAL, colors["text"])
 
 
 func _draw_setup_labels() -> void:
@@ -393,20 +477,113 @@ func _draw_setup_labels() -> void:
 		draw_string(VideoTypography.medium(), Vector2(x + 20, y + 10), variant["label"], HORIZONTAL_ALIGNMENT_LEFT, 280, FONT_ESSENTIAL, colors["text"])
 		index += 1
 	draw_string(
-		VideoTypography.data(), Vector2(570, 860), "同一起点 · 同一终点 · 无摩擦滑动质点",
-		HORIZONTAL_ALIGNMENT_CENTER, 780, 30, colors["muted"]
+		VideoTypography.data(), Vector2(520, 860), "三条固定导轨 · 同一起点 · 同一终点 · 无摩擦滑动质点",
+		HORIZONTAL_ALIGNMENT_CENTER, 880, 30, colors["muted"]
 	)
 
 
 func _draw_fair_controls() -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
-	var labels := ["同一起点", "同一终点", "相同重力", "无摩擦质点"]
-	var start_x := 520.0
-	for index in range(labels.size()):
-		var rect := Rect2(start_x + index * 320.0, 70, 280, 82)
-		draw_rect(rect, Color(colors["surface"], 0.92), true)
-		draw_rect(rect, Color(colors["divider"], 0.68), false, 2.0)
-		draw_string(VideoTypography.medium(), rect.position + Vector2(20, 52), labels[index], HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - 40, FONT_ESSENTIAL, colors["text"])
+	var progress := _beat_progress()
+	var first_record: Dictionary = bundle.get("records", [{}])[0]
+	var path: Array = first_record.get("path_points_px", [])
+	if path.size() < 2:
+		return
+
+	var start := _display_position(_vector(path[0]))
+	var finish := _display_position(_vector(path[-1]))
+	var start_alpha := smoothstep(0.02, 0.16, progress)
+	var finish_alpha := smoothstep(0.16, 0.32, progress)
+	_draw_fair_endpoint(start, "同一起点", start_alpha, false, progress)
+	_draw_fair_endpoint(finish, "同一终点", finish_alpha, true, progress)
+
+	# Environment information is expressed by the field itself, rather than by a
+	# detached card. The arrow grows with the narration and stays visually quiet.
+	var gravity_alpha := smoothstep(0.30, 0.46, progress)
+	var gravity_start := Vector2(1450, 252)
+	var gravity_finish := gravity_start.lerp(Vector2(1450, 426), gravity_alpha)
+	draw_string(
+		VideoTypography.medium(), Vector2(1410, 215), "相同重力",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 34, Color(colors["text"], gravity_alpha)
+	)
+	if gravity_alpha > 0.001:
+		_draw_gravity_vector(
+			gravity_start,
+			gravity_finish,
+			Color(colors["accent"], 0.82 * gravity_alpha),
+			gravity_alpha
+		)
+	draw_string(
+		VideoTypography.data(), Vector2(1490, 340), "g",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 44, Color(colors["accent"], gravity_alpha)
+	)
+	draw_string(
+		VideoTypography.data(), Vector2(1490, 390), "9.81 m/s²",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SECONDARY, Color(colors["muted"], gravity_alpha)
+	)
+
+	# The rail itself carries the constraint: briefly brighten all guides as the
+	# model assumptions appear, then let the highlight settle back.
+	var rail_reveal := smoothstep(0.46, 0.62, progress)
+	var rail_settle := 1.0 - 0.55 * smoothstep(0.72, 0.92, progress)
+	for variant_value in episode["variants"]:
+		var variant: Dictionary = variant_value
+		var points := _display_points(trajectories_by_id.get(String(variant["id"]), PackedVector2Array()))
+		if points.size() >= 2:
+			draw_polyline(points, Color(colors["text"], 0.24 * rail_reveal * rail_settle), 4.0, true)
+
+	var assumptions_alpha := smoothstep(0.52, 0.66, progress)
+	draw_string(
+		VideoTypography.medium(), Vector2(1410, 525), "模型假设",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_ENVIRONMENT, Color(colors["muted"], assumptions_alpha)
+	)
+	var assumptions := ["固定导轨", "无摩擦与空气阻力", "滑动质点"]
+	for index in range(assumptions.size()):
+		var item_alpha := smoothstep(0.58 + index * 0.09, 0.70 + index * 0.09, progress)
+		var baseline := Vector2(1410, 590 + index * 66)
+		draw_circle(baseline + Vector2(7, -10), 4.5, Color(colors["accent"], item_alpha))
+		draw_string(
+			VideoTypography.medium(), baseline + Vector2(28, 0), assumptions[index],
+			HORIZONTAL_ALIGNMENT_LEFT, 340, FONT_ESSENTIAL, Color(colors["text"], item_alpha)
+		)
+
+
+func _draw_gravity_vector(start: Vector2, finish: Vector2, color: Color, reveal: float) -> void:
+	# An open, narrow arrowhead reads as a measured vector. The shared endpoint
+	# and round cap keep it lighter than the filled arrows used for active forces.
+	var stem_width := 3.0
+	var direction := (finish - start).normalized()
+	if direction.is_zero_approx():
+		return
+	var normal := Vector2(-direction.y, direction.x)
+	var head_length := 14.0
+	var head_half_width := 8.0
+	draw_line(start, finish, color, stem_width, true)
+	draw_circle(start, stem_width * 0.5, color)
+	if reveal > 0.12:
+		var shoulder := finish - direction * head_length
+		draw_line(finish, shoulder + normal * head_half_width, color, stem_width, true)
+		draw_line(finish, shoulder - normal * head_half_width, color, stem_width, true)
+
+
+func _draw_fair_endpoint(
+	position: Vector2,
+	label: String,
+	alpha: float,
+	is_finish: bool,
+	progress: float
+) -> void:
+	var colors: Dictionary = episode["theme"]["colors"]
+	var pulse_phase := fmod(progress * 3.0 + (0.45 if is_finish else 0.0), 1.0)
+	var pulse_alpha := (1.0 - pulse_phase) * alpha
+	draw_circle(position, 6.0, Color(colors["background"], 0.96 * alpha))
+	draw_arc(position, 9.0, 0.0, TAU, 32, Color(colors["text"], 0.84 * alpha), 2.5, true)
+	draw_arc(position, 18.0 + 18.0 * pulse_phase, 0.0, TAU, 40, Color(colors["accent"], 0.32 * pulse_alpha), 3.0, true)
+	var label_position := position + (Vector2(-72, 62) if is_finish else Vector2(-90, -42))
+	draw_string(
+		VideoTypography.medium(), label_position, label,
+		HORIZONTAL_ALIGNMENT_CENTER, 180, FONT_ESSENTIAL, Color(colors["text"], alpha)
+	)
 
 
 func _draw_track_preview() -> void:
@@ -437,13 +614,13 @@ func _draw_racing_balls(source_states: Dictionary = {}) -> void:
 		if bool(state.get("arrived", false)):
 			var rank := _arrival_rank(id)
 			draw_arc(
-				position, 23.0 + float(rank) * 6.0, 0.0, TAU, 40,
-				Color(color, 0.92), 4.0, true
+				position, RACE_BALL_RING_RADIUS + float(rank) * 5.0, 0.0, TAU, 40,
+				Color(color, 0.92), 3.0, true
 			)
 			continue
-		draw_circle(position, 25.0, Color(colors["background"], 0.9))
-		draw_circle(position, 19.0, color)
-		draw_arc(position, 27.0, 0.0, TAU, 32, Color(color, 0.55), 3.0, true)
+		draw_circle(position, RACE_BALL_HALO_RADIUS, Color(colors["background"], 0.9))
+		draw_circle(position, RACE_BALL_CORE_RADIUS, color)
+		draw_arc(position, RACE_BALL_RING_RADIUS, 0.0, TAU, 32, Color(color, 0.55), 2.5, true)
 
 
 func _draw_finish_arrivals(force_all: bool = false) -> void:
@@ -537,32 +714,70 @@ func _draw_race_telemetry() -> void:
 
 func _draw_finish_magnifier() -> void:
 	var colors: Dictionary = episode["theme"]["colors"]
-	var finish := _finish_position()
 	var panel := Rect2(1110, 180, 700, 290)
 	_draw_panel(panel)
-	draw_string(VideoTypography.bold(), panel.position + Vector2(28, 50), "终点慢放  ×8", HORIZONTAL_ALIGNMENT_LEFT, -1, 36, colors["text"])
-	draw_string(VideoTypography.data(), panel.position + Vector2(470, 48), "局部放大", HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SECONDARY, colors["muted"])
-	var rail_start := panel.position + Vector2(70, 180)
-	var rail_finish := panel.position + Vector2(620, 180)
-	draw_line(rail_start, rail_finish, Color(colors["divider"], 0.82), 4.0, true)
-	draw_line(rail_finish - Vector2(0, 55), rail_finish + Vector2(0, 55), colors["text"], 4.0, true)
-	for variant_value in episode["variants"]:
-		var variant: Dictionary = variant_value
-		var id := String(variant["id"])
+	draw_string(
+		VideoTypography.bold(), panel.position + Vector2(28, 48), "终点附近",
+		HORIZONTAL_ALIGNMENT_LEFT, -1, 34, colors["text"]
+	)
+	draw_string(
+		VideoTypography.data(), panel.position + Vector2(348, 46), "沿轨道展开 · 8× 回放",
+		HORIZONTAL_ALIGNMENT_RIGHT, 324, FONT_ENVIRONMENT, colors["muted"]
+	)
+	var compared_ids := ["cycloid", "circular-arc"]
+	var local_window_m := 0.50
+	var rail_start_x := panel.position.x + 150.0
+	var rail_finish_x := panel.position.x + 470.0
+	for index in range(compared_ids.size()):
+		var id: String = compared_ids[index]
 		var state: Dictionary = states_by_id.get(id, {})
-		if state.is_empty():
+		var record: Dictionary = records_by_id.get(id, {})
+		if state.is_empty() or record.is_empty():
 			continue
-		var offset_m := maxf(0.0, finish.x - float(Vector2(state["position_px"]).x)) / 100.0
-		var x := rail_finish.x - minf(520.0, offset_m * 140.0)
-		var rank := _arrival_rank(id)
-		var y := rail_start.y - 42.0 + rank * 42.0
+		var y := panel.position.y + 116.0 + float(index) * 58.0
 		var color: Color = colors_by_id.get(id, colors["muted"])
-		draw_circle(Vector2(x, y), 12.0, color)
-		draw_string(VideoTypography.medium(), Vector2(x + 18, y + 9), String(variant["label"]), HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_SECONDARY, color)
+		var label := "摆线" if id == "cycloid" else "圆弧"
+		var path_length := float(record.get("metrics", {}).get("path_length_m", 0.0))
+		var traveled := float(state.get("distance_traveled_m", 0.0))
+		var remaining_m := maxf(0.0, path_length - traveled)
+		var remaining_ratio := clampf(remaining_m / local_window_m, 0.0, 1.0)
+		var ball_x := lerpf(rail_finish_x, rail_start_x, remaining_ratio)
+		draw_circle(Vector2(panel.position.x + 38, y), 6.0, color)
+		draw_string(
+			VideoTypography.medium(), Vector2(panel.position.x + 56, y + 9),
+			label, HORIZONTAL_ALIGNMENT_LEFT, 86,
+			FONT_SECONDARY, colors["text"]
+		)
+		draw_line(
+			Vector2(rail_start_x, y), Vector2(rail_finish_x, y),
+			Color(colors["divider"], 0.64), 3.0, true
+		)
+		draw_circle(Vector2(rail_finish_x, y), 6.0, Color(colors["background"], 0.96))
+		draw_arc(
+			Vector2(rail_finish_x, y), 7.0, 0.0, TAU, 24,
+			Color(colors["muted"], 0.82), 2.0, true
+		)
+		draw_circle(Vector2(ball_x, y), 8.0, color)
+		var arrival_time := float(record.get("metrics", {}).get("arrival_time_sec", 0.0))
+		draw_string(
+			VideoTypography.data(), Vector2(panel.position.x + 500, y + 10),
+			"%.3f s" % arrival_time, HORIZONTAL_ALIGNMENT_RIGHT, 166,
+			FONT_SECONDARY, color
+		)
 	var rows := _sorted_arrival_rows()
 	if rows.size() >= 2:
 		var delta_ms := (float(rows[1]["value"]) - float(rows[0]["value"])) * 1000.0
-		draw_string(VideoTypography.data(), panel.position + Vector2(28, 258), "摆线领先圆弧  %.1f ms" % delta_ms, HORIZONTAL_ALIGNMENT_LEFT, -1, FONT_ESSENTIAL, colors["accent"])
+		var result_alpha := smoothstep(0.28, 0.50, _beat_progress())
+		draw_string(
+			VideoTypography.data(), panel.position + Vector2(28, 258),
+			"真实到达时间差", HORIZONTAL_ALIGNMENT_LEFT, 260,
+			FONT_ENVIRONMENT, Color(colors["muted"], result_alpha)
+		)
+		draw_string(
+			VideoTypography.bold(), panel.position + Vector2(440, 260),
+			"%.1f ms" % delta_ms, HORIZONTAL_ALIGNMENT_RIGHT, 226,
+			FONT_ESSENTIAL, Color(colors["accent"], result_alpha)
+		)
 
 
 func _draw_arrival_results() -> void:
@@ -624,7 +839,7 @@ func _draw_cycloid_generation() -> void:
 	draw_line(center, point, Color(colors["muted"], 0.74), 3.0, true)
 	draw_circle(point, 14.0, colors_by_id.get("cycloid", colors["accent"]))
 	draw_string(VideoTypography.bold(), Vector2(500, 675), "圆周上一点，画出摆线", HORIZONTAL_ALIGNMENT_CENTER, 920, 44, colors["text"])
-	_draw_typst_formula(2, CYCLOID_FORMULA_BOUNDS, Color(colors["text"], 0.88))
+	_draw_typst_formula(3, CYCLOID_FORMULA_BOUNDS, Color(colors["text"], 0.88))
 
 
 func _draw_model_boundary() -> void:

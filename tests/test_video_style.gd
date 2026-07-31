@@ -43,8 +43,8 @@ func run(t) -> void:
 		"narrative body uses Sarasa Gothic SC"
 	)
 	t.check(
-		VideoTypography.data().resource_path.ends_with("SarasaMonoSC-SemiBold.ttf"),
-		"data role uses Sarasa Mono SC"
+		VideoTypography.data().resource_path.ends_with("SarasaGothicSC-SemiBold.ttf"),
+		"data role uses Sarasa Gothic SC without a slashed zero"
 	)
 	t.check(
 		VideoTypography.personality().resource_path.ends_with("SmileySans-Oblique.ttf"),
@@ -84,7 +84,7 @@ func run(t) -> void:
 			"visible typography meets the 1080p readability floor: %s" % role
 		)
 	t.check(
-		VideoTypography.theme().get_font("font", VideoTypography.FORMULA_MAIN) == VideoTypography.data(),
+		VideoTypography.theme().get_font("font", VideoTypography.FORMULA_MAIN) == VideoTypography.formula(),
 		"main equation uses Sarasa Mono SC"
 	)
 	t.check(
@@ -158,7 +158,7 @@ func run(t) -> void:
 		formula.formula_label.theme_type_variation == VideoTypography.FORMULA_MAIN,
 		"main equation uses the dedicated formula role"
 	)
-	var formula_size := VideoTypography.data().get_string_size(
+	var formula_size := VideoTypography.formula().get_string_size(
 		formula.formula_label.text,
 		HORIZONTAL_ALIGNMENT_CENTER,
 		-1,

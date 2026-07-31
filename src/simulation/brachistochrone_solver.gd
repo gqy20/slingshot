@@ -26,6 +26,11 @@ static func simulate(
 	var arrival_time := float(table[-1]["time_sec"])
 	var path_length := float(table[-1]["distance_m"])
 	var arrival_speed := sqrt(2.0 * gravity * drop)
+	var max_depth := 0.0
+	for row_value in table:
+		var row: Dictionary = row_value
+		max_depth = maxf(max_depth, float(Vector2(row["position_m"]).y))
+	var max_speed := sqrt(2.0 * gravity * max_depth)
 	var frames: Array = []
 	var frame_count := roundi(duration_sec * tick_rate) + 1
 	var initial_energy := 0.0
@@ -80,7 +85,7 @@ static func simulate(
 			"arrival_time_sec": arrival_time,
 			"arrival_speed_mps": arrival_speed,
 			"path_length_m": path_length,
-			"max_speed_mps": arrival_speed,
+			"max_speed_mps": max_speed,
 			"max_energy_error_j": max_energy_error,
 			"integration_steps": integration_steps,
 		},
@@ -142,13 +147,18 @@ static func _build_table(
 	for index in range(1, steps + 1):
 		var progress := float(index) / float(steps)
 		var position := _path_point(kind, progress, width, drop, path_parameters)
-		var midpoint := _path_point(
-			kind, (float(index) - 0.5) / float(steps), width, drop, path_parameters
-		)
 		var segment_length := previous.distance_to(position)
-		var midpoint_speed := sqrt(2.0 * gravity * maxf(MIN_DEPTH_M, midpoint.y))
+		# Integrate ds / sqrt(2 g y) analytically over the linearized segment.
+		# This handles the integrable start-at-rest singularity without the
+		# systematic under-estimate produced by midpoint sampling near y = 0.
+		var start_root := sqrt(maxf(0.0, previous.y))
+		var finish_root := sqrt(maxf(0.0, position.y))
+		var segment_time := (
+			2.0 * segment_length
+			/ maxf(sqrt(2.0 * gravity) * (start_root + finish_root), MIN_DEPTH_M)
+		)
 		cumulative_distance += segment_length
-		cumulative_time += segment_length / midpoint_speed
+		cumulative_time += segment_time
 		table.append({
 			"progress": progress,
 			"position_m": position,
@@ -193,10 +203,16 @@ static func _path_parameters(kind: String, width: float, drop: float) -> Diction
 				"radius": drop / (1.0 - cos(theta_end)),
 			}
 		"circular_arc":
-			var radius := (width * width + drop * drop) / (2.0 * width)
+			# Choose the unique circle through both endpoints whose lowest point is
+			# the finish. Unlike the vertical-tangent-at-start construction, this
+			# comparison arc descends monotonically and does not dip below the finish.
+			var radius := (width * width + drop * drop) / (2.0 * drop)
+			var center := Vector2(width, drop - radius)
 			return {
 				"radius": radius,
-				"finish_angle": atan2(drop, width - radius),
+				"center": center,
+				"start_angle": atan2(-center.y, -center.x),
+				"finish_angle": PI * 0.5,
 			}
 	return {}
 
@@ -220,9 +236,11 @@ static func _path_point(
 			)
 		"circular_arc":
 			var radius := float(parameters["radius"])
+			var center: Vector2 = parameters["center"]
+			var start_angle := float(parameters["start_angle"])
 			var finish_angle := float(parameters["finish_angle"])
-			var angle := lerpf(PI, finish_angle, u)
-			return Vector2(radius + radius * cos(angle), radius * sin(angle))
+			var angle := lerpf(start_angle, finish_angle, u)
+			return center + Vector2(radius * cos(angle), radius * sin(angle))
 		_:
 			return Vector2(width * u, drop * u)
 

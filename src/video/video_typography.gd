@@ -62,6 +62,10 @@ static func bold() -> FontFile:
 
 
 static func data() -> FontFile:
+	return GOTHIC_SEMIBOLD
+
+
+static func formula() -> FontFile:
 	return MONO_SEMIBOLD
 
 

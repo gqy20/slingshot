@@ -118,6 +118,54 @@ function Merge-SrtEntriesByBeat(
     return $merged
 }
 
+function Apply-SrtTextReplacements(
+    [System.Collections.Generic.List[object]]$Entries,
+    [object[]]$Replacements
+) {
+    $result = [System.Collections.Generic.List[object]]::new()
+    $replacementCounts = @{}
+    foreach ($replacement in $Replacements) {
+        $from = [string]$replacement.from
+        $to = [string]$replacement.to
+        if ([string]::IsNullOrWhiteSpace($from)) {
+            throw 'narration.subtitle_replacements contains an empty from value'
+        }
+        $replacementCounts[$from] = 0
+    }
+
+    foreach ($entry in $Entries) {
+        $text = [string]$entry.Text
+        foreach ($replacement in $Replacements) {
+            $from = [string]$replacement.from
+            $to = [string]$replacement.to
+            if ($text.Contains($from)) {
+                $replacementCounts[$from] += 1
+                $text = $text.Replace($from, $to)
+            } elseif ($text.Contains($to)) {
+                # Keep -Reuse idempotent when the generated master already uses editorial text.
+                $replacementCounts[$from] += 1
+            }
+        }
+        $result.Add([pscustomobject]@{
+            Start = [int64]$entry.Start
+            End = [int64]$entry.End
+            Text = $text
+        })
+    }
+
+    foreach ($replacement in $Replacements) {
+        $from = [string]$replacement.from
+        if ($replacementCounts[$from] -eq 0) {
+            $to = [string]$replacement.to
+            $targetExists = @($result | Where-Object { ([string]$_.Text).Contains($to) }).Count -gt 0
+            if (-not $targetExists) {
+                throw "Subtitle replacement source was not found: $from"
+            }
+        }
+    }
+    return $result
+}
+
 function Write-SrtEntries([string]$Path, [System.Collections.Generic.List[object]]$Entries) {
     $expanded = [System.Collections.Generic.List[object]]::new()
     foreach ($entry in $Entries) {
@@ -188,17 +236,17 @@ foreach ($episodeInput in $Episode) {
     } else {
         'continuous'
     }
+	$model = if ($narration.PSObject.Properties['model']) { [string]$narration.model } else { 'speech-2.8-hd' }
+	$language = if ($narration.PSObject.Properties['language']) { [string]$narration.language } else { 'Chinese' }
+	$speed = if ($narration.PSObject.Properties['speed']) { [string]$narration.speed } else { '1.0' }
+	$volume = if ($narration.PSObject.Properties['volume']) { [string]$narration.volume } else { '1.0' }
+	$pitch = if ($narration.PSObject.Properties['pitch']) { [string]$narration.pitch } else { '0' }
     $beatTimingLines = @()
 
     if (-not $Reuse) {
         $tempDir = New-SlingshotRenderTempDirectory -Kind 'narration' -EpisodeId $stem
         try {
             $tempAudio = Join-Path $tempDir 'narration.mp3'
-            $model = if ($narration.PSObject.Properties['model']) { [string]$narration.model } else { 'speech-2.8-hd' }
-            $language = if ($narration.PSObject.Properties['language']) { [string]$narration.language } else { 'Chinese' }
-            $speed = if ($narration.PSObject.Properties['speed']) { [string]$narration.speed } else { '1.0' }
-            $volume = if ($narration.PSObject.Properties['volume']) { [string]$narration.volume } else { '1.0' }
-            $pitch = if ($narration.PSObject.Properties['pitch']) { [string]$narration.pitch } else { '0' }
             $tempSrt = Join-Path $tempDir 'narration.srt'
             if ($timingMode -eq 'beats') {
                 $paragraphs = @([regex]::Split(
@@ -288,7 +336,20 @@ foreach ($episodeInput in $Episode) {
         }
         [System.Collections.Generic.List[object]]$beatEntries = Merge-SrtEntriesByBeat `
             -Entries $existingEntries -Beats @($config.beats)
+        if ($narration.PSObject.Properties['subtitle_replacements']) {
+            $beatEntries = Apply-SrtTextReplacements `
+                -Entries $beatEntries -Replacements @($narration.subtitle_replacements)
+        }
         Write-SrtEntries -Path $subtitles -Entries $beatEntries
+        if ($narration.PSObject.Properties['subtitle_script']) {
+            $editorialRelative = [string]$narration.subtitle_script
+            if (-not $editorialRelative.StartsWith('res://') -or $editorialRelative.Contains('..')) {
+                throw "Unsafe narration.subtitle_script: $editorialRelative"
+            }
+            $editorialPath = Join-Path $script:ProjectRoot $editorialRelative.Substring(6).Replace('/', '\')
+            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $editorialPath) | Out-Null
+            Copy-Item -LiteralPath $subtitles -Destination $editorialPath -Force
+        }
     }
 
     & $ffmpeg -y -loglevel error -i $audio `
@@ -314,6 +375,12 @@ foreach ($episodeInput in $Episode) {
         "audio_duration_sec=$duration",
         "video_duration_sec=$videoDuration",
         "timing_mode=$timingMode",
+		"model=$model",
+		"voice=$([string]$narration.voice)",
+		"language=$language",
+		"speed=$speed",
+		"volume=$volume",
+		"pitch=$pitch",
         "mmx_cli=$((& $mmx --version | Select-Object -First 1))",
         'audio_standard=-16_LUFS_-1.5_dBTP_48kHz_mono_PCM24'
     ) + $beatTimingLines

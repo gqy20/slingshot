@@ -86,13 +86,11 @@ func run(t) -> void:
 	t.check(energy_formula.size.y >= 90.0, "energy formula keeps a readable display height")
 	t.check(time_formula.size.y >= 112.0, "time integral keeps a readable display height")
 	t.check(cycloid_formula.size.y >= 160.0, "two-line cycloid formula keeps a readable display height")
+	var energy_panel: Rect2 = TrackRaceCanvas.layout_audit_regions()["energy-drop"][0]
+	t.check(energy_panel.end.y - energy_formula.end.y >= 60.0, "energy formula keeps bottom breathing room")
 	t.check(
-		TrackRaceCanvas.ENERGY_ARROW_TOP - energy_formula.end.y >= 20.0,
-		"energy formula keeps breathing room above the transformation arrow"
-	)
-	t.check(
-		TrackRaceCanvas.TIME_SUPPORTING_BASELINE_Y - time_formula.end.y >= 55.0,
-		"time integral keeps breathing room above its supporting copy"
+		TrackRaceCanvas.TIME_ACCUMULATION_BASELINE_Y - time_formula.end.y >= 60.0,
+		"time integral keeps breathing room above its live accumulation"
 	)
 	t.check(
 		cycloid_formula.end.y <= TrackRaceCanvas.CONTENT_BOTTOM - 20.0,
@@ -108,8 +106,8 @@ func run(t) -> void:
 			explanation.get("module", "") == "track_race",
 			"track course owns a dedicated explanation module"
 		)
-		t.check(explanation.get("steps", []).size() == 3, "track course declares all three formulas")
-		var time_formula_step: Dictionary = explanation.get("steps", [])[1]
+		t.check(explanation.get("steps", []).size() == 4, "track course declares all four Typst formula states")
+		var time_formula_step: Dictionary = explanation.get("steps", [])[2]
 		t.check(
 			FileAccess.get_file_as_string(String(time_formula_step.get("formula_asset", ""))).contains(
 				"viewBox=\"0 0 1400 336\""
@@ -128,7 +126,13 @@ func run(t) -> void:
 			beats_by_id[String(beat_value["id"])] = beat_value
 		t.check(
 			not "headline" in beats_by_id["fair-controls"]["layers"],
-			"fair-control cards do not compete with the shared HUD headline"
+			"fair-control annotations do not compete with the shared HUD headline"
+		)
+		var fair_regions: Array = TrackRaceCanvas.layout_audit_regions()["fair-controls"]
+		var fair_region: Rect2 = fair_regions[0]
+		t.check(
+			fair_regions.size() == 1 and fair_region.position.x >= 1300.0,
+			"fair controls use one quiet note column instead of a row of cards"
 		)
 		t.check(
 			not "results" in beats_by_id["distance-time-table"]["layers"],
