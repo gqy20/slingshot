@@ -119,8 +119,9 @@
 - 发布文案：`docs/publishing/s01e05-bilibili.md`
 - 当前审片预览：`renders/work/s01e05-shortest-is-not-fastest/previews/episode-subtitle-68-final.mp4`
 - 审片规格：`1920 × 1080`、`30 fps`、`219 s`，烧录字幕字号 `42 px`、底边距 `68 px`
-- 正式上传前生成：`renders/masters/s01e05-shortest-is-not-fastest/program-master-4k.mp4`
-- 正式封面待按本文件“封面方向”制作并人工确认
+- 正式成片：`renders/masters/s01e05-shortest-is-not-fastest/program-master-4k.mp4`
+- 推荐封面：`renders/deliveries/s01e05-shortest-is-not-fastest/cover/ep05-cover-a-shortest-not-fastest-bilibili-hq-2292x1434.png`
+- 平台上传包：`renders/deliveries/s01e05-shortest-is-not-fastest/bilibili/`
 - 主标题以 `【物理实验室】` 开头，不添加 `S01E05`
 - 发布前核对 `11.662 m`、`12.58 m`、`1.790 s`、`1.821 s`、`2.150 s` 和约 `30 ms` 的显示值
 - 简介和首评必须保留“固定导轨、匀强重力、无摩擦滑动质点”的模型边界
@@ -130,6 +131,6 @@
 
 - 1080p 完整审片版：已完成
 - 发布文案、时间轴、标签、首评与动态文案：已完成
-- 4K 正式成片：待最终确认后渲染
-- B站封面：待制作与确认
-- 平台上传包与校验清单：待 4K 成片和封面完成后生成
+- 4K 正式成片：已完成并通过 ffprobe 核对
+- B站推荐封面和四版备选：已完成
+- 平台上传包、发布 manifest 与 SHA-256 校验清单：已完成
