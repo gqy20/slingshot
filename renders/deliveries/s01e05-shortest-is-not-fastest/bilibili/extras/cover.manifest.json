@@ -1,0 +1,60 @@
+﻿{
+    "schema_version":  1,
+    "episode_id":  "s01e05-shortest-is-not-fastest",
+    "platform":  "bilibili",
+    "source_video":  "renders/masters/s01e05-shortest-is-not-fastest/program-master-4k.mp4",
+    "exact_facts":  {
+                        "line_path_m":  11.662,
+                        "cycloid_path_m":  12.58,
+                        "line_arrival_s":  2.15,
+                        "arc_arrival_s":  1.821,
+                        "cycloid_arrival_s":  1.79,
+                        "cycloid_arc_lead_ms":  30,
+                        "cycloid_line_lead_s":  0.36,
+                        "extra_distance_m_rounded":  0.92
+                    },
+    "recommended":  "ep05-cover-a-shortest-not-fastest",
+    "exports":  [
+                    {
+                        "id":  "ep05-cover-a-shortest-not-fastest",
+                        "master":  "ep05-cover-a-shortest-not-fastest-master-4584x2868.png",
+                        "bilibili_hq":  "ep05-cover-a-shortest-not-fastest-bilibili-hq-2292x1434.png",
+                        "bilibili":  "ep05-cover-a-shortest-not-fastest-bilibili-1146x717.png",
+                        "social_16_9":  "ep05-cover-a-shortest-not-fastest-social-1920x1080.png",
+                        "mobile_preview":  "ep05-cover-a-shortest-not-fastest-preview-320x200.png"
+                    },
+                    {
+                        "id":  "ep05-cover-b-line-vs-cycloid",
+                        "master":  "ep05-cover-b-line-vs-cycloid-master-4584x2868.png",
+                        "bilibili_hq":  "ep05-cover-b-line-vs-cycloid-bilibili-hq-2292x1434.png",
+                        "bilibili":  "ep05-cover-b-line-vs-cycloid-bilibili-1146x717.png",
+                        "social_16_9":  "ep05-cover-b-line-vs-cycloid-social-1920x1080.png",
+                        "mobile_preview":  "ep05-cover-b-line-vs-cycloid-preview-320x200.png"
+                    },
+                    {
+                        "id":  "ep05-cover-c-time-proof",
+                        "master":  "ep05-cover-c-time-proof-master-4584x2868.png",
+                        "bilibili_hq":  "ep05-cover-c-time-proof-bilibili-hq-2292x1434.png",
+                        "bilibili":  "ep05-cover-c-time-proof-bilibili-1146x717.png",
+                        "social_16_9":  "ep05-cover-c-time-proof-social-1920x1080.png",
+                        "mobile_preview":  "ep05-cover-c-time-proof-preview-320x200.png"
+                    },
+                    {
+                        "id":  "ep05-cover-d-distance-time",
+                        "master":  "ep05-cover-d-distance-time-master-4584x2868.png",
+                        "bilibili_hq":  "ep05-cover-d-distance-time-bilibili-hq-2292x1434.png",
+                        "bilibili":  "ep05-cover-d-distance-time-bilibili-1146x717.png",
+                        "social_16_9":  "ep05-cover-d-distance-time-social-1920x1080.png",
+                        "mobile_preview":  "ep05-cover-d-distance-time-preview-320x200.png"
+                    },
+                    {
+                        "id":  "ep05-cover-e-freeze-frame",
+                        "master":  "ep05-cover-e-freeze-frame-master-4584x2868.png",
+                        "bilibili_hq":  "ep05-cover-e-freeze-frame-bilibili-hq-2292x1434.png",
+                        "bilibili":  "ep05-cover-e-freeze-frame-bilibili-1146x717.png",
+                        "social_16_9":  "ep05-cover-e-freeze-frame-social-1920x1080.png",
+                        "mobile_preview":  "ep05-cover-e-freeze-frame-preview-320x200.png"
+                    }
+                ],
+    "provenance":  "Deterministic PowerShell System.Drawing composition using bundled project fonts and exact episode values."
+}

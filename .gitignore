@@ -5,5 +5,7 @@
 renders/*
 !renders/.gdignore
 !renders/README.md
+!renders/deliveries/
+!renders/deliveries/**
 *.log
 *.out

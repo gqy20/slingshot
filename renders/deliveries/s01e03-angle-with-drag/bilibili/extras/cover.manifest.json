@@ -1,0 +1,39 @@
+﻿{
+    "schema_version":  1,
+    "episode_id":  "s01e03-angle-with-drag",
+    "source_sidecar":  "renders/masters/s01e03-angle-with-drag/program-master-4k.json",
+    "source_preset":  "presets/t001-drag-base.json",
+    "headline":  "40°反而更远？",
+    "identity":  "物理实验室 · 空气阻力实验",
+    "data":  {
+                 "angle_40_range_m":  18.4249935150146,
+                 "angle_45_range_m":  18.2219829559326
+             },
+    "exports":  [
+                    {
+                        "path":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\deliveries\\s01e03-angle-with-drag\\cover\\s01e03-cover-master-2292x1434.png",
+                        "width":  2292,
+                        "height":  1434,
+                        "purpose":  "master"
+                    },
+                    {
+                        "path":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\deliveries\\s01e03-angle-with-drag\\cover\\s01e03-cover-bilibili-1146x717.png",
+                        "width":  1146,
+                        "height":  717,
+                        "purpose":  "bilibili"
+                    },
+                    {
+                        "path":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\deliveries\\s01e03-angle-with-drag\\cover\\s01e03-cover-social-1920x1080.png",
+                        "width":  1920,
+                        "height":  1080,
+                        "purpose":  "social_16_9"
+                    },
+                    {
+                        "path":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\deliveries\\s01e03-angle-with-drag\\cover\\s01e03-cover-preview-320x200.png",
+                        "width":  320,
+                        "height":  200,
+                        "purpose":  "mobile_readability"
+                    }
+                ],
+    "provenance":  "Deterministic Godot trajectory export and PowerShell System.Drawing composition using bundled project fonts."
+}

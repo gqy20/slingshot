@@ -1,0 +1,393 @@
+{
+  "analysis": {
+    "conclusion": "45°属于理想条件；加入空气后，最佳角度由模型和参数共同决定。",
+    "goal": "max",
+    "metric_label": "首次落地水平位移",
+    "metric_unit": "m",
+    "primary_metric": "flight_range_m",
+    "rows": [
+      {
+        "color_html": "557b96",
+        "label": "30°",
+        "metrics": {
+          "air_density_kg_m3": 1.225,
+          "ballistic_coefficient_kg_m2": 15.8731658668779,
+          "dissipated_energy_j": 17.4483837227027,
+          "flight_range_m": 17.5168724060059,
+          "flight_time_sec": 1.6027845895715,
+          "launch_angle_deg": 30.0,
+          "launch_speed_mps": 18.5,
+          "max_height_m": 3.18572521209717,
+          "range_m": 17.5168724060059
+        },
+        "value": 17.5168724060059,
+        "variant_id": "angle-30"
+      },
+      {
+        "color_html": "5f8d98",
+        "label": "34°",
+        "metrics": {
+          "air_density_kg_m3": 1.225,
+          "ballistic_coefficient_kg_m2": 15.8731658668779,
+          "dissipated_energy_j": 17.4207880347967,
+          "flight_range_m": 18.0992736816406,
+          "flight_time_sec": 1.77020668652666,
+          "launch_angle_deg": 34.0,
+          "launch_speed_mps": 18.5,
+          "max_height_m": 3.88732433319092,
+          "range_m": 18.0992736816406
+        },
+        "value": 18.0992736816406,
+        "variant_id": "angle-34"
+      },
+      {
+        "color_html": "72a08d",
+        "label": "38°",
+        "metrics": {
+          "air_density_kg_m3": 1.225,
+          "ballistic_coefficient_kg_m2": 15.8731658668779,
+          "dissipated_energy_j": 17.2870630562305,
+          "flight_range_m": 18.3870582580566,
+          "flight_time_sec": 1.92804220158426,
+          "launch_angle_deg": 38.0,
+          "launch_speed_mps": 18.5,
+          "max_height_m": 4.61084938049316,
+          "range_m": 18.3870582580566
+        },
+        "value": 18.3870582580566,
+        "variant_id": "angle-38"
+      },
+      {
+        "color_html": "98ae7a",
+        "label": "40°",
+        "metrics": {
+          "air_density_kg_m3": 1.225,
+          "ballistic_coefficient_kg_m2": 15.8731658668779,
+          "dissipated_energy_j": 17.1856382767359,
+          "flight_range_m": 18.4249935150146,
+          "flight_time_sec": 2.00339118108017,
+          "launch_angle_deg": 40.0,
+          "launch_speed_mps": 18.5,
+          "max_height_m": 4.97714853286743,
+          "range_m": 18.4249935150146
+        },
+        "value": 18.4249935150146,
+        "variant_id": "angle-40"
+      },
+      {
+        "color_html": "c0af6b",
+        "label": "45°",
+        "metrics": {
+          "air_density_kg_m3": 1.225,
+          "ballistic_coefficient_kg_m2": 15.8731658668779,
+          "dissipated_energy_j": 16.8890160580476,
+          "flight_range_m": 18.2219829559326,
+          "flight_time_sec": 2.18130614338377,
+          "launch_angle_deg": 45.0,
+          "launch_speed_mps": 18.5,
+          "max_height_m": 5.89453601837158,
+          "range_m": 18.2219829559326
+        },
+        "value": 18.2219829559326,
+        "variant_id": "angle-45"
+      },
+      {
+        "color_html": "d79568",
+        "label": "50°",
+        "metrics": {
+          "air_density_kg_m3": 1.225,
+          "ballistic_coefficient_kg_m2": 15.8731658668779,
+          "dissipated_energy_j": 16.5353297720353,
+          "flight_range_m": 17.6076221466064,
+          "flight_time_sec": 2.34406786019347,
+          "launch_angle_deg": 50.0,
+          "launch_speed_mps": 18.5,
+          "max_height_m": 6.7967209815979,
+          "range_m": 17.6076221466064
+        },
+        "value": 17.6076221466064,
+        "variant_id": "angle-50"
+      },
+      {
+        "color_html": "d97868",
+        "label": "56°",
+        "metrics": {
+          "air_density_kg_m3": 1.225,
+          "ballistic_coefficient_kg_m2": 15.8731658668779,
+          "dissipated_energy_j": 16.1040615921219,
+          "flight_range_m": 16.3478240966797,
+          "flight_time_sec": 2.51868211992602,
+          "launch_angle_deg": 56.0,
+          "launch_speed_mps": 18.5,
+          "max_height_m": 7.8291072845459,
+          "range_m": 16.3478240966797
+        },
+        "value": 16.3478240966797,
+        "variant_id": "angle-56"
+      }
+    ],
+    "secondary_label": "阻力耗散",
+    "secondary_metric": "dissipated_energy_j",
+    "secondary_unit": "J",
+    "winner_id": "angle-40",
+    "winner_value": 18.4249935150146
+  },
+  "beat_count": 18,
+  "display_hook": "45°，只在这些条件下成立",
+  "duration_sec": 300.0,
+  "episode": 3,
+  "episode_id": "s01e03-angle-with-drag",
+  "frame_count": 9000,
+  "layout": {
+    "active_shots": [
+      "launch",
+      "follow",
+      "landing",
+      "ranking",
+      "comparison",
+      "takeaway"
+    ],
+    "camera_transition_sec": 0.8,
+    "camera_transitions": true,
+    "layer_profiles_validated": true,
+    "one_intent_per_beat": true,
+    "plot_safe_by_phase": true,
+    "shot_modes": [
+      "immersive",
+      "measurement"
+    ],
+    "subject_overlap_audited": true,
+    "subtitle_long_cues_split": true,
+    "subtitle_max_characters": 88,
+    "subtitle_max_explicit_lines": 2,
+    "trajectory_annotations_data_bound": true
+  },
+  "narration": {
+    "language": "Chinese",
+    "model": "speech-2.8-hd",
+    "pitch": 0,
+    "pronunciations": [
+      "滞空/(zhi4)(kong1)",
+      "阻力系数/(zu3)(li4)(xi4)(shu4)",
+      "弹道系数/(dan4)(dao4)(xi4)(shu4)"
+    ],
+    "script": "res://content/narration/s01e03-angle-with-drag.txt",
+    "speed": 1.08,
+    "subtitle_type": "sentence",
+    "voice": "Chinese (Mandarin)_Sincere_Adult",
+    "volume": 1.0
+  },
+  "provenance": {
+    "deterministic_seeded": true,
+    "engine": "4.7.1-stable (official)",
+    "record_engine": "4.7.1-stable (official)",
+    "record_schema_version": 1.0
+  },
+  "question": "把空气阻力放回模型后，最佳发射角还会停在45°吗？",
+  "render_video": {
+    "fps": 30,
+    "height": 2160,
+    "width": 3840
+  },
+  "schema_version": 1,
+  "season": 1,
+  "series": "物理实验室",
+  "subtitle_cue_count": 80,
+  "title": "45°真的总是飞得最远吗？",
+  "variants": [
+    {
+      "color_html": "557b96",
+      "events": [
+        {
+          "time_sec": 0.0,
+          "type": "launch"
+        },
+        {
+          "range_m": 17.5168724060059,
+          "time_sec": 1.6027845895715,
+          "type": "first_ground_contact"
+        }
+      ],
+      "label": "30°",
+      "metrics": {
+        "air_density_kg_m3": 1.225,
+        "ballistic_coefficient_kg_m2": 15.8731658668779,
+        "dissipated_energy_j": 17.4483837227027,
+        "flight_range_m": 17.5168724060059,
+        "flight_time_sec": 1.6027845895715,
+        "launch_angle_deg": 30.0,
+        "launch_speed_mps": 18.5,
+        "max_height_m": 3.18572521209717,
+        "range_m": 17.5168724060059
+      },
+      "variant_id": "angle-30"
+    },
+    {
+      "color_html": "5f8d98",
+      "events": [
+        {
+          "time_sec": 0.0,
+          "type": "launch"
+        },
+        {
+          "range_m": 18.0992736816406,
+          "time_sec": 1.77020668652666,
+          "type": "first_ground_contact"
+        }
+      ],
+      "label": "34°",
+      "metrics": {
+        "air_density_kg_m3": 1.225,
+        "ballistic_coefficient_kg_m2": 15.8731658668779,
+        "dissipated_energy_j": 17.4207880347967,
+        "flight_range_m": 18.0992736816406,
+        "flight_time_sec": 1.77020668652666,
+        "launch_angle_deg": 34.0,
+        "launch_speed_mps": 18.5,
+        "max_height_m": 3.88732433319092,
+        "range_m": 18.0992736816406
+      },
+      "variant_id": "angle-34"
+    },
+    {
+      "color_html": "72a08d",
+      "events": [
+        {
+          "time_sec": 0.0,
+          "type": "launch"
+        },
+        {
+          "range_m": 18.3870582580566,
+          "time_sec": 1.92804220158426,
+          "type": "first_ground_contact"
+        }
+      ],
+      "label": "38°",
+      "metrics": {
+        "air_density_kg_m3": 1.225,
+        "ballistic_coefficient_kg_m2": 15.8731658668779,
+        "dissipated_energy_j": 17.2870630562305,
+        "flight_range_m": 18.3870582580566,
+        "flight_time_sec": 1.92804220158426,
+        "launch_angle_deg": 38.0,
+        "launch_speed_mps": 18.5,
+        "max_height_m": 4.61084938049316,
+        "range_m": 18.3870582580566
+      },
+      "variant_id": "angle-38"
+    },
+    {
+      "color_html": "98ae7a",
+      "events": [
+        {
+          "time_sec": 0.0,
+          "type": "launch"
+        },
+        {
+          "range_m": 18.4249935150146,
+          "time_sec": 2.00339118108017,
+          "type": "first_ground_contact"
+        }
+      ],
+      "label": "40°",
+      "metrics": {
+        "air_density_kg_m3": 1.225,
+        "ballistic_coefficient_kg_m2": 15.8731658668779,
+        "dissipated_energy_j": 17.1856382767359,
+        "flight_range_m": 18.4249935150146,
+        "flight_time_sec": 2.00339118108017,
+        "launch_angle_deg": 40.0,
+        "launch_speed_mps": 18.5,
+        "max_height_m": 4.97714853286743,
+        "range_m": 18.4249935150146
+      },
+      "variant_id": "angle-40"
+    },
+    {
+      "color_html": "c0af6b",
+      "events": [
+        {
+          "time_sec": 0.0,
+          "type": "launch"
+        },
+        {
+          "range_m": 18.2219829559326,
+          "time_sec": 2.18130614338377,
+          "type": "first_ground_contact"
+        }
+      ],
+      "label": "45°",
+      "metrics": {
+        "air_density_kg_m3": 1.225,
+        "ballistic_coefficient_kg_m2": 15.8731658668779,
+        "dissipated_energy_j": 16.8890160580476,
+        "flight_range_m": 18.2219829559326,
+        "flight_time_sec": 2.18130614338377,
+        "launch_angle_deg": 45.0,
+        "launch_speed_mps": 18.5,
+        "max_height_m": 5.89453601837158,
+        "range_m": 18.2219829559326
+      },
+      "variant_id": "angle-45"
+    },
+    {
+      "color_html": "d79568",
+      "events": [
+        {
+          "time_sec": 0.0,
+          "type": "launch"
+        },
+        {
+          "range_m": 17.6076221466064,
+          "time_sec": 2.34406786019347,
+          "type": "first_ground_contact"
+        }
+      ],
+      "label": "50°",
+      "metrics": {
+        "air_density_kg_m3": 1.225,
+        "ballistic_coefficient_kg_m2": 15.8731658668779,
+        "dissipated_energy_j": 16.5353297720353,
+        "flight_range_m": 17.6076221466064,
+        "flight_time_sec": 2.34406786019347,
+        "launch_angle_deg": 50.0,
+        "launch_speed_mps": 18.5,
+        "max_height_m": 6.7967209815979,
+        "range_m": 17.6076221466064
+      },
+      "variant_id": "angle-50"
+    },
+    {
+      "color_html": "d97868",
+      "events": [
+        {
+          "time_sec": 0.0,
+          "type": "launch"
+        },
+        {
+          "range_m": 16.3478240966797,
+          "time_sec": 2.51868211992602,
+          "type": "first_ground_contact"
+        }
+      ],
+      "label": "56°",
+      "metrics": {
+        "air_density_kg_m3": 1.225,
+        "ballistic_coefficient_kg_m2": 15.8731658668779,
+        "dissipated_energy_j": 16.1040615921219,
+        "flight_range_m": 16.3478240966797,
+        "flight_time_sec": 2.51868211992602,
+        "launch_angle_deg": 56.0,
+        "launch_speed_mps": 18.5,
+        "max_height_m": 7.8291072845459,
+        "range_m": 16.3478240966797
+      },
+      "variant_id": "angle-56"
+    }
+  ],
+  "video": {
+    "fps": 30,
+    "height": 2160,
+    "width": 3840
+  }
+}

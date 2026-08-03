@@ -1,0 +1,196 @@
+{
+  "analysis": {
+    "conclusion": "最快路径不是几何距离最短，而是最善于尽早获得速度的路径。",
+    "goal": "min",
+    "metric_label": "到达时间",
+    "metric_unit": "s",
+    "primary_metric": "arrival_time_sec",
+    "rows": [
+      {
+        "color_html": "7594b3",
+        "label": "直线",
+        "metrics": {
+          "arrival_speed_mps": 10.8498847920151,
+          "arrival_time_sec": 2.14968249605862,
+          "integration_steps": 8000.0,
+          "max_energy_error_j": 0.0000000000000071,
+          "max_speed_mps": 10.8498847920151,
+          "path_length_m": 11.6619036862394
+        },
+        "value": 2.14968249605862,
+        "variant_id": "line"
+      },
+      {
+        "color_html": "d6a85f",
+        "label": "圆弧",
+        "metrics": {
+          "arrival_speed_mps": 10.8498847920151,
+          "arrival_time_sec": 1.82057388014567,
+          "integration_steps": 8000.0,
+          "max_energy_error_j": 0.0000000000000071,
+          "max_speed_mps": 10.8498843608794,
+          "path_length_m": 12.249508861918
+        },
+        "value": 1.82057388014567,
+        "variant_id": "circular-arc"
+      },
+      {
+        "color_html": "f06a47",
+        "label": "摆线",
+        "metrics": {
+          "arrival_speed_mps": 10.8498847920151,
+          "arrival_time_sec": 1.79030191394947,
+          "integration_steps": 8000.0,
+          "max_energy_error_j": 0.0000000000000071,
+          "max_speed_mps": 10.8614696900791,
+          "path_length_m": 12.5809216767441
+        },
+        "value": 1.79030191394947,
+        "variant_id": "cycloid"
+      }
+    ],
+    "secondary_label": "路径长度",
+    "secondary_metric": "path_length_m",
+    "secondary_unit": "m",
+    "winner_id": "cycloid",
+    "winner_value": 1.79030191394947
+  },
+  "beat_count": 14,
+  "display_hook": "最短，不等于最快",
+  "duration_sec": 223.0,
+  "episode": 5,
+  "episode_id": "s01e05-shortest-is-not-fastest",
+  "frame_count": 6690,
+  "layout": {
+    "active_shots": [
+      "launch",
+      "follow",
+      "landing",
+      "ranking",
+      "comparison",
+      "takeaway"
+    ],
+    "camera_transition_sec": 0.8,
+    "camera_transitions": true,
+    "layer_profiles_validated": true,
+    "one_intent_per_beat": true,
+    "plot_safe_by_phase": true,
+    "shot_modes": [
+      "immersive",
+      "measurement"
+    ],
+    "subject_overlap_audited": true,
+    "subtitle_long_cues_split": true,
+    "subtitle_max_characters": 88,
+    "subtitle_max_explicit_lines": 2,
+    "trajectory_annotations_data_bound": true
+  },
+  "narration": {
+    "language": "Chinese",
+    "model": "speech-2.8-hd",
+    "pitch": 0,
+    "pronunciations": [
+      "摆线/(bai3)(xian4)",
+      "圆弧/(yuan2)(hu2)",
+      "摩擦/(mo2)(ca1)"
+    ],
+    "script": "res://content/narration/s01e05-shortest-is-not-fastest.txt",
+    "speed": 1.2,
+    "subtitle_type": "sentence",
+    "voice": "Chinese (Mandarin)_Warm_Bestie",
+    "volume": 1.0
+  },
+  "provenance": {
+    "deterministic_seeded": true,
+    "engine": "4.7.1-stable (official)",
+    "record_engine": "4.7.1-stable (official)",
+    "record_schema_version": 1.0
+  },
+  "question": "三个小球从同一起点滑向同一终点，直线最短，它会最先到达吗？",
+  "render_video": {
+    "fps": 30,
+    "height": 2160,
+    "width": 3840
+  },
+  "schema_version": 1,
+  "season": 1,
+  "series": "物理实验室",
+  "subtitle_cue_count": 46,
+  "title": "最短的路为什么不一定最快？",
+  "variants": [
+    {
+      "color_html": "7594b3",
+      "events": [
+        {
+          "time_sec": 0.0,
+          "type": "release"
+        },
+        {
+          "time_sec": 2.14968249605862,
+          "type": "arrival"
+        }
+      ],
+      "label": "直线",
+      "metrics": {
+        "arrival_speed_mps": 10.8498847920151,
+        "arrival_time_sec": 2.14968249605862,
+        "integration_steps": 8000.0,
+        "max_energy_error_j": 0.0000000000000071,
+        "max_speed_mps": 10.8498847920151,
+        "path_length_m": 11.6619036862394
+      },
+      "variant_id": "line"
+    },
+    {
+      "color_html": "d6a85f",
+      "events": [
+        {
+          "time_sec": 0.0,
+          "type": "release"
+        },
+        {
+          "time_sec": 1.82057388014567,
+          "type": "arrival"
+        }
+      ],
+      "label": "圆弧",
+      "metrics": {
+        "arrival_speed_mps": 10.8498847920151,
+        "arrival_time_sec": 1.82057388014567,
+        "integration_steps": 8000.0,
+        "max_energy_error_j": 0.0000000000000071,
+        "max_speed_mps": 10.8498843608794,
+        "path_length_m": 12.249508861918
+      },
+      "variant_id": "circular-arc"
+    },
+    {
+      "color_html": "f06a47",
+      "events": [
+        {
+          "time_sec": 0.0,
+          "type": "release"
+        },
+        {
+          "time_sec": 1.79030191394947,
+          "type": "arrival"
+        }
+      ],
+      "label": "摆线",
+      "metrics": {
+        "arrival_speed_mps": 10.8498847920151,
+        "arrival_time_sec": 1.79030191394947,
+        "integration_steps": 8000.0,
+        "max_energy_error_j": 0.0000000000000071,
+        "max_speed_mps": 10.8614696900791,
+        "path_length_m": 12.5809216767441
+      },
+      "variant_id": "cycloid"
+    }
+  ],
+  "video": {
+    "fps": 30,
+    "height": 2160,
+    "width": 3840
+  }
+}

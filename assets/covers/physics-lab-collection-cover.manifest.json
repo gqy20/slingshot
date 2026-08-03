@@ -1,0 +1,31 @@
+{
+  "artifact": "physics-lab-collection-cover",
+  "version": 5,
+  "canvas": {
+    "width": 1080,
+    "height": 1080,
+    "unit": "px"
+  },
+  "format": "svg",
+  "copy": {
+    "series": "物理实验室",
+    "tagline": "把直觉放进实验里"
+  },
+  "palette": {
+    "background": "#050608",
+    "surface": "#090B0E",
+    "text": "#F4F1EA",
+    "muted": "#A9ADB4",
+    "accent": "#FF8A3D",
+    "highlight": "#FFB15C"
+  },
+  "fonts": [
+    "assets/fonts/SmileySans-Oblique.ttf",
+    "assets/fonts/SarasaGothicSC-Regular.ttf",
+    "assets/fonts/SarasaGothicSC-SemiBold.ttf",
+    "assets/fonts/SarasaGothicSC-Bold.ttf"
+  ],
+  "source": "assets/covers/physics-lab-collection-cover.svg",
+  "generated_preview": "renders/covers/physics-lab-collection/physics-lab-collection-cover-preview.png",
+  "generated_thumbnail": "renders/covers/physics-lab-collection/physics-lab-collection-cover-thumbnail.png"
+}

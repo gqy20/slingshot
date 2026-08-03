@@ -1,0 +1,53 @@
+{
+    "schema_version":  1,
+    "episode_id":  "s01e05-shortest-is-not-fastest",
+    "platform":  "bilibili",
+    "packaged_at_utc":  "2026-08-02T07:29:25.7705858Z",
+    "recommended_title":  "【物理实验室】直线最短，为什么摆线反而先到终点？",
+    "model_scope":  "uniform gravity; fixed tracks; frictionless sliding point mass; shared endpoints",
+    "primary_files":  {
+                          "video":  {
+                                        "path":  "video.mp4",
+                                        "bytes":  25144756,
+                                        "sha256":  "3133e2f444bc45bb31407c95164764eeb71b1665cd5299e9eca6fd2d47e41cd9",
+                                        "width":  3840,
+                                        "height":  2160,
+                                        "frame_rate":  "30/1",
+                                        "duration_sec":  223,
+                                        "video_codec":  "h264",
+                                        "audio_codec":  "aac",
+                                        "audio_sample_rate_hz":  48000,
+                                        "audio_channels":  1
+                                    },
+                          "cover":  {
+                                        "path":  "cover.png",
+                                        "bytes":  274847,
+                                        "sha256":  "8456b16a1690500a4560e5dbe275da4dfec4605696ff8db5cfc97349618855bd",
+                                        "width":  2292,
+                                        "height":  1434,
+                                        "dpi":  600,
+                                        "direction":  "ep05-cover-a-shortest-not-fastest"
+                                    },
+                          "publishing_copy":  {
+                                                  "path":  "publish-copy.md",
+                                                  "bytes":  7072,
+                                                  "sha256":  "ad1a124ee0e0c0edfd2414aee831ceecf413738c724b247c2f6cbbe15557b462"
+                                              }
+                      },
+    "alternatives":  [
+                         "cover-options/ep05-cover-b-line-vs-cycloid-bilibili-1146x717.png",
+                         "cover-options/ep05-cover-c-time-proof-bilibili-1146x717.png",
+                         "cover-options/ep05-cover-d-distance-time-bilibili-1146x717.png",
+                         "cover-options/ep05-cover-e-freeze-frame-bilibili-1146x717.png"
+                     ],
+    "supporting_files":  [
+                             "extras/cover-master-4584x2868.png",
+                             "extras/cover-social-1920x1080.png",
+                             "extras/cover-preview-320x200.png",
+                             "extras/cover.manifest.json",
+                             "extras/video-analysis.json",
+                             "extras/video-render.manifest.txt",
+                             "extras/subtitles-source.srt",
+                             "extras/subtitles-display.srt"
+                         ]
+}

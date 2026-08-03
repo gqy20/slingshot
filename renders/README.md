@@ -1,6 +1,8 @@
 # Render output layout
 
-Generated media is not committed. Every output category has one stable home:
+Temporary renders and working media are not committed. Final publishing packages
+under `deliveries/` are versioned; binary media there is stored with Git LFS.
+Every output category has one stable home:
 
 ```text
 renders/

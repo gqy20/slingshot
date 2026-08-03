@@ -1,0 +1,53 @@
+﻿{
+    "schema_version":  1,
+    "episode_id":  "s01e04-impact-force-curve",
+    "platform":  "bilibili",
+    "source_video":  "renders/final/s01e04-impact-force-curve-final-review-v4.mp4",
+    "exact_facts":  {
+                        "mass_kg":  1,
+                        "impact_speed_mps":  5,
+                        "rebound_speed_mps":  3,
+                        "impulse_ns":  8,
+                        "hard_contact_ms":  8,
+                        "hard_peak_force_n":  1570,
+                        "soft_contact_ms":  40,
+                        "soft_peak_force_n":  314,
+                        "peak_ratio":  5
+                    },
+    "recommended":  "ep04-cover-a-fivefold",
+    "exports":  [
+                    {
+                        "id":  "ep04-cover-a-fivefold",
+                        "master":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-a-fivefold-master-4584x2868.png",
+                        "bilibili_hq":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-a-fivefold-bilibili-hq-2292x1434.png",
+                        "bilibili":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-a-fivefold-bilibili-1146x717.png",
+                        "social_16_9":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-a-fivefold-social-1920x1080.png",
+                        "mobile_preview":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-a-fivefold-preview-320x200.png"
+                    },
+                    {
+                        "id":  "ep04-cover-b-duration",
+                        "master":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-b-duration-master-4584x2868.png",
+                        "bilibili_hq":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-b-duration-bilibili-hq-2292x1434.png",
+                        "bilibili":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-b-duration-bilibili-1146x717.png",
+                        "social_16_9":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-b-duration-social-1920x1080.png",
+                        "mobile_preview":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-b-duration-preview-320x200.png"
+                    },
+                    {
+                        "id":  "ep04-cover-c-readout",
+                        "master":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-c-readout-master-4584x2868.png",
+                        "bilibili_hq":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-c-readout-bilibili-hq-2292x1434.png",
+                        "bilibili":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-c-readout-bilibili-1146x717.png",
+                        "social_16_9":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-c-readout-social-1920x1080.png",
+                        "mobile_preview":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-c-readout-preview-320x200.png"
+                    },
+                    {
+                        "id":  "ep04-cover-d-not-number",
+                        "master":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-d-not-number-master-4584x2868.png",
+                        "bilibili_hq":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-d-not-number-bilibili-hq-2292x1434.png",
+                        "bilibili":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-d-not-number-bilibili-1146x717.png",
+                        "social_16_9":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-d-not-number-social-1920x1080.png",
+                        "mobile_preview":  "D:\\C\\Desktop\\ai\\slingshot\\renders\\publishing\\s01e04-impact-force-curve\\cover\\ep04-cover-d-not-number-preview-320x200.png"
+                    }
+                ],
+    "provenance":  "Deterministic PowerShell System.Drawing composition using bundled project fonts and episode data."
+}

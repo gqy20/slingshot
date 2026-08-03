@@ -1,0 +1,53 @@
+{
+    "schema_version":  1,
+    "episode_id":  "s01e04-impact-force-curve",
+    "platform":  "bilibili",
+    "packaged_at_utc":  "2026-07-29T06:53:35.8455640Z",
+    "recommended_title":  "【物理实验室】同一颗球、同样速度，为什么钢板的接触力峰值是软垫的5倍？",
+    "model_scope":  "1D normal impact; equal half-sine waveform and 8 N*s normal impulse",
+    "primary_files":  {
+                          "video":  {
+                                        "path":  "video.mp4",
+                                        "bytes":  27032730,
+                                        "sha256":  "8c0293e45e783c84c5bb9b8fe2e1c20bd39c61b43c77f1a46d15f9de40b49f8b",
+                                        "width":  3840,
+                                        "height":  2160,
+                                        "frame_rate":  "30/1",
+                                        "duration_sec":  220,
+                                        "video_codec":  "h264",
+                                        "audio_codec":  "aac",
+                                        "audio_sample_rate_hz":  48000,
+                                        "audio_channels":  2
+                                    },
+                          "cover":  {
+                                        "path":  "cover.png",
+                                        "bytes":  327399,
+                                        "sha256":  "3abb11a4710e7151d377ad58b4fa1de2acd477b82627567fb065f9c60e203464",
+                                        "width":  2292,
+                                        "height":  1434,
+                                        "dpi":  600,
+                                        "direction":  "ep04-cover-a-fivefold"
+                                    },
+                          "publishing_copy":  {
+                                                  "path":  "publish-copy.md",
+                                                  "bytes":  7274,
+                                                  "sha256":  "d4bda195cb63e06d5077ec6353be0596e38016852e139dc9119603340ba2422f"
+                                              }
+                      },
+    "alternatives":  [
+                         "cover-options/ep04-cover-b-duration-bilibili-1146x717.png",
+                         "cover-options/ep04-cover-c-readout-bilibili-1146x717.png",
+                         "cover-options/ep04-cover-d-not-number-bilibili-1146x717.png"
+                     ],
+    "internal_records":  {
+                             "public_copy":  false,
+                             "contest":  {
+                                             "status":  "entered",
+                                             "label":  "Bilibili Science 3 Minutes 2026",
+                                             "activity_url":  "https://www.bilibili.com/blackboard/era/science3min2026pc.html?spm_id_from=333.1035.top.function_card.click",
+                                             "note":  "publish-copy.md (internal contest note section)"
+                                         },
+                             "bgm_license":  "extras/bgm-license-mixkit.md",
+                             "burned_subtitles":  "extras/subtitles-burn-in.srt"
+                         }
+}

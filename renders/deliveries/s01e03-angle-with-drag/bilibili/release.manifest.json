@@ -1,0 +1,55 @@
+{
+    "schema_version":  1,
+    "episode_id":  "s01e03-angle-with-drag",
+    "platform":  "bilibili",
+    "packaged_at_utc":  "2026-07-30T00:56:30.9677507Z",
+    "primary_files":  {
+                          "video":  {
+                                        "path":  "renders/deliveries/s01e03-angle-with-drag/bilibili/video.mp4",
+                                        "bytes":  31573532,
+                                        "sha256":  "6126cef9c5ae6a0ba3908b614f403a034c8d9ce5c8962df4e9a7a1e53bb493a2",
+                                        "width":  3840,
+                                        "height":  2160,
+                                        "frame_rate":  "30/1",
+                                        "duration_sec":  300,
+                                        "video_codec":  "h264",
+                                        "audio_codec":  "aac",
+                                        "audio_sample_rate_hz":  48000,
+                                        "audio_channels":  1
+                                    },
+                          "cover":  {
+                                        "path":  "renders/deliveries/s01e03-angle-with-drag/bilibili/cover.png",
+                                        "bytes":  159436,
+                                        "sha256":  "fb2bfe9d396740359575e01710232c2ec0528b95ef89c91de36fc262d3237f04",
+                                        "width":  1146,
+                                        "height":  717
+                                    },
+                          "publishing_copy":  {
+                                                  "path":  "renders/deliveries/s01e03-angle-with-drag/bilibili/publish-copy.md",
+                                                  "bytes":  6002,
+                                                  "sha256":  "7592f4275a5fdad8c4c01904748f9d641a71c225c7ebe50330049419186ed6bc",
+                                                  "source":  "docs/publishing/s01e03-bilibili.md"
+                                              }
+                      },
+    "supporting_files":  [
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/extras/cover-master.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/extras/cover-social-1920x1080.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/extras/cover-preview-320x200.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/extras/video-sidecar.json",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/extras/video-render.manifest.txt",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/extras/cover.manifest.json",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/extras/trajectory-data.json",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/01-opening-question-0005s.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/02-counterintuitive-result-0013s.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/03-drag-force-model-0072s.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/04-angle-setup-0132s.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/05-simultaneous-launch-0139s.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/06-drag-in-flight-0151s.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/07-landing-comparison-0160s.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/08-vacuum-vs-drag-peaks-0205s.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/09-parameter-shift-0235s.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/10-final-takeaway-0288s.png",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/README.md",
+                             "renders/deliveries/s01e03-angle-with-drag/bilibili/examples/showcase-contact-sheet.png"
+                         ]
+}

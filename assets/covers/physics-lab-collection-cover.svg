@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080" role="img" aria-labelledby="title desc">
+  <title id="title">物理实验室：把直觉放进实验里</title>
+  <desc id="desc">深色方形封面。一颗橙色小球从弹弓出发，沿一条连续轨迹运动，配合“物理实验室”和“把直觉放进实验里”两层文字。</desc>
+
+  <defs>
+    <style>
+      @font-face {
+        font-family: "Sarasa Cover";
+        src: url("../fonts/SarasaGothicSC-Regular.ttf") format("truetype");
+        font-weight: 400;
+      }
+      @font-face {
+        font-family: "Sarasa Cover";
+        src: url("../fonts/SarasaGothicSC-SemiBold.ttf") format("truetype");
+        font-weight: 600;
+      }
+      @font-face {
+        font-family: "Sarasa Cover";
+        src: url("../fonts/SarasaGothicSC-Bold.ttf") format("truetype");
+        font-weight: 700;
+      }
+      @font-face {
+        font-family: "Smiley Cover";
+        src: url("../fonts/SmileySans-Oblique.ttf") format("truetype");
+      }
+      .sans { font-family: "Sarasa Cover", "Microsoft YaHei", sans-serif; }
+      .display { font-family: "Smiley Cover", "Sarasa Cover", "Microsoft YaHei", sans-serif; }
+      .mono { font-family: "Sarasa Mono SC", "Cascadia Mono", monospace; }
+    </style>
+
+    <pattern id="minor-grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M36 0H0V36" fill="none" stroke="#30343B" stroke-width="1" opacity="0.13"/>
+    </pattern>
+    <pattern id="major-grid" width="144" height="144" patternUnits="userSpaceOnUse">
+      <rect width="144" height="144" fill="url(#minor-grid)"/>
+      <path d="M144 0H0V144" fill="none" stroke="#59606B" stroke-width="1.5" opacity="0.11"/>
+    </pattern>
+    <radialGradient id="field-glow" cx="78%" cy="53%" r="58%">
+      <stop offset="0" stop-color="#FF8A3D" stop-opacity="0.10"/>
+      <stop offset="0.42" stop-color="#2B150B" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#050608" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ball-fill" cx="34%" cy="28%" r="72%">
+      <stop offset="0" stop-color="#FFD3A1"/>
+      <stop offset="0.28" stop-color="#FFB15C"/>
+      <stop offset="0.72" stop-color="#FF8A3D"/>
+      <stop offset="1" stop-color="#C64C15"/>
+    </radialGradient>
+    <linearGradient id="trajectory" x1="146" y1="766" x2="941" y2="660" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF8A3D" stop-opacity="0.16"/>
+      <stop offset="0.28" stop-color="#FF8A3D" stop-opacity="0.62"/>
+      <stop offset="0.72" stop-color="#FFB15C"/>
+      <stop offset="1" stop-color="#D7D3CA" stop-opacity="0.52"/>
+    </linearGradient>
+    <filter id="soft-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+    <filter id="ball-shadow" x="-100%" y="-100%" width="300%" height="300%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+    <clipPath id="safe-field">
+      <rect x="54" y="54" width="972" height="972" rx="22"/>
+    </clipPath>
+  </defs>
+
+  <!-- Stage -->
+  <rect width="1080" height="1080" fill="#050608"/>
+  <g clip-path="url(#safe-field)">
+    <rect x="54" y="54" width="972" height="972" fill="url(#major-grid)"/>
+    <rect x="54" y="54" width="972" height="972" fill="url(#field-glow)"/>
+    <circle cx="797" cy="576" r="204" fill="#FF8A3D" opacity="0.025" filter="url(#soft-glow)"/>
+  </g>
+  <rect x="54.75" y="54.75" width="970.5" height="970.5" rx="21.25" fill="none" stroke="#30343B" stroke-width="1.5"/>
+
+  <!-- Main title -->
+  <g class="display">
+    <text x="80" y="289" fill="#F4F1EA" font-size="138" letter-spacing="0">物理实验室</text>
+  </g>
+  <g class="sans">
+    <text x="85" y="369" fill="#FFB15C" font-size="42" font-weight="600" letter-spacing="0.5">把直觉放进实验里</text>
+  </g>
+
+  <!-- Slingshot / curve / evidence graphic -->
+  <g transform="translate(0 -40)">
+    <!-- fork -->
+    <path d="M151 873L187 755M151 873L285 781" fill="none" stroke="#D7D3CA" stroke-width="16" stroke-linecap="round"/>
+    <path d="M186 756L270 739M284 781L270 739" fill="none" stroke="#FF8A3D" stroke-width="7" stroke-linecap="round" opacity="0.92"/>
+    <circle cx="270" cy="739" r="17" fill="#FF8A3D"/>
+
+    <!-- one quiet comparison path preserves the idea of testing alternatives -->
+    <path d="M270 739C422 560 570 568 728 707C806 776 875 759 940 632" fill="none" stroke="#7594B3" stroke-width="2" stroke-dasharray="5 11" opacity="0.26"/>
+
+    <!-- primary continuous path -->
+    <path d="M270 739C420 493 589 514 722 677C803 777 875 749 940 632" fill="none" stroke="#FF8A3D" stroke-width="18" stroke-linecap="round" opacity="0.08" filter="url(#soft-glow)"/>
+    <path d="M270 739C420 493 589 514 722 677C803 777 875 749 940 632" fill="none" stroke="url(#trajectory)" stroke-width="7" stroke-linecap="round"/>
+
+    <!-- active body -->
+    <circle cx="722" cy="677" r="60" fill="#FF8A3D" opacity="0.11" filter="url(#soft-glow)"/>
+    <circle cx="722" cy="677" r="35" fill="url(#ball-fill)" filter="url(#ball-shadow)"/>
+    <circle cx="710" cy="666" r="9" fill="#FFF0D8" opacity="0.72"/>
+
+  </g>
+</svg>

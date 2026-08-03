@@ -1,0 +1,9 @@
+renders/deliveries/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+renders/deliveries/**/*.png filter=lfs diff=lfs merge=lfs -text
+renders/deliveries/**/*.wav filter=lfs diff=lfs merge=lfs -text
+renders/deliveries/**/*.flac filter=lfs diff=lfs merge=lfs -text
+renders/deliveries/**/*.zip filter=lfs diff=lfs merge=lfs -text
+assets/fonts/**/*.ttf filter=lfs diff=lfs merge=lfs -text
+assets/audio/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+assets/audio/**/*.wav filter=lfs diff=lfs merge=lfs -text
+assets/audio/**/*.flac filter=lfs diff=lfs merge=lfs -text
