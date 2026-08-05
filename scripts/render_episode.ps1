@@ -249,7 +249,7 @@ try {
         New-Item -ItemType Directory -Force -Path $rawFrames, $projectView | Out-Null
         Copy-Item -LiteralPath (Join-Path $script:ProjectRoot 'project.godot') -Destination $projectView
         Copy-Item -LiteralPath (Join-Path $script:ProjectRoot 'episode.tscn') -Destination $projectView
-        foreach ($entry in @('assets', 'content', 'presets', 'src')) {
+        foreach ($entry in @('assets', 'content', 'data', 'presets', 'src')) {
             New-Item -ItemType Junction -Path (Join-Path $projectView $entry) `
                 -Target (Join-Path $script:ProjectRoot $entry) | Out-Null
         }

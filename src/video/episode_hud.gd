@@ -88,9 +88,10 @@ func configure(
 		tag_label.text = "%s  ·  %s  /  %s" % [episode["series"], tag, identity_label]
 	else:
 		tag_label.text = "%s  ·  %s" % [episode["series"], identity_label]
-	outro_brand_label.text = String(episode["series"])
-	outro_descriptor_label.text = identity_label
 	var brand: Dictionary = episode["story"].get("brand", {})
+	_configure_outro_layout(bool(brand.get("outro_large", false)))
+	outro_brand_label.text = String(episode["series"])
+	outro_descriptor_label.text = String(brand.get("outro_descriptor", identity_label))
 	outro_takeaway_label.text = String(brand.get(
 		"outro_takeaway",
 		"条件说清楚，角度才有答案。"
@@ -387,6 +388,27 @@ func _build_outro_ui() -> void:
 	outro_panel.add_child(outro_descriptor_label)
 
 
+func _configure_outro_layout(use_large_layout: bool) -> void:
+	if use_large_layout:
+		outro_mark.position = Vector2(850, 344)
+		outro_mark.size = Vector2(220, 192)
+		outro_brand_label.position = Vector2(460, 566)
+		outro_brand_label.size = Vector2(1000, 82)
+		outro_brand_label.add_theme_font_size_override("font_size", 52)
+		outro_descriptor_label.position = Vector2(610, 650)
+		outro_descriptor_label.size = Vector2(700, 48)
+		outro_descriptor_label.add_theme_font_size_override("font_size", 28)
+		return
+	outro_mark.position = Vector2(920, 420)
+	outro_mark.size = Vector2(80, 70)
+	outro_brand_label.position = Vector2(560, 520)
+	outro_brand_label.size = Vector2(800, 58)
+	outro_brand_label.add_theme_font_size_override("font_size", 36)
+	outro_descriptor_label.position = Vector2(660, 582)
+	outro_descriptor_label.size = Vector2(600, 42)
+	outro_descriptor_label.remove_theme_font_size_override("font_size")
+
+
 func _update_brand_outro(video_time_sec: float) -> void:
 	if episode.is_empty():
 		outro_panel.visible = false
@@ -403,22 +425,31 @@ func _update_brand_outro(video_time_sec: float) -> void:
 	var progress := clampf((video_time_sec - start) / maxf(0.01, duration - start), 0.0, 1.0)
 	outro_panel.visible = true
 	var background: Color = episode["theme"]["colors"]["background"]
+	var has_takeaway := not outro_takeaway_label.text.strip_edges().is_empty()
 	# Clear the previous scene before introducing the takeaway, so the two
 	# typographic layers never compete during the handoff.
 	outro_scrim.color = Color(background, smoothstep(0.0, 0.10, progress))
-	var takeaway_alpha := (
-		smoothstep(0.11, 0.25, progress)
-		* (1.0 - smoothstep(0.42, 0.56, progress))
-	)
+	var takeaway_alpha := 0.0
+	if has_takeaway:
+		takeaway_alpha = (
+			smoothstep(0.11, 0.25, progress)
+			* (1.0 - smoothstep(0.42, 0.56, progress))
+		)
 	outro_takeaway_label.modulate.a = takeaway_alpha
+	var brand_in_start := 0.34 if has_takeaway else 0.08
+	var brand_in_end := 0.58 if has_takeaway else 0.30
+	var mark_start := 0.22 if has_takeaway else 0.04
+	var mark_end := 0.62 if has_takeaway else 0.48
 	var brand_alpha := (
-		smoothstep(0.34, 0.58, progress)
+		smoothstep(brand_in_start, brand_in_end, progress)
 		* (1.0 - smoothstep(0.78, 0.94, progress))
 	)
-	outro_mark.set_progress(smoothstep(0.22, 0.62, progress))
+	outro_mark.set_progress(smoothstep(mark_start, mark_end, progress))
 	outro_mark.modulate.a = brand_alpha
 	outro_brand_label.modulate.a = brand_alpha
-	outro_descriptor_label.modulate.a = brand_alpha * smoothstep(0.48, 0.68, progress)
+	var descriptor_start := 0.48 if has_takeaway else 0.24
+	var descriptor_end := 0.68 if has_takeaway else 0.44
+	outro_descriptor_label.modulate.a = brand_alpha * smoothstep(descriptor_start, descriptor_end, progress)
 	subtitle_panel.visible = false
 
 

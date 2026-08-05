@@ -1,0 +1,24 @@
+{
+  "id": "t011-earth-quasi-satellite-base",
+  "duration_sec": 12.0,
+  "video": {"width": 1920, "height": 1080, "fps": 60},
+  "physics": {
+    "pixels_per_meter": 1.0,
+    "orbital_period_years": 1.0
+  },
+  "scene": {
+    "launch_position_m": [0.0, 0.0],
+    "target_position_m": [1.0, 0.0],
+    "ground_y_m": 1.0,
+    "data_mode": "horizons",
+    "ephemeris_path": "res://data/ephemerides/2016-ho3-earth-2010-2050.json",
+    "window_start_jd": 2455197.5,
+    "window_end_jd": 2470167.5,
+    "semi_major_axis_au": 1.0,
+    "eccentricity": 0.08,
+    "period_ratio": 1.0,
+    "analytic_year_span": 1.0,
+    "phase_offset_rad": 0.55,
+    "periapsis_angle_rad": -0.35
+  }
+}

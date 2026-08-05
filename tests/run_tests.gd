@@ -5,6 +5,7 @@ const TEST_CASES := [
 	preload("res://tests/test_projectile_drag_solver.gd"),
 	preload("res://tests/test_impact_pulse_solver.gd"),
 	preload("res://tests/test_brachistochrone_solver.gd"),
+	preload("res://tests/test_quasi_satellite_solver.gd"),
 	preload("res://tests/test_preset_loader.gd"),
 	preload("res://tests/test_simulation_nodes.gd"),
 	preload("res://tests/test_episode_loader.gd"),

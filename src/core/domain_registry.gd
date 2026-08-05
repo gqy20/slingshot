@@ -4,8 +4,9 @@ extends RefCounted
 const ProjectileDomain = preload("res://src/domains/projectile_domain.gd")
 const ImpactDomain = preload("res://src/domains/impact_domain.gd")
 const TrackRaceDomain = preload("res://src/domains/track_race_domain.gd")
+const OrbitalCompanionDomain = preload("res://src/domains/orbital_companion_domain.gd")
 
-const DOMAINS := [ProjectileDomain, ImpactDomain, TrackRaceDomain]
+const DOMAINS := [ProjectileDomain, ImpactDomain, TrackRaceDomain, OrbitalCompanionDomain]
 
 
 static func for_model(model: String) -> Variant:
