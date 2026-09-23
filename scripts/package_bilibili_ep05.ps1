@@ -51,8 +51,8 @@ if ([int]$videoStream.width -ne 3840 -or [int]$videoStream.height -ne 2160) {
     throw "Expected 3840x2160, got $($videoStream.width)x$($videoStream.height)."
 }
 $duration = [double]$probe.format.duration
-if ([Math]::Abs($duration - 219.0) -gt 0.05) {
-    throw "Expected 219 seconds, got $duration."
+if ([Math]::Abs($duration - 223.0) -gt 0.05) {
+    throw "Expected 223 seconds, got $duration."
 }
 
 $videoManifestText = Get-Content -Raw -Encoding UTF8 -LiteralPath $videoManifestPath

@@ -117,8 +117,8 @@
 ## 发布检查
 
 - 发布文案：`docs/publishing/s01e05-bilibili.md`
-- 当前审片预览：`renders/work/s01e05-shortest-is-not-fastest/previews/episode-subtitle-68-final.mp4`
-- 审片规格：`1920 × 1080`、`30 fps`、`219 s`，烧录字幕字号 `42 px`、底边距 `68 px`
+- 当前审片预览：`renders/work/s01e05-shortest-is-not-fastest/previews/episode-interaction-outro-223.mp4`
+- 审片规格：`1920 × 1080`、`30 fps`、`223 s`，烧录字幕字号 `42 px`、底边距 `68 px`
 - 正式成片：`renders/masters/s01e05-shortest-is-not-fastest/program-master-4k.mp4`
 - 推荐封面：`renders/deliveries/s01e05-shortest-is-not-fastest/cover/ep05-cover-a-shortest-not-fastest-bilibili-hq-2292x1434.png`
 - 平台上传包：`renders/deliveries/s01e05-shortest-is-not-fastest/bilibili/`
@@ -131,6 +131,6 @@
 
 - 1080p 完整审片版：已完成
 - 发布文案、时间轴、标签、首评与动态文案：已完成
-- 4K 正式成片：已完成并通过 ffprobe 核对
+- 4K 正式成片：已按当前 `223 s` 时间线重新生成，并通过 ffprobe 与关键帧核对
 - B站推荐封面和四版备选：已完成
-- 平台上传包、发布 manifest 与 SHA-256 校验清单：已完成
+- 平台上传包、发布 manifest 与 SHA-256 校验清单：已基于当前 `223 s` 4K 成片重新生成并核对

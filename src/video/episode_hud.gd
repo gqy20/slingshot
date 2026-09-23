@@ -392,12 +392,12 @@ func _configure_outro_layout(use_large_layout: bool) -> void:
 	if use_large_layout:
 		outro_mark.position = Vector2(850, 344)
 		outro_mark.size = Vector2(220, 192)
-		outro_brand_label.position = Vector2(460, 566)
-		outro_brand_label.size = Vector2(1000, 82)
-		outro_brand_label.add_theme_font_size_override("font_size", 52)
+		outro_brand_label.position = Vector2(460, 558)
+		outro_brand_label.size = Vector2(1000, 94)
+		outro_brand_label.add_theme_font_size_override("font_size", 60)
 		outro_descriptor_label.position = Vector2(610, 650)
-		outro_descriptor_label.size = Vector2(700, 48)
-		outro_descriptor_label.add_theme_font_size_override("font_size", 28)
+		outro_descriptor_label.size = Vector2(700, 64)
+		outro_descriptor_label.add_theme_font_size_override("font_size", 40)
 		return
 	outro_mark.position = Vector2(920, 420)
 	outro_mark.size = Vector2(80, 70)

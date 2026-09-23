@@ -7,5 +7,15 @@ renders/*
 !renders/README.md
 !renders/deliveries/
 !renders/deliveries/**
+renders/deliveries/**/*.mp4
+renders/deliveries/**/*.mov
+renders/deliveries/**/*.mkv
+renders/deliveries/**/*.webm
+renders/deliveries/**/*.png
+renders/deliveries/**/*.jpg
+renders/deliveries/**/*.jpeg
+renders/deliveries/**/*.wav
+renders/deliveries/**/*.flac
+renders/deliveries/**/*.zip
 *.log
 *.out

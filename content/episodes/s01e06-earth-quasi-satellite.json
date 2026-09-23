@@ -6,10 +6,16 @@
   "episode": 6,
   "title": "它看起来绕着地球，为什么却不是月亮？",
   "question": "同一颗小行星在地球参考系里画圈，为什么主要轨道中心却仍是太阳？",
-  "display_hook": "看起来绕地球，不等于轨道中心是地球",
+  "display_hook": "它究竟绕地球，还是绕太阳？",
   "base_preset": "res://presets/t011-earth-quasi-satellite-base.json",
   "theme": "res://content/themes/laboratory.json",
-  "video": {"width": 3840, "height": 2160, "fps": 30},
+  "video": {
+    "width": 3840,
+    "height": 2160,
+    "fps": 30,
+    "subtitle_font_size": 48,
+    "subtitle_bottom_margin": 96
+  },
   "narration": {
     "script": "res://content/narration/s01e06-earth-quasi-satellite.txt",
     "subtitle_script": "res://content/subtitles/s01e06-earth-quasi-satellite.srt",
@@ -21,15 +27,13 @@
     "pitch": 0,
     "timing_mode": "beats",
     "subtitle_replacements": [
-      {"from": "2016 HO3附近", "to": "2016 HO3 附近"},
       {"from": "百分之二", "to": " 2%"},
-      {"from": "二〇一〇到二〇五〇年", "to": " 2010–2050 年"},
+      {"from": "二〇一〇到二〇五〇年", "to": " 2010 年到 2050 年"},
       {"from": "一比一共轨共振", "to": " 1:1 共轨共振"},
-      {"from": "上百千米", "to": " >100 km "},
-      {"from": "千米量级", "to": " km 量级"}
+      {"from": "超过一百千米", "to": "超过 100 km "}
     ],
     "subtitle_type": "sentence",
-    "pronunciations": []
+    "pronunciations": ["同行/(tong2)(xing2)"]
   },
   "simulation": {
     "model": "orbital_companion",
@@ -37,11 +41,11 @@
     "tick_rate": 120
   },
   "story": {
-    "question_sec": 28.0,
-    "explain_sec": 102.0,
-    "setup_sec": 21.0,
-    "flight_sec": 37.0,
-    "compare_sec": 37.0,
+    "question_sec": 13.3,
+    "explain_sec": 58.8,
+    "setup_sec": 11.0,
+    "flight_sec": 25.4,
+    "compare_sec": 13.8,
     "primary_metric": "loop_closure_au",
     "metric_label": "一年后相对轨迹闭合误差",
     "metric_unit": "AU",
@@ -53,9 +57,9 @@
     "goal": "min",
     "show_target": false,
     "brand": {
-      "intro_stinger_at_sec": 16.0,
+      "intro_stinger_at_sec": 11.5,
       "show_outro": true,
-      "outro_at_sec": 221.0,
+      "outro_at_sec": 118.3,
       "outro_takeaway": "",
       "outro_descriptor": "SLINGSHOT PHYSICS",
       "outro_large": true
@@ -63,18 +67,17 @@
     "conclusion": "准卫星的环形外观来自共转参考系；它的主要轨道中心仍是太阳，长期伴随则需要一比一共轨共振。"
   },
   "beats": [
-    {"id":"cold-open","label":"地球旁的闭合环","phase":"QUESTION","at":0.0,"duration":16.0,"shot":"earth-fixed-loop","mode":"immersive","camera_action":"establish","camera_reason":"let the apparent Earth-centered loop establish itself before naming the reference frame","intent":"observe-apparent-earth-loop","primary_subject":"asteroid-relative-loop","layers":["world","subjects","trajectories","identity","subtitle"],"chapter":true},
-    {"id":"brand-gate","label":"品牌门槛","phase":"QUESTION","at":16.0,"duration":12.0,"shot":"orbit-brand-stinger","mode":"immersive","camera_action":"hold","camera_reason":"preserve the faint loop as a visual bridge into the series identity","intent":"identify-series-after-hook","primary_subject":"brand-and-orbit-loop","layers":["world","identity","subtitle"]},
-    {"id":"tianwen-arrival","label":"天问二号抵达目标","phase":"SETUP","at":28.0,"duration":21.0,"shot":"tianwen-arrival-data","mode":"measurement","camera_action":"reframe","camera_reason":"anchor the abstract orbit question in the current mission without using a news screenshot","intent":"connect-current-mission-to-target","primary_subject":"tianwen-2-and-2016-ho3","layers":["world","subjects","annotations","subtitle"],"chapter":true},
-    {"id":"earth-frame","label":"地球参考系里的环","phase":"EXPLAIN","at":49.0,"duration":19.0,"shot":"earth-rotating-frame","mode":"measurement","camera_action":"reframe","camera_reason":"hold Earth fixed so the relative path and rotating axes can be read together","intent":"establish-earth-rotating-frame","primary_subject":"relative-orbit","layers":["world","subjects","trajectories","annotations","subtitle"],"chapter":true},
-    {"id":"sun-reveal","label":"回到太阳参考系","phase":"EXPLAIN","at":68.0,"duration":20.0,"shot":"sun-frame-reveal","mode":"measurement","camera_action":"reframe","camera_reason":"retain object identity while restoring Earth's solar motion and exposing the heliocentric orbit","intent":"reveal-heliocentric-motion","primary_subject":"earth-and-asteroid-around-sun","layers":["world","subjects","trajectories","annotations","subtitle"]},
-    {"id":"speed-change","label":"内侧更快外侧更慢","phase":"EXPLAIN","at":88.0,"duration":23.0,"shot":"solar-distance-speed","mode":"measurement","camera_action":"hold","camera_reason":"bind solar distance and orbital speed to the same moving asteroid state","intent":"connect-distance-to-relative-drift","primary_subject":"asteroid-solar-state","layers":["world","subjects","trajectories","annotations","subtitle"]},
-    {"id":"same-state-two-frames","label":"同一状态两种轨迹","phase":"EXPLAIN","at":111.0,"duration":18.0,"shot":"reference-frame-split","mode":"measurement","camera_action":"reframe","camera_reason":"place inertial and co-rotating coordinates side by side to show that only the coordinate description changes","intent":"prove-coordinate-transform","primary_subject":"same-asteroid-two-frames","layers":["world","subjects","trajectories","annotations","subtitle"],"chapter":true},
-    {"id":"resonance-boundary","label":"周期接近与长期共振","phase":"EXPLAIN","at":129.0,"duration":22.0,"shot":"closed-versus-drifting","mode":"measurement","camera_action":"reframe","camera_reason":"compare equal-period closure with a two-percent drift before stating the missing dynamical layer","intent":"separate-kinematic-loop-from-resonance","primary_subject":"co-orbital-and-drifting-control","layers":["world","subjects","trajectories","annotations","subtitle"]},
-    {"id":"moon-comparison","label":"准卫星为什么不是月亮","phase":"COMPARE","at":151.0,"duration":23.0,"shot":"moon-versus-quasi-satellite","mode":"measurement","camera_action":"reframe","camera_reason":"use two explicitly different scales to compare the primary orbit centers without implying equal distances","intent":"distinguish-bound-satellite-from-quasi-satellite","primary_subject":"moon-and-quasi-satellite","layers":["world","subjects","trajectories","annotations","subtitle"],"chapter":true},
-    {"id":"rendezvous","label":"交会匹配位置与速度","phase":"FLIGHT","at":174.0,"duration":22.0,"shot":"rendezvous-state-match","mode":"measurement","camera_action":"track","camera_reason":"follow the probe while position and velocity vectors converge at the future meeting point","intent":"explain-rendezvous-state-matching","primary_subject":"probe-and-asteroid-state-vectors","layers":["world","subjects","annotations","subtitle"],"chapter":true},
-    {"id":"optical-navigation","label":"光学导航收缩误差","phase":"FLIGHT","at":196.0,"duration":15.0,"shot":"optical-navigation-uncertainty","mode":"measurement","camera_action":"hold","camera_reason":"keep the target fixed while the uncertainty region shrinks with successive observations","intent":"show-ephemeris-refinement","primary_subject":"uncertainty-ellipse","layers":["world","subjects","annotations","subtitle"]},
-    {"id":"science-close","label":"回到近距离科学","phase":"COMPARE","at":211.0,"duration":14.0,"shot":"asteroid-science-close","mode":"immersive","camera_action":"reframe","camera_reason":"clear the coordinate overlays and return to the mission's physical target for the final question","intent":"connect-orbit-understanding-to-sample-science","primary_subject":"tianwen-2-and-asteroid","layers":["world","subjects","identity","headline","subtitle"]}
+    {"id":"cold-open","label":"地球旁的闭合环","phase":"QUESTION","at":0.0,"duration":11.5,"shot":"earth-fixed-loop","mode":"immersive","camera_action":"establish","camera_reason":"let the apparent Earth-centered loop establish itself before naming the reference frame","intent":"observe-apparent-earth-loop","primary_subject":"asteroid-relative-loop","layers":["world","subjects","trajectories","subtitle"],"chapter":true},
+    {"id":"brand-gate","label":"品牌门槛","phase":"QUESTION","at":11.5,"duration":1.8,"shot":"orbit-brand-stinger","mode":"immersive","camera_action":"hold","camera_reason":"preserve the faint loop as a visual bridge into the series identity","intent":"identify-series-after-hook","primary_subject":"brand-and-orbit-loop","layers":["world","identity","subtitle"]},
+    {"id":"earth-frame","label":"地球参考系里的环","phase":"EXPLAIN","at":13.3,"duration":7.0,"shot":"earth-rotating-frame","mode":"measurement","camera_action":"hold","camera_reason":"continue the brand Earth view with one continuous ephemeris interval","intent":"establish-earth-rotating-frame","primary_subject":"relative-orbit","layers":["world","subjects","trajectories","annotations","subtitle"],"chapter":true},
+    {"id":"sun-reveal","label":"回到太阳参考系","phase":"EXPLAIN","at":20.3,"duration":9.6,"shot":"sun-frame-reveal","mode":"measurement","camera_action":"reframe","camera_reason":"continue the same Julian date and camera state while revealing the Sun","intent":"reveal-heliocentric-motion","primary_subject":"earth-and-asteroid-around-sun","layers":["world","subjects","trajectories","annotations","subtitle"]},
+    {"id":"speed-change","label":"内侧更快外侧更慢","phase":"EXPLAIN","at":29.9,"duration":13.0,"shot":"solar-distance-speed","mode":"measurement","camera_action":"hold","camera_reason":"bind solar distance and orbital speed to the same moving asteroid state","intent":"connect-distance-to-relative-drift","primary_subject":"asteroid-solar-state","layers":["world","subjects","trajectories","annotations","subtitle"]},
+    {"id":"same-state-two-frames","label":"同一状态两种轨迹","phase":"EXPLAIN","at":42.9,"duration":9.5,"shot":"reference-frame-split","mode":"measurement","camera_action":"reframe","camera_reason":"place inertial and co-rotating coordinates side by side to show that only the coordinate description changes","intent":"prove-coordinate-transform","primary_subject":"same-asteroid-two-frames","layers":["world","subjects","trajectories","annotations","subtitle"],"chapter":true},
+    {"id":"resonance-boundary","label":"周期接近与长期共振","phase":"EXPLAIN","at":52.4,"duration":19.7,"shot":"closed-versus-drifting","mode":"measurement","camera_action":"reframe","camera_reason":"compare equal-period closure with a two-percent drift before stating the missing dynamical layer","intent":"separate-kinematic-loop-from-resonance","primary_subject":"co-orbital-and-drifting-control","layers":["world","subjects","trajectories","annotations","subtitle"]},
+    {"id":"moon-comparison","label":"准卫星为什么不是月亮","phase":"COMPARE","at":72.1,"duration":11.0,"shot":"moon-versus-quasi-satellite","mode":"measurement","camera_action":"reframe","camera_reason":"use two explicitly different scales to compare the primary orbit centers without implying equal distances","intent":"distinguish-bound-satellite-from-quasi-satellite","primary_subject":"moon-and-quasi-satellite","layers":["world","subjects","trajectories","annotations","subtitle"],"chapter":true},
+    {"id":"rendezvous","label":"交会匹配位置与速度","phase":"FLIGHT","at":83.1,"duration":11.4,"shot":"rendezvous-state-match","mode":"measurement","camera_action":"track","camera_reason":"follow the probe while position and velocity vectors converge at the future meeting point","intent":"explain-rendezvous-state-matching","primary_subject":"probe-and-asteroid-state-vectors","layers":["world","subjects","annotations","subtitle"],"chapter":true},
+    {"id":"optical-navigation","label":"光学导航收缩误差","phase":"FLIGHT","at":94.5,"duration":14.0,"shot":"optical-navigation-uncertainty","mode":"measurement","camera_action":"hold","camera_reason":"keep the target fixed while the uncertainty region shrinks with successive observations","intent":"show-ephemeris-refinement","primary_subject":"uncertainty-ellipse","layers":["world","subjects","annotations","subtitle"]},
+    {"id":"science-close","label":"回到近距离科学","phase":"COMPARE","at":108.5,"duration":13.8,"shot":"asteroid-science-close","mode":"immersive","camera_action":"reframe","camera_reason":"clear the coordinate overlays and return to the mission's physical target for the final question","intent":"connect-orbit-understanding-to-sample-science","primary_subject":"tianwen-2-and-asteroid","layers":["world","subjects","identity","subtitle"]}
   ],
   "variants": [
     {"id":"co-orbital","label":"2016 HO3 真实星历","color":"#F08A55","overrides":{"scene.data_mode":"horizons"}},

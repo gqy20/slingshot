@@ -53,7 +53,7 @@
     "explain_sec": 51.0,
     "setup_sec": 30.0,
     "flight_sec": 60.0,
-    "compare_sec": 50.0,
+    "compare_sec": 54.0,
     "primary_metric": "arrival_time_sec",
     "metric_label": "到达时间",
     "metric_unit": "s",
@@ -64,7 +64,14 @@
     "show_episode_code": false,
     "goal": "min",
     "show_target": false,
-    "brand": {"intro_stinger_at_sec":11.55},
+    "brand": {
+      "intro_stinger_at_sec": 11.55,
+      "show_outro": true,
+      "outro_at_sec": 219.0,
+      "outro_takeaway": "",
+      "outro_descriptor": "SLINGSHOT PHYSICS",
+      "outro_large": true
+    },
     "explanation": {
       "kind": "derivation",
       "module": "track_race",
@@ -120,7 +127,7 @@
     {"id":"arrival-lock","label":"依次锁定到达时间","phase":"FLIGHT","at":154.0,"duration":15.0,"shot":"arrival-lock","mode":"measurement","camera_action":"hold","camera_reason":"preserve every arrival as a ranked marker after the moving balls share one endpoint","intent":"lock-arrival-order","primary_subject":"arrival-ranking","layers":["world","subjects","trajectories","annotations","subtitle"],"sfx":"result"},
     {"id":"distance-time-table","label":"路径长度与到达时间","phase":"COMPARE","at":169.0,"duration":19.0,"shot":"dual-metric-ranking","mode":"measurement","camera_action":"reframe","camera_reason":"replace the race geometry with a dedicated comparison table so labels and evidence never compete","intent":"compare-distance-and-arrival-time","primary_subject":"distance-time-ranking","layers":["annotations","subtitle"],"chapter":true},
     {"id":"cycloid-generation","label":"滚动圆生成摆线","phase":"COMPARE","at":188.0,"duration":19.0,"shot":"cycloid-construction","mode":"measurement","camera_action":"reframe","camera_reason":"replace the race with one rolling circle so the winning curve has a geometric origin","intent":"construct-cycloid","primary_subject":"rolling-circle-point","layers":["annotations","subtitle"]},
-    {"id":"model-boundary","label":"模型边界与下一个问题","phase":"COMPARE","at":207.0,"duration":12.0,"shot":"model-boundary","mode":"measurement","camera_action":"reframe","camera_reason":"return to the three tracks while separating the point-mass model from rolling friction and drag","intent":"state-track-model-boundary","primary_subject":"model-boundary-cards","layers":["world","annotations","subtitle"]}
+    {"id":"model-boundary","label":"模型边界、下一个问题与品牌片尾","phase":"COMPARE","at":207.0,"duration":16.0,"shot":"model-boundary","mode":"measurement","camera_action":"reframe","camera_reason":"return to the tracks, visualize the next release question, then clear the scene into a short brand outro","intent":"state-boundary-seed-next-question-and-close","primary_subject":"model-boundary-and-outro","layers":["world","subjects","annotations","identity","subtitle"]}
   ],
   "variants": [
     {"id":"line","label":"直线","color":"#7594B3","overrides":{"scene.track_kind":"line"}},

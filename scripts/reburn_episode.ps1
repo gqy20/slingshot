@@ -15,6 +15,19 @@ $episodePath = (Resolve-Path -LiteralPath $Episode).Path
 $config = Get-Content -Raw -Encoding UTF8 $episodePath | ConvertFrom-Json
 $episodeName = [string]$config.id
 $episodePaths = Get-SlingshotEpisodePaths $episodeName
+$videoConfig = $config.video
+if (-not $PSBoundParameters.ContainsKey('SubtitleFontSize') -and $videoConfig.PSObject.Properties['subtitle_font_size']) {
+    $SubtitleFontSize = [int]$videoConfig.subtitle_font_size
+}
+if (-not $PSBoundParameters.ContainsKey('SubtitleBottomMargin') -and $videoConfig.PSObject.Properties['subtitle_bottom_margin']) {
+    $SubtitleBottomMargin = [int]$videoConfig.subtitle_bottom_margin
+}
+if ($SubtitleFontSize -lt 24 -or $SubtitleFontSize -gt 64) {
+    throw "video.subtitle_font_size must be between 24 and 64: $SubtitleFontSize"
+}
+if ($SubtitleBottomMargin -lt 30 -or $SubtitleBottomMargin -gt 180) {
+    throw "video.subtitle_bottom_margin must be between 30 and 180: $SubtitleBottomMargin"
+}
 $CleanMaster = if ($CleanMaster) { $CleanMaster } else { $episodePaths.PictureCleanMaster }
 $Output = if ($Output) { $Output } else { $episodePaths.ProgramMaster }
 $cleanMasterPath = (Resolve-Path -LiteralPath $CleanMaster).Path

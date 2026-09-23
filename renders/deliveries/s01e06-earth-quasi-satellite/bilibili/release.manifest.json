@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "episode_id": "s01e06-earth-quasi-satellite",
+  "platform": "bilibili",
+  "packaged_at_utc": "2026-09-20T07:20:31.8711658Z",
+  "recommended_title": "【物理实验室】天问二号拍到的小行星：看似绕地球，为什么主要绕太阳？",
+  "publication_status": "awaiting_external_image_rights_review",
+  "primary_files": {
+    "video": {
+      "path": "video.mp4",
+      "bytes": 43966302,
+      "sha256": "7864da4d9f4737d6508738ccb6284c7707b639b47a9d64fc651799aea96ea5d6",
+      "width": 3840,
+      "height": 2160,
+      "fps": 30,
+      "duration_sec": 122.3,
+      "video_codec": "h264",
+      "audio_codec": "aac",
+      "audio_sample_rate_hz": 48000
+    },
+    "cover": {
+      "path": "cover.png",
+      "bytes": 219876,
+      "sha256": "24f6a7df08091834337bb9b58a047151d4b05a88f556273e17102752b3b99ef3",
+      "width": 1146,
+      "height": 717,
+      "direction": "ep06-cover-b-orbits-the-sun"
+    },
+    "publishing_copy": {
+      "path": "publish-copy.md",
+      "sha256": "11f2ef428db3e5fc1ffe0cf1537577c3217ff8ff221f77ca285f52ef98f0b755"
+    }
+  },
+  "supporting_files": [
+    "extras/cover-master-4584x2868.png",
+    "extras/cover-preview-320x200.png",
+    "extras/cover.manifest.json",
+    "extras/video-render.manifest.txt",
+    "extras/narration.manifest.txt",
+    "extras/subtitles-source.srt"
+  ]
+}

@@ -264,33 +264,48 @@ foreach ($episodeInput in $Episode) {
                     $segmentMp3 = Join-Path $tempDir ('beat-{0:d2}.mp3' -f $index)
                     $segmentSrt = Join-Path $tempDir ('beat-{0:d2}.srt' -f $index)
                     $segmentWav = Join-Path $tempDir ('beat-{0:d2}.wav' -f $index)
-                    Write-SlingshotUtf8 $segmentText $paragraphs[$index]
-                    $arguments = @('speech', 'synthesize', '--text-file', $segmentText, '--model', $model,
-                        '--voice', [string]$narration.voice, '--speed', $speed, '--volume', $volume,
-                        '--pitch', $pitch, '--language', $language, '--format', 'mp3', '--sample-rate',
-                        '32000', '--bitrate', '128000', '--channels', '1', '--subtitles', '--out', $segmentMp3,
-                        '--non-interactive', '--quiet', '--output', 'json')
-                    if ($narration.PSObject.Properties['pronunciations']) {
-                        foreach ($pronunciation in @($narration.pronunciations)) {
-                            $arguments += @('--pronunciation', [string]$pronunciation)
-                        }
-                    }
-                    & $mmx @arguments
-                    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $segmentMp3) -or -not (Test-Path $segmentSrt)) {
-                        throw "mmx beat narration generation failed for $stem beat $($beats[$index].id)"
-                    }
-                    $segmentDuration = [double]((& $ffprobe -v error -show_entries format=duration `
-                        -of default=nw=1:nk=1 $segmentMp3).Trim())
                     $beatDuration = [double]$beats[$index].duration
-                    if ($segmentDuration -gt $beatDuration - 0.1) {
-                        throw "Narration beat $($beats[$index].id) is ${segmentDuration}s but only ${beatDuration}s is available"
+                    if ($paragraphs[$index] -eq '[无旁白]') {
+                        $segmentDuration = 0.0
+                        & $ffmpeg -y -loglevel error -f lavfi -i 'anullsrc=r=32000:cl=mono' `
+                            -t $beatDuration -ar 32000 -ac 1 -c:a pcm_s16le $segmentWav
+                        if ($LASTEXITCODE -ne 0) { throw "Failed to create silent beat $($beats[$index].id)" }
+                    } else {
+                        Write-SlingshotUtf8 $segmentText $paragraphs[$index]
+                        $arguments = @('speech', 'synthesize', '--text-file', $segmentText, '--model', $model,
+                            '--voice', [string]$narration.voice, '--speed', $speed, '--volume', $volume,
+                            '--pitch', $pitch, '--language', $language, '--format', 'mp3', '--sample-rate',
+                            '32000', '--bitrate', '128000', '--channels', '1', '--subtitles', '--out', $segmentMp3,
+                            '--non-interactive', '--quiet', '--output', 'json')
+                        if ($narration.PSObject.Properties['pronunciations']) {
+                            foreach ($pronunciation in @($narration.pronunciations)) {
+                                $arguments += @('--pronunciation', [string]$pronunciation)
+                            }
+                        }
+                        $generated = $false
+                        for ($attempt = 1; $attempt -le 3; $attempt++) {
+                            & $mmx @arguments
+                            if ($LASTEXITCODE -eq 0 -and (Test-Path $segmentMp3) -and (Test-Path $segmentSrt)) {
+                                $generated = $true
+                                break
+                            }
+                            if ($attempt -lt 3) { Start-Sleep -Seconds (2 * $attempt) }
+                        }
+                        if (-not $generated) {
+                            throw "mmx beat narration generation failed for $stem beat $($beats[$index].id)"
+                        }
+                        $segmentDuration = [double]((& $ffprobe -v error -show_entries format=duration `
+                            -of default=nw=1:nk=1 $segmentMp3).Trim())
+                        if ($segmentDuration -gt $beatDuration - 0.1) {
+                            throw "Narration beat $($beats[$index].id) is ${segmentDuration}s but only ${beatDuration}s is available"
+                        }
+                        & $ffmpeg -y -loglevel error -i $segmentMp3 -af apad -t $beatDuration `
+                            -ar 32000 -ac 1 -c:a pcm_s16le $segmentWav
+                        if ($LASTEXITCODE -ne 0) { throw "Failed to pad narration beat $($beats[$index].id)" }
+                        Add-SrtSegment $subtitleEntries $segmentSrt ([double]$beats[$index].at) $beatDuration
                     }
-                    & $ffmpeg -y -loglevel error -i $segmentMp3 -af apad -t $beatDuration `
-                        -ar 32000 -ac 1 -c:a pcm_s16le $segmentWav
-                    if ($LASTEXITCODE -ne 0) { throw "Failed to pad narration beat $($beats[$index].id)" }
                     $concatPath = $segmentWav.Replace('\', '/')
                     $concatLines += "file '$concatPath'"
-                    Add-SrtSegment $subtitleEntries $segmentSrt ([double]$beats[$index].at) $beatDuration
                     $beatTimingLines += "beat_$($beats[$index].id)_speech_sec=$segmentDuration"
                     $beatTimingLines += "beat_$($beats[$index].id)_slot_sec=$beatDuration"
                 }

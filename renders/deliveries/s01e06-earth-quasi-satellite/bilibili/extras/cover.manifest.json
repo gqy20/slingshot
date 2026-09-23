@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "episode_id": "s01e06-earth-quasi-satellite",
+  "platform": "bilibili",
+  "recommended": "ep06-cover-b-orbits-the-sun",
+  "alternate": "ep06-cover-a-not-a-moon",
+  "design_size": "2292x1434",
+  "exports": [
+    "4584x2868 master",
+    "1146x717 bilibili",
+    "320x200 mobile preview",
+    "1920x1080 social"
+  ],
+  "source": "assets/video/celestial/sources/earth_blue_marble_2048.jpg",
+  "source_credit": "NASA Earth Observatory — Blue Marble: Next Generation",
+  "source_url": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/",
+  "accuracy_note": "The orange Earth-fixed loop is an editorial schematic, not a to-scale orbit or mission trajectory.",
+  "cnsa_photo_used": false
+}

@@ -2,7 +2,7 @@
 param(
     [switch]$UpdateBaselines,
     [switch]$ShowRenderWindow,
-    [ValidateSet('projectile', 'impact', 'track')][string[]]$Domain = @()
+    [ValidateSet('projectile', 'impact', 'track', 'orbital')][string[]]$Domain = @()
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -49,7 +49,8 @@ $tempRoot = New-SlingshotRenderTempDirectory -Kind 'visual-regression'
 $cases = @(
     @{ Episode = 'content\episodes\s01e03-angle-with-drag.json'; Prefix = 'projectile' },
     @{ Episode = 'content\episodes\s01e04-impact-force-curve.json'; Prefix = 'impact' },
-    @{ Episode = 'content\episodes\s01e05-shortest-is-not-fastest.json'; Prefix = 'track' }
+    @{ Episode = 'content\episodes\s01e05-shortest-is-not-fastest.json'; Prefix = 'track' },
+    @{ Episode = 'content\episodes\s01e06-earth-quasi-satellite.json'; Prefix = 'orbital' }
 )
 $keyframeCount = 0
 
@@ -121,6 +122,32 @@ foreach ($case in $cases) {
 				@{ Name = 'flight-all-arrived'; Seconds = & $toVideoTime ([Math]::Min($simulationDuration, $arrivals[-1] + 0.08)) }
 			)
 		}
+	} elseif ($case.Prefix -eq 'orbital') {
+		$beatMidpoint = {
+			param([string]$BeatId)
+			$beat = $config.beats | Where-Object { [string]$_.id -eq $BeatId } | Select-Object -First 1
+			if ($null -eq $beat) { throw "Orbital visual beat not found: $BeatId" }
+			[double]$beat.at + 0.5 * [double]$beat.duration
+		}
+		$beatAtProgress = {
+			param([string]$BeatId, [double]$Progress)
+			$beat = $config.beats | Where-Object { [string]$_.id -eq $BeatId } | Select-Object -First 1
+			if ($null -eq $beat) { throw "Orbital visual beat not found: $BeatId" }
+			[double]$beat.at + $Progress * [double]$beat.duration
+		}
+		$moments += @(
+			@{ Name = 'beat-cold-open'; Seconds = & $beatMidpoint 'cold-open' },
+			@{ Name = 'beat-earth-frame'; Seconds = & $beatMidpoint 'earth-frame' },
+			@{ Name = 'beat-sun-reveal'; Seconds = & $beatMidpoint 'sun-reveal' },
+			@{ Name = 'beat-speed-change'; Seconds = & $beatMidpoint 'speed-change' },
+			@{ Name = 'beat-reference-frames'; Seconds = & $beatAtProgress 'same-state-two-frames' 0.72 },
+			@{ Name = 'beat-resonance'; Seconds = & $beatMidpoint 'resonance-boundary' },
+			@{ Name = 'beat-moon-comparison'; Seconds = & $beatMidpoint 'moon-comparison' },
+			@{ Name = 'beat-rendezvous'; Seconds = & $beatMidpoint 'rendezvous' },
+			@{ Name = 'beat-optical-navigation'; Seconds = & $beatMidpoint 'optical-navigation' },
+			@{ Name = 'beat-science-close'; Seconds = & $beatAtProgress 'science-close' 0.58 },
+			@{ Name = 'beat-outro'; Seconds = & $beatAtProgress 'science-close' 0.90 }
+		)
 	}
 	foreach ($moment in $moments) {
 		$keyframeCount += 1

@@ -29,7 +29,7 @@ func run(test) -> void:
 		var episode: Dictionary = episode_result["episode"]
 		test.check(String(episode["story"].get("identity_label", "")) == "最速降线实验", "S01E05 uses the formal experiment name")
 		test.check(not bool(episode["story"].get("show_episode_code", true)), "S01E05 opening identity omits the production episode code")
-		test.check_close(float(episode["duration_sec"]), 219.0, 1.0e-6, "S01E05 content-driven cut is three minutes thirty-nine seconds")
+		test.check_close(float(episode["duration_sec"]), 223.0, 1.0e-6, "S01E05 content-driven cut is three minutes forty-three seconds")
 		test.check(episode["beats"].size() == 14, "S01E05 materializes fourteen production beats")
 		test.check(String(episode["beats"][9]["id"]) == "finish-slow-motion", "S01E05 reserves a dedicated honest finish replay")
 		var formula_steps: Array = episode["story"]["explanation"]["steps"]

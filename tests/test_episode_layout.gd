@@ -180,8 +180,8 @@ func run(t) -> void:
 			"res://content/subtitles/s01e05-shortest-is-not-fastest.srt"
 		)
 		t.check(
-			final_subtitles.contains("小球是否会同时到达最低点？"),
-			"track episode closes with a complete causal question"
+			final_subtitles.contains("它们会不会一起到达最低点呢？"),
+			"track episode closes with a conversational causal question"
 		)
 	for beat_id in [
 		"distance-is-not-time", "energy-drop", "time-integral",
